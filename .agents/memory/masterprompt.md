@@ -1,34 +1,67 @@
 ---
-name: VibeCoreLiv3 MASTERPROMPT
-description: Supreme Architect governing rules — 15-specialist panel, 5-second rule, One Touch, Workflow First, AI-as-partner, DSP quality standards. All decisions must pass these filters.
+name: VibeCoreLiv3 MASTERPROMPT v2.0
+description: Supreme Architect governing rules — 15-specialist panel, 8 mandatory gates, Golden Rule. Every implementation must pass all 8 gates before a single line of code is written.
 ---
 
-# VibeCoreLiv3 MASTERPROMPT — Summary for Agent
+# VibeCoreLiv3 MASTERPROMPT v2.0 — Agent Reference
 
-## Non-negotiable rules (apply before every implementation decision)
+## The Golden Rule
+> Every technical decision serves one purpose only: to accelerate the musician's creative flow.
+> The creative flow is the product — not the code, not the AI, not the DSP engine.
 
-1. **5-Second Rule** — after app start, the user must be able to: create a drum groove, play bass, record a pattern, change an effect, start a performance. All within 5 seconds. No tutorials needed.
+## The 8 Mandatory Gates (ALL must be green before implementation)
 
-2. **Workflow First gate** — before implementing any feature, answer all 5:
-   - Musikalisch sinnvoll? Reduziert Arbeit? Intuitiv? Ohne Erklärung verständlich? Erhöht kreativen Flow?
-   - If any answer is NO → rework or drop the feature.
+### Gate 1 — Workflow Gate
+5 questions, all must be YES:
+- Musikalisch sinnvoll? · Reduziert Arbeit? · Intuitiv? · Ohne Erklärung verständlich? · Erhöht kreativen Flow?
 
-3. **One Touch Philosophy** — max 1 touch for common actions, absolute ceiling 2 interactions. No multi-step dialogs.
+### Gate 2 — Performance Gate
+- Audio latency within budget · UI stays smooth · No audio dropouts · Minimal memory increase · CPU within limits
 
-4. **No creative disruption** — zero blocking dialogs, popups, or confirmations during production.
+### Gate 3 — Audio Quality Gate
+- No signal degradation · Sample-accurate sync · Deterministic behavior · No clipping artifacts · No phase errors · No uncontrolled level jumps
 
-5. **AI is invisible partner** — contextual, never a chatbot. Only surfaces suggestions when they improve the creative process. All suggestions are musically explainable and always editable.
+### Gate 4 — AI Gate
+5 questions, all must be YES:
+- Supports creative process? · Saves time? · Learns from user decisions? · User stays in control at all times? · Every suggestion explainable and editable?
 
-6. **DSP quality order of priority**: max quality → min latency → deterministic → low CPU → stable realtime.
+### Gate 5 — Simplicity Gate
+- Complexity is ONLY allowed internally — never in the UI
+- Visible complexity = design failure
 
-7. **UI = high-end hardware feeling** — large controls, direct feedback, clear hierarchy, single purpose per element.
+### Gate 6 — Tomorrow Sound Gate
+4 questions, all must be YES:
+- Makes the sound more modern? · Opens new creative possibilities? · Differentiates VibeCore from existing DAWs? · Supports "sound of tomorrow" vision?
 
-8. **Strict module separation** — Sync / Groove / Remix / Voice / Sample Forge / FX Lab / Synth / Bass / AI / Brainwavez communicate only through defined interfaces.
+### Gate 7 — Learning AI Gate
+- AI learns continuously from musical decisions, sounds, patterns, grooves, arrangements, mix choices, performance gestures
+- Adapts suggestions to individual style WITHOUT taking over creative decisions
+- Control remains with the user at ALL times
 
-9. **QA gate before any feature lands** — architecture, performance, workflow, audio quality, memory, CPU, mobile perf, UX, accessibility, testability, maintainability, extensibility must all pass.
+### Gate 8 — Instant Music Gate
+- User must be able to create their first musical loop within 5 seconds of launch
+- No registration, no configuration, no setup, no tutorials
+- Any feature that slows or blocks this path is immediately reworked
 
-## Decision panel
-Every architectural decision is evaluated from the perspective of all 15 specialists (Audio Director, Sound Designer, Audio Engine, DSP, Hardware Audio, Acoustic, QA, Audio Tools, UX/Workflow, Product Vision, Software System, UI, AI/ML, DevOps/Reliability, Legal/Ethics). Consensus required.
+## Gate Checklist (apply before every implementation)
+```
+[ ] Gate 1 — Workflow Gate
+[ ] Gate 2 — Performance Gate
+[ ] Gate 3 — Audio Quality Gate
+[ ] Gate 4 — AI Gate
+[ ] Gate 5 — Simplicity Gate
+[ ] Gate 6 — Tomorrow Sound Gate
+[ ] Gate 7 — Learning AI Gate
+[ ] Gate 8 — Instant Music Gate
+```
+All 8 green → implementation approved. One red → stop, rework, re-check.
 
-## Where to find the full document
-`MASTERPROMPT.md` in the project root.
+## Other non-negotiable rules
+- One Touch Philosophy: max 1 touch for common actions, ceiling 2 interactions, no multi-step dialogs
+- No creative disruption: zero blocking dialogs, popups, or confirmations during production
+- Module isolation: Sync / Groove / Remix / Voice / Sample Forge / FX Lab / Synth / Bass / AI / Brainwavez — interfaces only
+- DSP priority order: max quality → min latency → deterministic → low CPU → stable realtime
+- UI = high-end hardware feeling: large controls, direct feedback, single purpose per element
+
+## Full document
+`MASTERPROMPT.md` in the project root (v2.0).
