@@ -184,15 +184,6 @@ export function SyncTab() {
         </p>
       </div>
 
-      <div className="panel p-3 space-y-1.5 font-mono text-[10px]">
-        <Row label="STATUS" value={s.running ? `RUNNING · ${s.inputKind?.toUpperCase()}` : "IDLE"} />
-        <Row label="DETECTED BPM" value={s.bpm ? s.bpm.toFixed(1) : "—"} />
-        <Row label="CONFIDENCE" value={`${Math.round(s.confidence * 100)} %`} />
-        <Row label="BEATS" value={String(s.beats)} />
-        <Row label="LEVEL" value={`${Math.round(s.level * 100)} %`} />
-        {s.error && <Row label="ERROR" value={s.error} tone="error" />}
-      </div>
-
       <div className="font-mono text-[9px] text-muted-foreground text-center">
         Adaptive · spectral-flux onset → autocorrelated tempo → PLL phase lock.
       </div>

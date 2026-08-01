@@ -59,7 +59,12 @@ interface FxBus {
   input: GainNode;       // dry-in from part sends
   output: GainNode;      // wet signal tap (post-FX, pre boost/wet)
   boost: GainNode;       // perceptual boost (0..+12 dB), feeds wet
-  wet: GainNode;         // wet level → masterIn
+  wet: GainNode;         // wet level → busLevel
+  /** Dedicated channel-level node (store volume + mute).
+   *  Sits between wet and masterIn and is NEVER written by applyAllParams()
+   *  or FX-param updates (those go to `boost` only). This guarantees that
+   *  setBusChannelLevel() values survive any subsequent applyAllParams() call. */
+  busLevel: GainNode;    // busLevel → masterIn
   analyser: AnalyserNode;
   meterBuf: Float32Array<ArrayBuffer>;
   nodes: AudioNode[];
@@ -208,6 +213,22 @@ export async function ensureAudio(): Promise<AudioContext> {
     buildFxBuses();
     buildAllPartChains();
     applyAllParams();
+    // Restore persisted bus routing immediately after graph construction.
+    // bindParamUpdates() subscriptions only fire on *future* store mutations;
+    // they will not re-apply routing that was already saved in the store when
+    // this AudioContext was created (e.g. after a page reload or AudioContext
+    // recreation).  Call explicitly here so saved assignments and bus levels
+    // are always reflected from the very first audio frame.
+    {
+      const initS = useGroove.getState();
+      const assignments = initS.partBusAssignments as Record<string, number | null>;
+      Object.entries(assignments).forEach(([pidStr, busIdx]) => {
+        routePartMainToBus(Number(pidStr), busIdx);
+      });
+      (initS.busLevels as { volume: number; mute: boolean }[]).forEach((b, i) => {
+        setBusChannelLevel(i, b.volume / 100, b.mute);
+      });
+    }
     startMeterLoop();
     await initGranularWorklet(ctx);
     const { startModulationLoop } = await import("./modulation");
@@ -854,13 +875,16 @@ function buildFxBuses() {
     const output = ctx.createGain();
     const boost = ctx.createGain(); boost.gain.value = 1;
     const wet = ctx.createGain(); wet.gain.value = 0;
+    // busLevel is the dedicated channel-level node (store volume + mute).
+    // It sits after wet so FX-param writes (boost) never reach it.
+    const busLevel = ctx.createGain(); busLevel.gain.value = 1;
     const analyser = ctx.createAnalyser(); analyser.fftSize = 128;
     const meterBuf = new Float32Array(new ArrayBuffer(analyser.fftSize * 4));
-    output.connect(boost).connect(wet).connect(masterIn);
+    output.connect(boost).connect(wet).connect(busLevel).connect(masterIn);
     // Meter taps the post-wet signal so bypass / mix / boost are reflected
     // truthfully in the per-slot output meter.
     wet.connect(analyser);
-    fxBuses[i] = { input, output, boost, wet, analyser, meterBuf, nodes: [], oscillators: [], type: null, update: null };
+    fxBuses[i] = { input, output, boost, wet, busLevel, analyser, meterBuf, nodes: [], oscillators: [], type: null, update: null };
     attachFx(i, state.fx[i]?.type ?? null, state.fx[i]?.params ?? {});
   }
 }
@@ -1837,9 +1861,10 @@ export function setBusChannelLevel(
   const bus = fxBuses[busIdx];
   if (!bus || !ctx) return;
   const target = mute ? 0 : Math.max(0, Math.min(4, volumeLinear));
-  // Use the bus boost node (post-FX gain stage) for volume so it stacks
-  // correctly with the per-FX "boost" control already exposed in FxTab.
-  bus.boost.gain.setTargetAtTime(target, ctx.currentTime, 0.02);
+  // Write to the dedicated busLevel node — never to boost.
+  // applyAllParams() only ever touches boost (FX perceptual-boost path),
+  // so channel-level/mute values set here are stable across audio-param updates.
+  bus.busLevel.gain.setTargetAtTime(target, ctx.currentTime, 0.02);
 }
 
 export function softStop(flushVoices = true): Promise<void> {
