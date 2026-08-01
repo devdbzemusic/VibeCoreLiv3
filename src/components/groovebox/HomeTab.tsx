@@ -47,16 +47,12 @@ const TILES: ModuleTile[] = [
     icon: Disc,    primaryTab: "SMPL",    color: "hsl(320 100% 60%)",
   },
   {
-    id: "FXLAB",   label: "FX Mix Lab",   description: "6-bus FX · Mixer · Mastering",
-    icon: Sliders, primaryTab: "FX",      color: "hsl(38 100% 58%)",
+    id: "FXLAB",   label: "FX Mix Lab",   description: "Mix · FX · Perform · Remix · 3D Matrix",
+    icon: Sliders, primaryTab: "MIX",     color: "hsl(38 100% 58%)",
   },
   {
     id: "VOICE",   label: "Voice",        description: "Vocoder · Harmoniser · Pitch",
     icon: Mic,     primaryTab: "VOICE",   color: "hsl(140 100% 55%)",
-  },
-  {
-    id: "REMIX",   label: "Remix",        description: "Scene chain · Performance controls",
-    icon: Shuffle, primaryTab: "REMIX",   color: "hsl(195 100% 55%)",
   },
   {
     id: "AI",      label: "AI",           description: "Co-create beats · Melodies · Stems",

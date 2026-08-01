@@ -41,9 +41,9 @@ const MODULE_NAMES: Partial<Record<TabKey, string>> = {
   SYNTH3D: "3D SYNTH",
   BASS3D:  "3D BASS",
   SMPL:    "SAMPLE FORGE",
-  FX:      "FX MIX LAB", MIX:  "FX MIX LAB", PROD: "FX MIX LAB",
+  FX:      "FX MIX LAB", MIX: "FX MIX LAB", PROD: "FX MIX LAB",
+  PERF:    "FX MIX LAB", REMIX: "FX MIX LAB",   // REMIX integrated into FX MIX LAB (SUPREMÉ)
   VOICE:   "VOICE",
-  REMIX:   "REMIX",   PERF:  "REMIX",
   AI:      "AI",
   BRN:     "WAVE",    SPC:   "WAVE",
   SETUP:   "SETTINGS", SYNC: "SETTINGS", DBG: "SETTINGS", LIB: "SETTINGS",

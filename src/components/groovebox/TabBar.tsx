@@ -54,21 +54,18 @@ const MODULES: ModuleDef[] = [
   { id: "BASS3D",  shortLabel: "BAS",  icon: Zap,     primaryTab: "BASS3D"  },
   { id: "FORGE",   shortLabel: "FRG",  icon: Disc,    primaryTab: "SMPL"    },
   {
-    id: "FXLAB",   shortLabel: "FX",   icon: Sliders, primaryTab: "FX",
+    // FX MIX LAB SUPREMÉ — 5 sub-tabs (REMIX fully integrated per MASTERPROMPT v1.0)
+    id: "FXLAB",   shortLabel: "FX",   icon: Sliders, primaryTab: "MIX",
     subTabs: [
-      { key: "FX",   label: "FX"   },
-      { key: "MIX",  label: "MIX"  },
-      { key: "PROD", label: "PROD" },
+      { key: "MIX",   label: "MIX"     },   // Channel strips · meters · routing
+      { key: "FX",    label: "FX"      },   // DSP nodes · insert/send/parallel
+      { key: "PERF",  label: "PERFORM" },   // XY Pad · Macros · Morph · Crossfader
+      { key: "REMIX", label: "REMIX"   },   // Beat Repeat · Stutter · Glitch · Looper
+      { key: "PROD",  label: "3D MTX"  },   // Psychoacoustic spatial matrix
     ],
   },
   { id: "VOICE",   shortLabel: "VOC",  icon: Mic,     primaryTab: "VOICE"   },
-  {
-    id: "REMIX",   shortLabel: "RMX",  icon: Shuffle, primaryTab: "REMIX",
-    subTabs: [
-      { key: "REMIX", label: "SCENE" },
-      { key: "PERF",  label: "PERF"  },
-    ],
-  },
+  // REMIX is no longer a standalone module — absorbed into FX MIX LAB (SUPREMÉ)
   { id: "AI",      shortLabel: "AI",   icon: Bot,     primaryTab: "AI"      },
   {
     id: "WAVE",    shortLabel: "WAVE", icon: Waves,   primaryTab: "BRN",
