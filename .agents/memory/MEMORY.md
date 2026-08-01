@@ -1,3 +1,4 @@
+- [Creative Workflow Constitution](creative-workflow-constitution.md) — SUPREMÉ DIRECTIVE 001: Workflow is Law; 11-phase flow; highest authority; no UI/arch/code without WORKFLOW APPROVED
 - [SonicArchitect architecture](sonic-architect-arch.md) — key engine/clock/store invariants that must be preserved across all edits
 - [VibeCore Univers SUPREMÉ](vibecore-univers-supreme.md) — TOP-LEVEL CONSTITUTION: 7 bands, the One Rule, SUPREMÉ APPROVED gate, all invariants. Supersedes all other docs on conflict.
 - [VibeCoreLiv3 MASTERPROMPT](masterprompt.md) — v5.0 workflow rules: DoR/DoD 10 criteria, 6 gates, One Touch, 5-sec rule — still valid under the Constitution

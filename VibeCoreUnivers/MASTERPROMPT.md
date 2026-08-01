@@ -4,6 +4,21 @@
 
 ---
 
+## OBERSTES FUNDAMENT — CREATIVE WORKFLOW CONSTITUTION
+
+→ **[CREATIVE_WORKFLOW_CONSTITUTION.md](CREATIVE_WORKFLOW_CONSTITUTION.md)**
+
+> **SUPREMÉ DIRECTIVE 001: Workflow is Law.**  
+> Die Implementierung wird aus der Benutzerführung abgeleitet — niemals umgekehrt.  
+> Kein Feature-Design ohne Phase-Zuordnung und Freigabe durch den Creative Master Workflow Senior SUPREMÉ Manager.
+
+Der Creative Flow folgt 11 Phasen:  
+`IDEE → GROOVE → BASS → HARMONIE → MELODIE → SOUND DESIGN → FX → LIVE PERFORMANCE → REMIX → ARRANGEMENT → EXPORT`
+
+Alle Bände, alle Architekturentscheidungen, alle UI-Designs ordnen sich diesem Weg unter.
+
+---
+
 ## SUPREMÉ EXECUTIVE RULE — WORKFLOW FIRST POLICY
 
 > **Der Workflow ist das Produkt.**

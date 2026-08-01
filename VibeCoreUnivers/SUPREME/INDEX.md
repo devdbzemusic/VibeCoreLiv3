@@ -6,6 +6,18 @@
 
 ---
 
+## OBERSTES FUNDAMENT — CREATIVE WORKFLOW CONSTITUTION
+
+→ **[../CREATIVE_WORKFLOW_CONSTITUTION.md](../CREATIVE_WORKFLOW_CONSTITUTION.md)**
+
+> **SUPREMÉ DIRECTIVE 001: Workflow is Law.**  
+> Autorität: Creative Master Workflow Senior SUPREMÉ Manager  
+> Kein Feature, kein UI-Design, keine Architekturentscheidung ohne Phase-Zuordnung und WORKFLOW APPROVED.
+
+11 Phasen: `IDEE → GROOVE → BASS → HARMONIE → MELODIE → SOUND DESIGN → FX → LIVE PERFORMANCE → REMIX → ARRANGEMENT → EXPORT`
+
+---
+
 ## OBERSTES GATE — WORKFLOW FIRST POLICY
 
 > **Der Workflow ist das Produkt.**
