@@ -30,6 +30,7 @@
     "src/lib/vcl3",
     "src/lib/ai",
     "src/hooks/use-toast.ts",
-    "src/workers"
+    "src/workers",
+    "src/**/__tests__/**"
   ]
 }

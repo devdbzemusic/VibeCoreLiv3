@@ -30,6 +30,21 @@ export type QualityLevel = "LOW" | "MEDIUM" | "HIGH";
 export type PsychoPresetName = "NEUTRAL" | "WARM" | "CRUNCH" | "HI_DEF";
 export type ChainMode = "IMMEDIATE" | "BOUNDARY";
 
+// ── AI activity log + global style (Band 8) ─────────────────────────────────
+export type AiStyle =
+  | "CLASSIC" | "MINIMAL" | "COMPLEX" | "ORGANIC"
+  | "DIGITAL" | "CINEMATIC" | "HYPNOTIC" | "GLITCH";
+
+export interface AiHistoryEntry {
+  id: string;
+  timestamp: number;
+  /** Human-readable label: "Generated groove", "Optimized synth", etc. */
+  action: string;
+  /** Module short-name: "GROOVE", "3D SYNTH", "3D BASS", "FX MIX LAB", etc. */
+  module: string;
+  description?: string;
+}
+
 // ── VibeCore Sync — transport extensions (Band 4 §6.1) ─────────────────────
 /** Quantise grid for transport transitions (queued pattern switch / seek). */
 export type QuantizeGrid = "off" | "1/16" | "1/8" | "1/4" | "1";
@@ -71,6 +86,8 @@ export interface TransportState {
   chain: number[];
   /** Enhanced Pattern Chain with per-step repeat counts, skip, markers. */
   chainSteps: ChainStep[];
+  /** Transition type applied between chainSteps[i] and chainSteps[i+1]. */
+  chainStepTransitions: string[];
   /** Current position inside `chainSteps` (transient — scheduler-managed). */
   chainPos?: number;
   /** Remaining repeats for the current chain step (transient). */
@@ -98,6 +115,7 @@ function emptyTransport(currentPattern = 0): TransportState {
     currentPattern,
     chain: [],
     chainSteps: [],
+    chainStepTransitions: [],
     chainPos: 0,
     chainRepeatLeft: 0,
     queuedPattern: null,
@@ -197,6 +215,7 @@ interface State {
   setChainStepMarker: (idx: number, marker: string) => void;
   clearChain: () => void;
   moveChainStep: (fromIdx: number, toIdx: number) => void;
+  setChainStepTransition: (idx: number, t: string) => void;
   // ── Pattern management ─────────────────────────────────────────────────
   copyPattern: (id: number) => number | null;
   duplicatePattern: (id: number) => number | null;
@@ -295,6 +314,13 @@ interface State {
   // ── Actions — ArpEngine ─────────────────────────────────────────────────
   setArp: (patch: Partial<ArpConfig>) => void;
   toggleArpStep: (idx: number) => void;
+
+  // ── AI activity log + global style (Band 8) ──────────────────────────────
+  aiHistory: AiHistoryEntry[];
+  aiStyle: AiStyle;
+  addAiHistoryEntry: (entry: Omit<AiHistoryEntry, "id" | "timestamp">) => void;
+  clearAiHistory: () => void;
+  setAiStyle: (s: AiStyle) => void;
 }
 
 const parts0 = buildDefaultParts();
@@ -373,6 +399,8 @@ export const useGroove = create<State>()(persist((set) => ({
   fxRouting: "hybrid",
   mod: buildDefaultMod(),
   arp: defaultArpConfig(),
+  aiHistory: [],
+  aiStyle: "CLASSIC" as AiStyle,
 
   // ── UI ───────────────────────────────────────────────────────────────────
   setTab: (t) => set({ tab: t }),
@@ -434,13 +462,24 @@ export const useGroove = create<State>()(persist((set) => ({
 
   // ── Pattern Chain (enhanced) ────────────────────────────────────────────
   setChainSteps: (steps) => set((s) => ({
-    transport: { ...s.transport, chainSteps: steps.slice(), chainPos: 0, chainRepeatLeft: 0 },
+    // Reset transitions when a whole new chain is applied (AI structure, etc.)
+    transport: {
+      ...s.transport,
+      chainSteps: steps.slice(),
+      chainStepTransitions: [],
+      chainPos: 0,
+      chainRepeatLeft: 0,
+    },
   })),
   addToChain: (patternId, repeat = 1) => set((s) => ({
     transport: { ...s.transport, chainSteps: [...s.transport.chainSteps, { patternId, repeat }] },
   })),
   removeFromChain: (idx) => set((s) => ({
-    transport: { ...s.transport, chainSteps: s.transport.chainSteps.filter((_, i) => i !== idx) },
+    transport: {
+      ...s.transport,
+      chainSteps: s.transport.chainSteps.filter((_, i) => i !== idx),
+      chainStepTransitions: (s.transport.chainStepTransitions ?? []).filter((_, i) => i !== idx),
+    },
   })),
   setChainStepRepeat: (idx, repeat) => set((s) => ({
     transport: {
@@ -461,14 +500,18 @@ export const useGroove = create<State>()(persist((set) => ({
     },
   })),
   clearChain: () => set((s) => ({
-    transport: { ...s.transport, chainSteps: [], chainPos: 0, chainRepeatLeft: 0 },
+    transport: { ...s.transport, chainSteps: [], chainStepTransitions: [], chainPos: 0, chainRepeatLeft: 0 },
   })),
   moveChainStep: (fromIdx, toIdx) => set((s) => {
     const steps = s.transport.chainSteps.slice();
     if (fromIdx < 0 || fromIdx >= steps.length || toIdx < 0 || toIdx >= steps.length) return {};
     const [moved] = steps.splice(fromIdx, 1);
     steps.splice(toIdx, 0, moved);
-    return { transport: { ...s.transport, chainSteps: steps } };
+    // Keep transitions aligned with reordered steps
+    const trans = [...(s.transport.chainStepTransitions ?? [])];
+    const [movedTrans] = trans.splice(fromIdx, 1);
+    trans.splice(toIdx, 0, movedTrans ?? "CUT");
+    return { transport: { ...s.transport, chainSteps: steps, chainStepTransitions: trans } };
   }),
 
   // ── Pattern management ──────────────────────────────────────────────────
@@ -940,6 +983,12 @@ export const useGroove = create<State>()(persist((set) => ({
   })),
   selectMod: (id) => set({ selectedMod: id }),
 
+  setChainStepTransition: (idx, t) => set((s) => {
+    const arr = [...(s.transport.chainStepTransitions ?? [])];
+    arr[idx] = t;
+    return { transport: { ...s.transport, chainStepTransitions: arr } };
+  }),
+
   // ── ArpEngine ───────────────────────────────────────────────────────────
   setArp: (patch) => set((s) => ({ arp: { ...s.arp, ...patch } })),
   toggleArpStep: (idx) => set((s) => {
@@ -948,6 +997,16 @@ export const useGroove = create<State>()(persist((set) => ({
     gateSteps[i] = !gateSteps[i];
     return { arp: { ...s.arp, gateSteps } };
   }),
+
+  // ── AI activity log ──────────────────────────────────────────────────────
+  addAiHistoryEntry: (entry) => set((s) => ({
+    aiHistory: [
+      { ...entry, id: nextId("ai"), timestamp: Date.now() },
+      ...s.aiHistory,
+    ].slice(0, 10),
+  })),
+  clearAiHistory: () => set({ aiHistory: [] }),
+  setAiStyle: (aiStyle) => set({ aiStyle }),
 }), {
   name: "vibecore-liv3-project",
   // v12 — Pattern-Domain migration: PatternPart → Scenes[1..8], step counts
@@ -969,9 +1028,11 @@ export const useGroove = create<State>()(persist((set) => ({
     selectedSceneIdx: s.selectedSceneIdx,
     qualityProfile: s.qualityProfile,
     psychoPreset: s.psychoPreset,
+    aiStyle: s.aiStyle,
     transport: {
       chain: s.transport.chain,
       chainSteps: s.transport.chainSteps,
+      chainStepTransitions: s.transport.chainStepTransitions ?? [],
       chainMode: s.transport.chainMode,
       currentPattern: s.transport.currentPattern,
       playing: false,

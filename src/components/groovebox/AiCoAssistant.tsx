@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useGroove } from "@/lib/store";
+import { useState, useEffect } from "react";
+import { useGroove, type AiStyle } from "@/lib/store";
 import {
   buildGroove, buildMelody, type MelodyScale, type ScenebuildStyle,
 } from "@/lib/audio/aiSceneBuild";
@@ -10,6 +10,26 @@ import { cn } from "@/lib/utils";
 
 const STYLES: ScenebuildStyle[] =
   ["fourFloor", "boomBap", "trap", "breaks", "techno", "ambient", "minimal"];
+
+// AI Style → generation parameter biases
+const STYLE_TO_GROOVE: Record<AiStyle, ScenebuildStyle> = {
+  CLASSIC:   "fourFloor",
+  MINIMAL:   "minimal",
+  COMPLEX:   "breaks",
+  ORGANIC:   "ambient",
+  DIGITAL:   "techno",
+  CINEMATIC: "ambient",
+  HYPNOTIC:  "techno",
+  GLITCH:    "breaks",
+};
+const STYLE_DENSITY: Record<AiStyle, number> = {
+  CLASSIC: 0.60, MINIMAL: 0.30, COMPLEX: 0.80, ORGANIC: 0.50,
+  DIGITAL: 0.70, CINEMATIC: 0.40, HYPNOTIC: 0.65, GLITCH: 0.75,
+};
+const STYLE_SWING: Record<AiStyle, number> = {
+  CLASSIC: 0.40, MINIMAL: 0.30, COMPLEX: 0.50, ORGANIC: 0.55,
+  DIGITAL: 0.20, CINEMATIC: 0.45, HYPNOTIC: 0.60, GLITCH: 0.35,
+};
 
 const SCALE_OPTS: { k: MelodyScale; label: string }[] = [
   { k: "minorPent", label: "MIN PENT" },
@@ -34,7 +54,7 @@ const MELODIC: PartCategory[] = ["bass", "synth", "sample"];
  * which the scheduler already plays in lock-step with the clock.
  */
 export function AiCoAssistant() {
-  const { parts, patterns, selectedPattern, selectedSceneIdx, setPatternSteps, setNotes } =
+  const { parts, patterns, selectedPattern, selectedSceneIdx, setPatternSteps, setNotes, aiStyle } =
     useGroove();
   const pattern = patterns[selectedPattern];
   const scene = pattern?.scenes[selectedSceneIdx];
@@ -44,12 +64,19 @@ export function AiCoAssistant() {
   const melodicParts = parts.filter((p) => MELODIC.includes(p.category));
 
   const [mode, setMode] = useState<"groove" | "melody">("groove");
-  const [style, setStyle] = useState<ScenebuildStyle>("fourFloor");
+  const [style, setStyle] = useState<ScenebuildStyle>(() => STYLE_TO_GROOVE[aiStyle] ?? "fourFloor");
   const [scale, setScale] = useState<MelodyScale>("minorPent");
   const [rootMidi, setRootMidi] = useState(60);
-  const [density, setDensity] = useState(0.6);
-  const [swing, setSwing] = useState(0.4);
+  const [density, setDensity] = useState(() => STYLE_DENSITY[aiStyle] ?? 0.6);
+  const [swing, setSwing] = useState(() => STYLE_SWING[aiStyle] ?? 0.4);
   const [seed, setSeed] = useState(pattern?.seed ?? 0xC0FFEE);
+
+  // When global AI Style changes, bias the generation parameters
+  useEffect(() => {
+    setStyle(STYLE_TO_GROOVE[aiStyle] ?? "fourFloor");
+    setDensity(STYLE_DENSITY[aiStyle] ?? 0.6);
+    setSwing(STYLE_SWING[aiStyle] ?? 0.4);
+  }, [aiStyle]);
   const [melPartId, setMelPartId] = useState<number>(melodicParts[0]?.id ?? 0);
   const [preview, setPreview] = useState<
     { kind: "groove"; steps: boolean[] } | { kind: "melody"; notes: { step: number; len: number; pitch: number }[] } | null

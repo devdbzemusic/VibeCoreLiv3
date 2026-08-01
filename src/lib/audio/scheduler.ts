@@ -275,7 +275,9 @@ function spawnArpNotes(
     const gateSec = Math.max(0.02, (dur * cpl.gateFactor) / cpl.laceRatchet);
     for (let r = 0; r < cpl.laceRatchet; r++) {
       const microOff = (rng() * 2 - 1) * (cpl.warperChance / 100) * dur * 0.2;
-      const t = when + subOffset + (dur * r) / cpl.laceRatchet + microOff;
+      // e.swingOffset is a fraction of `dur` (0..0.30) set by the ARP engine from
+      // cfg.swing; it delays off-beat notes into the pocket without affecting gate.
+      const t = when + subOffset + (dur * r) / cpl.laceRatchet + microOff + e.swingOffset * dur;
       for (const partId of arp.targetParts) {
         const part = partsList.find((p) => p.id === partId);
         if (!part || part.mute) continue;

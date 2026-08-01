@@ -1,220 +1,297 @@
-// VibeCoreLiv3 — ArpEngine control panel (SceneStep-based shared arpeggiator).
+// VibeCoreLiv3 — ARP Module UI (Performance & Advanced redesign).
 //
-// UI for the single shared ArpEngine that feeds Bass, 3D Synth and later
-// modules. The engine itself lives in `@/lib/audio/arpEngine.ts` and is
-// driven by the scheduler; this panel only edits the persisted ArpConfig.
+// 8-parameter rule: MODE · RATE · GATE · OCTAVE · ROOT · SCALE · CHANCE · HOLD
+// 3-touch rule: (1) enable ARP → (2) tap mode → (3) toggle gate step
+// Beat-sync: quarter-note pulse dots track playheads.step in real time.
 
+import { useState, useEffect, useRef } from "react";
 import { useGroove } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
   ARP_MODES, ARP_STATES, ARP_SCALES,
   type ArpMode, type ArpState, type ArpScale,
 } from "@/lib/audio/arpEngine";
-import { Power, Repeat, ChevronUp, ChevronDown } from "lucide-react";
+import { TactileKnob } from "@/components/controls/TactileKnob";
+import { Power } from "lucide-react";
+import { AiContextButton } from "./AiContextButton";
 
-const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 function noteLabel(midi: number): string {
-  const n = ((midi % 12) + 12) % 12;
-  const oct = Math.floor(midi / 12) - 1;
-  return `${NOTE_NAMES[n]}${oct}`;
+  return `${NOTE_NAMES[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+// Cycling cell — same pattern as OscShapeCell in Synth3DPage.
+function CycleCell<T extends string>({
+  value, options, onChange, label, color = "text-neon-cyan",
+}: { value: T; options: T[]; onChange: (v: T) => void; label: string; color?: string }) {
+  const idx = options.indexOf(value);
+  const next = () => onChange(options[(idx + 1) % options.length]);
   return (
-    <div className="flex items-center gap-2">
-      <div className="font-mono text-[9px] text-muted-foreground w-20 shrink-0">{label}</div>
-      <div className="flex-1 min-w-0">{children}</div>
-    </div>
+    <button
+      onClick={next}
+      className="panel-inset rounded-lg flex flex-col items-center justify-center gap-0.5 touch-none active:scale-95 transition-transform"
+      style={{ minHeight: 56, minWidth: 56 }}
+      aria-label={`${label}: ${value}`}
+    >
+      <span className="font-mono text-[8px] text-muted-foreground tracking-widest">{label}</span>
+      <span className={cn("font-display text-[11px] font-bold tracking-wider", color)}>{value}</span>
+    </button>
   );
 }
 
 export function ArpPanel() {
-  const { arp, setArp, toggleArpStep, parts, playheads, patterns, transport } = useGroove();
-  const pat = patterns[transport.currentPattern];
-  const sceneSteps = pat?.scenes[transport.currentSceneIdx ?? 0]?.length ?? 16;
-  const currentStep = playheads.step ?? 0;
+  const { arp, setArp, toggleArpStep, playheads, transport, addAiHistoryEntry } = useGroove();
+  const currentStep = playheads.step;
 
-  const toggleTarget = (id: number) => {
-    const has = arp.targetParts.includes(id);
-    const targetParts = has
-      ? arp.targetParts.filter((t) => t !== id)
-      : [...arp.targetParts, id];
-    setArp({ targetParts });
+  // Local UI-only params (pending engine wiring)
+
+  // Beat-pulse: lights up one of 4 beat-dots on each quarter-note
+  const beatIdx = Math.floor(currentStep / 4) % 4;
+  const [pulsed, setPulsed] = useState(false);
+  const prevBeat = useRef(-1);
+  useEffect(() => {
+    if (beatIdx !== prevBeat.current && transport.playing) {
+      prevBeat.current = beatIdx;
+      setPulsed(true);
+      const t = setTimeout(() => setPulsed(false), 100);
+      return () => clearTimeout(t);
+    }
+  }, [beatIdx, transport.playing]);
+
+  const handleAiArp = async () => {
+    // Randomise mode + gate pattern for a generative arp
+    const modes: ArpMode[] = ARP_MODES as unknown as ArpMode[];
+    const mode = modes[Math.floor(Math.random() * modes.length)];
+    const gateSteps = Array.from({ length: 16 }, (_, i) =>
+      i % 2 === 0 ? true : Math.random() > 0.4
+    );
+    setArp({ mode, gateSteps, complexity: 40 + Math.floor(Math.random() * 40) });
+    addAiHistoryEntry({ action: "Generated arp pattern", module: "ARP" });
   };
 
   return (
     <div className="space-y-3">
-      {/* Header + enable */}
-      <div className="panel p-3">
-        <div className="flex items-center gap-2 mb-2">
-          <Repeat className="h-4 w-4 text-primary" />
-          <div className="font-display text-sm text-primary tracking-wider">ARP ENGINE</div>
-          <span className="ml-auto font-mono text-[9px] text-muted-foreground">
-            SceneStep · {sceneSteps} steps
-          </span>
+      {/* ── Master enable + beat indicator ─── */}
+      <div className="hw-bezel p-3">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setArp({ enabled: !arp.enabled })}
             className={cn(
-              "tab-pill px-2.5 py-1 rounded-md flex items-center gap-1.5 font-mono text-[10px]",
-              arp.enabled ? "text-primary neon-border" : "text-muted-foreground panel-inset",
+              "h-14 w-14 rounded-xl grid place-items-center shrink-0 touch-none active:scale-95 transition-transform",
+              arp.enabled
+                ? "bg-gradient-primary shadow-glow-primary text-primary-foreground"
+                : "panel-inset text-muted-foreground",
             )}
             aria-pressed={arp.enabled}
+            aria-label={arp.enabled ? "Disable arp" : "Enable arp"}
           >
-            <Power className="h-3 w-3" />
-            {arp.enabled ? "ON" : "OFF"}
+            <Power className={cn("h-5 w-5", arp.enabled && "animate-pulse-neon")} />
           </button>
-        </div>
-        <div className="hairline mb-3" />
 
-        {/* ARP COMPLEXITY macro */}
-        <div className="panel-inset rounded p-2.5 mb-2">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="font-display text-[11px] text-primary">ARP COMPLEXITY</div>
-            <div className="font-mono text-sm tabular-nums text-primary">{arp.complexity}</div>
+          <div className="flex-1 min-w-0">
+            <div className={cn("font-display text-sm tracking-widest", arp.enabled ? "text-primary" : "text-muted-foreground")}>
+              {arp.enabled ? "ARP ON" : "ARP OFF"} · {arp.mode}
+            </div>
+            <div className="flex items-center gap-1.5 mt-1.5">
+              {[0, 1, 2, 3].map((b) => (
+                <div
+                  key={b}
+                  className={cn(
+                    "h-2 w-2 rounded-full transition-all duration-75",
+                    beatIdx === b && transport.playing
+                      ? "bg-primary scale-125 shadow-glow-primary"
+                      : "bg-muted-foreground/30",
+                    beatIdx === b && pulsed && "opacity-100",
+                  )}
+                />
+              ))}
+              <span className="ml-2 font-mono text-[9px] text-muted-foreground">BEAT SYNC</span>
+            </div>
           </div>
-          <input
-            type="range" min={0} max={100} value={arp.complexity}
-            onChange={(e) => setArp({ complexity: Number(e.target.value) })}
-            className="w-full accent-primary h-1.5"
-            aria-label="Arp complexity"
-          />
-          <div className="font-mono text-[8px] text-muted-foreground mt-1 leading-tight">
-            drives note density · octave jumps · ratchets · probability · DNA variation
-          </div>
-        </div>
 
-        {/* Mode selector */}
-        <Row label="MODE">
-          <div className="flex flex-wrap gap-1">
-            {ARP_MODES.map((m: ArpMode) => (
-              <button key={m} onClick={() => setArp({ mode: m })}
-                data-active={arp.mode === m}
-                className={cn(
-                  "tab-pill px-2 py-1 rounded font-mono text-[9px] border border-border",
-                  arp.mode === m ? "text-primary" : "text-muted-foreground",
-                )}>
-                {m}
-              </button>
-            ))}
-          </div>
-        </Row>
+          <AiContextButton label="AI Arp" onAction={handleAiArp} />
+        </div>
       </div>
 
-      {/* Pitch + scale + state */}
-      <div className="panel p-3 space-y-2">
-        <Row label="ROOT">
-          <div className="flex items-center gap-1">
-            <button onClick={() => setArp({ rootNote: arp.rootNote - 1 })}
-              className="h-7 w-7 grid place-items-center panel-inset rounded">
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            <div className="hw-screen px-2 py-1 flex-1 text-center font-display text-sm">{noteLabel(arp.rootNote)}</div>
-            <button onClick={() => setArp({ rootNote: arp.rootNote + 1 })}
-              className="h-7 w-7 grid place-items-center panel-inset rounded">
-              <ChevronUp className="h-3 w-3" />
-            </button>
-          </div>
-        </Row>
-
-        <Row label="SCALE">
-          <div className="flex flex-wrap gap-1">
-            {ARP_SCALES.map((s: ArpScale) => (
-              <button key={s} onClick={() => setArp({ scale: s })}
-                data-active={arp.scale === s}
-                className={cn(
-                  "tab-pill px-2 py-1 rounded font-mono text-[9px] border border-border",
-                  arp.scale === s ? "text-primary" : "text-muted-foreground",
-                )}>
-                {s}
-              </button>
-            ))}
-          </div>
-        </Row>
-
-        <Row label="OCTAVES">
-          <div className="flex gap-1">
-            {[1, 2, 3, 4].map((o) => (
-              <button key={o} onClick={() => setArp({ octaves: o })}
-                data-active={arp.octaves === o}
-                className={cn(
-                  "tab-pill flex-1 py-1 rounded font-mono text-[10px] border border-border",
-                  arp.octaves === o ? "text-primary" : "text-muted-foreground",
-                )}>
-                {o}
-              </button>
-            ))}
-          </div>
-        </Row>
-
-        <Row label="STATE">
-          <div className="flex gap-1">
-            {ARP_STATES.map((st: ArpState) => (
-              <button key={st} onClick={() => setArp({ state: st })}
-                data-active={arp.state === st}
-                className={cn(
-                  "tab-pill flex-1 py-1 rounded font-mono text-[9px] border border-border",
-                  arp.state === st ? "text-primary" : "text-muted-foreground",
-                )}>
-                {st}
-              </button>
-            ))}
-          </div>
-        </Row>
-
-        <Row label="VIBE">
-          <div className="flex items-center gap-2">
-            <input type="range" min={0} max={100} value={arp.vibeControl}
-              onChange={(e) => setArp({ vibeControl: Number(e.target.value) })}
-              className="flex-1 accent-primary h-1.5" aria-label="Vibe control" />
-            <div className="font-mono text-[10px] tabular-nums w-7 text-right">{arp.vibeControl}</div>
-          </div>
-        </Row>
-      </div>
-
-      {/* Target modules — the shared engine feeds these */}
+      {/* ── 8 macro parameters ─── */}
       <div className="panel p-3">
-        <div className="font-mono text-[9px] text-muted-foreground mb-2">
-          TARGET MODULES · shared engine feeds
+        <div className="font-mono text-[9px] text-muted-foreground mb-2 tracking-widest">8 PARAMETERS</div>
+        <div className="grid grid-cols-4 gap-2">
+          {/* 1. MODE — cycling cell */}
+          <CycleCell
+            value={arp.mode}
+            options={ARP_MODES as unknown as ArpMode[]}
+            onChange={(m) => setArp({ mode: m })}
+            label="MODE"
+          />
+
+          {/* 2. RATE — complexity drives note density */}
+          <TactileKnob
+            value={arp.complexity}
+            min={0} max={100}
+            onChange={(v) => setArp({ complexity: v })}
+            label="RATE"
+            display={`${arp.complexity}`}
+            size="sm"
+            color="cyan"
+          />
+
+          {/* 3. GATE — vibeControl drives gate length */}
+          <TactileKnob
+            value={arp.vibeControl}
+            min={0} max={100}
+            onChange={(v) => setArp({ vibeControl: v })}
+            label="GATE"
+            display={`${arp.vibeControl}`}
+            size="sm"
+            color="cyan"
+          />
+
+          {/* 4. OCTAVE */}
+          <TactileKnob
+            value={arp.octaves}
+            min={1} max={4}
+            onChange={(v) => setArp({ octaves: Math.round(v) })}
+            label="OCTAVE"
+            display={`${arp.octaves}`}
+            size="sm"
+            color="amber"
+          />
+
+          {/* 5. ROOT — rootNote */}
+          <TactileKnob
+            value={arp.rootNote}
+            min={24} max={60}
+            onChange={(v) => setArp({ rootNote: Math.round(v) })}
+            label="ROOT"
+            display={noteLabel(arp.rootNote)}
+            size="sm"
+            color="magenta"
+          />
+
+          {/* 6. SCALE — cycling cell */}
+          <CycleCell
+            value={arp.scale}
+            options={ARP_SCALES as unknown as ArpScale[]}
+            onChange={(s) => setArp({ scale: s })}
+            label="SCALE"
+            color="text-neon-magenta"
+          />
+
+          {/* 7. SWING — wired to arp.swing → generateArpEventsForStep */}
+          <TactileKnob
+            value={arp.swing ?? 40}
+            min={0} max={100}
+            onChange={(v) => setArp({ swing: v })}
+            label="SWING"
+            display={`${Math.round(arp.swing ?? 40)}%`}
+            size="sm"
+            color="lime"
+          />
+
+          {/* 8. CHANCE — wired to arp.chance → generateArpEventsForStep */}
+          <TactileKnob
+            value={arp.chance ?? 80}
+            min={0} max={100}
+            onChange={(v) => setArp({ chance: v })}
+            label="CHANCE"
+            display={`${Math.round(arp.chance ?? 80)}%`}
+            size="sm"
+            color="lime"
+          />
         </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          {parts.filter((p) => p.category === "bass" || p.category === "synth").map((p) => {
-            const on = arp.targetParts.includes(p.id);
+      </div>
+
+      {/* ── HOLD / STATE selector ─── */}
+      <div className="panel p-3">
+        <div className="font-mono text-[9px] text-muted-foreground mb-2 tracking-widest">HOLD MODE</div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {ARP_STATES.map((st: ArpState) => (
+            <button
+              key={st}
+              onClick={() => setArp({ state: st })}
+              data-active={arp.state === st}
+              className={cn(
+                "h-10 rounded-lg font-mono text-[10px] border border-border transition-all active:scale-95",
+                arp.state === st
+                  ? "text-primary neon-border bg-primary/10"
+                  : "panel-inset text-muted-foreground",
+              )}
+            >
+              {st === "Clean" ? "HOLD" : st === "Smart" ? "SMART" : "FREE"}
+            </button>
+          ))}
+        </div>
+        <div className="font-mono text-[8px] text-muted-foreground mt-1.5 leading-tight">
+          HOLD: sustain notes · SMART: intelligent gate · FREE: tight chop
+        </div>
+      </div>
+
+      {/* ── 16-step gate grid ─── */}
+      <div className="panel p-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-mono text-[9px] text-muted-foreground tracking-widest">STEP GATE · 16</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setArp({ gateSteps: Array(16).fill(true) })}
+              className="h-6 px-2 rounded panel-inset font-mono text-[9px] text-muted-foreground"
+            >ALL</button>
+            <button
+              onClick={() => setArp({ gateSteps: Array(16).fill(false) })}
+              className="h-6 px-2 rounded panel-inset font-mono text-[9px] text-muted-foreground"
+            >CLR</button>
+          </div>
+        </div>
+        <div className="grid grid-cols-8 gap-1.5">
+          {arp.gateSteps.map((on, i) => {
+            const isPlaying = currentStep % 16 === i && transport.playing;
+            const isAccent = i % 4 === 0;
             return (
-              <button key={p.id} onClick={() => toggleTarget(p.id)}
+              <button
+                key={i}
+                onClick={() => toggleArpStep(i)}
                 data-active={on}
+                data-playing={isPlaying}
+                data-accent={isAccent}
                 className={cn(
-                  "panel-inset rounded p-1.5 flex items-center gap-1.5 text-left",
-                  on ? "neon-border" : "",
-                )}>
-                <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-primary glow-dot" : "bg-muted-foreground")} />
-                <span className={cn("font-display text-[10px]", on ? "text-primary" : "text-muted-foreground")}>
-                  {p.name}
-                </span>
-              </button>
+                  "step-cell h-10 transition-all",
+                  isAccent && "border-primary/40",
+                  isPlaying && "ring-1 ring-primary",
+                )}
+                aria-label={`Step ${i + 1} ${on ? "on" : "off"}`}
+              />
             );
           })}
         </div>
       </div>
 
-      {/* 16-step gate grid */}
+      {/* ── Target parts ─── */}
       <div className="panel p-3">
-        <div className="font-mono text-[9px] text-muted-foreground mb-2">STEP GATE · 16</div>
-        <div className="grid grid-cols-8 gap-1.5">
-          {arp.gateSteps.map((on, i) => (
-            <button key={i} onClick={() => toggleArpStep(i)}
-              data-active={on}
-              data-playing={currentStep === i}
-              data-accent={i % 4 === 0}
-              className={cn(
-                "step-cell h-9",
-                i % 4 === 0 && "border-primary/40",
-              )}
-              aria-label={`Arp step ${i + 1}`}
-            />
-          ))}
-        </div>
-        <div className="font-mono text-[8px] text-muted-foreground mt-2 leading-tight">
-          A step spawns E_ARP_NOTE only when its cell is on. Density auto-scales with scene length.
+        <div className="font-mono text-[9px] text-muted-foreground mb-2">TARGET PARTS</div>
+        <div className="flex flex-wrap gap-1.5">
+          {useGroove.getState().parts
+            .filter((p) => p.category === "bass" || p.category === "synth")
+            .map((p) => {
+              const on = arp.targetParts.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    const targetParts = on
+                      ? arp.targetParts.filter((t) => t !== p.id)
+                      : [...arp.targetParts, p.id];
+                    setArp({ targetParts });
+                  }}
+                  data-active={on}
+                  className={cn(
+                    "tab-pill h-8 px-3 rounded-full font-mono text-[10px]",
+                    on ? "text-primary neon-border" : "panel-inset text-muted-foreground",
+                  )}
+                >
+                  {p.name}
+                </button>
+              );
+            })}
         </div>
       </div>
     </div>

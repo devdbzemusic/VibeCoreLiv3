@@ -66,6 +66,10 @@ export interface ArpConfig {
   state: ArpState;
   /** 16-step gate grid. A step only spawns E_ARP_NOTE when its cell is on. */
   gateSteps: boolean[];
+  /** 0..100 — swing amount; offsets even-numbered steps by up to 30% of a step. */
+  swing: number;
+  /** 0..100 — probability each step fires (100 = always, 0 = never). */
+  chance: number;
 }
 
 export function defaultArpConfig(): ArpConfig {
@@ -83,6 +87,8 @@ export function defaultArpConfig(): ArpConfig {
       true, false, true, false, true, false, true, false,
       true, false, true, false, true, false, true, false,
     ],
+    swing: 40,
+    chance: 80,
   };
 }
 
@@ -96,6 +102,8 @@ export interface ArpEvent {
   slide: boolean;
   /** Index of this note within the current bar (0..3) — drives GravLace coupling. */
   barIndex: number;
+  /** Fractional step offset for swing (0 = no delay; 0.30 = 30% of step). */
+  swingOffset: number;
 }
 
 // ── Density formula ─────────────────────────────────────────────────────────
@@ -255,6 +263,17 @@ export function generateArpEventsForStep(
   const gateIdx = ((ctx.sceneStep % 16) + 16) % 16;
   if (!cfg.gateSteps[gateIdx]) return [];
 
+  // CHANCE — skip this step if random draw exceeds probability (0..100)
+  // Uses a deterministic RNG seeded per-step so playback is reproducible.
+  const chanceRng = mulberry32(arpSeed(ctx.patternPartId, ctx.scenePartId, ctx.sceneStep + 0xFACE));
+  if (chanceRng() * 100 > (cfg.chance ?? 100)) return [];
+
+  // SWING — even-numbered steps (0-indexed) are delayed by swingOffset.
+  // swingOffset is expressed as a fraction of a step (stored in ArpEvent.swingOffset
+  // so the scheduler can push the note start time forward without changing duration).
+  const isEvenStep = gateIdx % 2 === 1; // steps 1,3,5… are the "off-beat" swung steps
+  const swingFrac = isEvenStep ? ((cfg.swing ?? 0) / 100) * 0.30 : 0; // up to 30% of a step
+
   const pool = buildNotePool(cfg);
   if (pool.length === 0) return [];
 
@@ -281,7 +300,7 @@ export function generateArpEventsForStep(
     const tie = ctx.sceneSteps <= 4 && i < count - 1;
     const velocity = accent ? 110 : 78 + Math.round(24 * rng());
 
-    events.push({ note, velocity, accent, probability, tie, slide, barIndex });
+    events.push({ note, velocity, accent, probability, tie, slide, barIndex, swingOffset: swingFrac });
   }
   return events;
 }
