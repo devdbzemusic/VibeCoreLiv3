@@ -6,6 +6,33 @@
 
 ---
 
+## OBERSTES GATE — WORKFLOW FIRST POLICY
+
+> **Der Workflow ist das Produkt.**
+
+**Kein Feature wird implementiert, bevor der Workflow den Status „WORKFLOW APPROVED" erhalten hat.**  
+**Keine Tests werden durchgeführt, bevor die UI- und Workflow-Architektur freigegeben wurde.**
+
+### Verbindliche Entwicklungsreihenfolge
+
+Phase 1 Workflow → 2 UI → 3 UX → 4 Live Performance → 5 Architekturprüfung → 6 Implementierung → 7 Integration → 8 Tests → 9 Performanceoptimierung → 10 Release
+
+DSP · Oboe · Audio-Engine · Tests sind bis zum Abschluss von Phase 4 **nachrangig**.
+
+### Workflow Gate (alle 7 müssen Ja sein — sonst UI neu entwerfen)
+
+1. In maximal 5 Sekunden erreichbar?
+2. Mit einer Hand bedienbar?
+3. Im Livebetrieb ohne Nachdenken nutzbar?
+4. Auf Smartphone und Tablet gleichermaßen ergonomisch?
+5. Während einer Performance sofort auffindbar?
+6. Maximal ein Touch oder eine klare Geste?
+7. Keine unnötige Navigation?
+
+→ Detail: [Band I — Executive Constitution](01_Executive_Constitution.md) · [Band V — UX Constitution](05_UX_Constitution.md)
+
+---
+
 ## Die wichtigste Regel
 
 > Jede Architekturentscheidung muss nachweislich mindestens eines dieser Ziele verbessern:

@@ -237,20 +237,71 @@ Enthält ausschließlich:
 
 ---
 
-## UX Review Checkliste
+## WORKFLOW FIRST POLICY — oberstes Gate dieser Verfassung
 
-Vor jedem Feature-Release:
+> **Der Workflow ist das Produkt.**
+
+Dieses Gate ist **vor jedem anderen Review** zu durchlaufen.  
+Kein Feature-Code, keine Architekturentscheidung, keine Implementierung ohne **WORKFLOW APPROVED**.
+
+### Verbindliche Entwicklungsreihenfolge
+
+| Phase | Bereich |
+|-------|---------|
+| 1 | Workflow |
+| 2 | UI |
+| 3 | UX |
+| 4 | Live Performance |
+| 5 | Architekturprüfung |
+| 6 | Implementierung |
+| 7 | Integration |
+| 8 | Tests |
+| 9 | Performanceoptimierung |
+| 10 | Release |
+
+### Workflow Gate — alle 7 Fragen müssen Ja ergeben
 
 | # | Frage |
 |---|-------|
-| 1 | Ist die Funktion in ≤ 1 Touch erreichbar? |
-| 2 | Gibt es visuelles Feedback innerhalb von 16 ms? |
-| 3 | Ist kein Popup/Dialog nötig? |
-| 4 | Ist die Funktion auf 360 pt Phone-Breite nutzbar? |
-| 5 | Sind alle Touch-Ziele ≥ 44 pt? |
-| 6 | Ist die Funktion ohne Anleitung verständlich? |
-| 7 | Ist die Funktion konsistent mit ähnlichen Modulen? |
-| 8 | Kann ein Musiker in 5 Sekunden damit Musik machen? |
+| 1 | Ist sie in maximal 5 Sekunden erreichbar? |
+| 2 | Ist sie mit einer Hand bedienbar? |
+| 3 | Ist sie im Livebetrieb ohne Nachdenken nutzbar? |
+| 4 | Ist sie auf Smartphone und Tablet gleichermaßen ergonomisch? |
+| 5 | Kann sie während einer Performance sofort gefunden werden? |
+| 6 | Benötigt sie maximal einen Touch oder eine klare Geste? |
+| 7 | Vermeidet sie unnötige Navigation? |
+
+**Eine Frage mit Nein → UI neu entwerfen. Kein Code vorher.**
+
+### WORKFLOW FIRST — Pflicht vor jeder Codeänderung
+
+1. Analysiere den Workflow.
+2. Identifiziere doppelte Funktionen.
+3. Entferne unnötige Navigation.
+4. Reduziere Klicks und Gesten.
+5. Prüfe den Live-Workflow.
+6. Entwerfe die optimale UI.
+7. Executive Board Freigabe einholen.
+
+**Erst danach darf Code implementiert werden.**
+
+---
+
+## UX Review Checkliste
+
+Vor jedem Feature-Release (nach WORKFLOW APPROVED):
+
+| # | Frage |
+|---|-------|
+| 1 | Workflow Gate bestanden (alle 7 Ja)? |
+| 2 | Ist die Funktion in ≤ 1 Touch erreichbar? |
+| 3 | Gibt es visuelles Feedback innerhalb von 16 ms? |
+| 4 | Ist kein Popup/Dialog nötig? |
+| 5 | Ist die Funktion auf 360 pt Phone-Breite nutzbar? |
+| 6 | Sind alle Touch-Ziele ≥ 44 pt? |
+| 7 | Ist die Funktion ohne Anleitung verständlich? |
+| 8 | Ist die Funktion konsistent mit ähnlichen Modulen? |
+| 9 | Kann ein Musiker in 5 Sekunden damit Musik machen? |
 
 ---
 

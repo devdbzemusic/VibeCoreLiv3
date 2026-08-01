@@ -121,6 +121,69 @@ Jede Funktion muss antworten: *Warum existiert das in keiner anderen Groovebox?*
 
 ---
 
+## SUPREMÉ EXECUTIVE RULE — WORKFLOW FIRST POLICY
+
+> **Der Workflow ist das Produkt.**
+
+Audioqualität, DSP und Performance sind entscheidend — aber sie entfalten ihren Wert nur, wenn der Musiker sie intuitiv und ohne Unterbrechung nutzen kann.
+
+### Phase 1 — UX & Workflow (muss 100 % abgeschlossen sein)
+
+**Keine Audiooptimierung. Keine Performanceoptimierung. Keine Testkampagnen.**  
+Zuerst wird ausschließlich der Workflow perfektioniert.
+
+### Verbindliche Entwicklungsreihenfolge
+
+| Phase | Bereich |
+|-------|---------|
+| 1 | Workflow |
+| 2 | UI |
+| 3 | UX |
+| 4 | Live Performance |
+| 5 | Architekturprüfung |
+| 6 | Implementierung |
+| 7 | Integration |
+| 8 | Tests |
+| 9 | Performanceoptimierung |
+| 10 | Release |
+
+DSP, Oboe, Audio-Engine und Tests sind bis zum Abschluss des Workflow-Gates **nachrangig**.
+
+### Workflow Gate — alle 7 Fragen müssen Ja ergeben
+
+| # | Frage |
+|---|-------|
+| 1 | Ist sie in maximal 5 Sekunden erreichbar? |
+| 2 | Ist sie mit einer Hand bedienbar? |
+| 3 | Ist sie im Livebetrieb ohne Nachdenken nutzbar? |
+| 4 | Ist sie auf Smartphone und Tablet gleichermaßen ergonomisch? |
+| 5 | Kann sie während einer Performance sofort gefunden werden? |
+| 6 | Benötigt sie maximal einen Touch oder eine klare Geste? |
+| 7 | Vermeidet sie unnötige Navigation? |
+
+**Eine Frage mit Nein → UI neu entwerfen. Kein Code vorher.**
+
+### WORKFLOW FIRST — Pflicht vor jeder Codeänderung
+
+1. Analysiere den Workflow.
+2. Identifiziere doppelte Funktionen.
+3. Entferne unnötige Navigation.
+4. Reduziere Klicks und Gesten.
+5. Prüfe den Live-Workflow.
+6. Entwerfe die optimale UI.
+7. Lass die Architektur vom Executive Board freigeben.
+
+**Erst danach darf Code implementiert werden.**
+
+Das Executive Board bewertet vor jeder Implementierung:  
+One Touch · Five Second Rule · Hardware Feeling · Live Performance · Konsistenz · Ergonomie · Lernbarkeit · Modularität · Sichtbarkeit der Funktionen · Kreativer Flow
+
+**Status-Gate:**  
+Kein Feature wird implementiert ohne **„WORKFLOW APPROVED"**.  
+Keine Tests werden durchgeführt ohne freigegebene UI- und Workflow-Architektur.
+
+---
+
 ## Designprinzipien
 
 ### One Touch
@@ -186,7 +249,24 @@ Ein Task startet erst wenn **alle** Punkte erfüllt sind:
 
 ### Executive Decision Gate
 
-Vor jeder Freigabe beantwortet das Board:
+Vor jeder Freigabe beantwortet das Board — **in dieser Reihenfolge**:
+
+**Stufe 1 — WORKFLOW GATE (muss zuerst bestanden werden)**
+
+| # | Frage | Anforderung |
+|---|-------|-------------|
+| 1 | Ist sie in maximal 5 Sekunden erreichbar? | Ja |
+| 2 | Ist sie mit einer Hand bedienbar? | Ja |
+| 3 | Ist sie im Livebetrieb ohne Nachdenken nutzbar? | Ja |
+| 4 | Ist sie auf Smartphone und Tablet gleichermaßen ergonomisch? | Ja |
+| 5 | Kann sie während einer Performance sofort gefunden werden? | Ja |
+| 6 | Benötigt sie maximal einen Touch oder eine klare Geste? | Ja |
+| 7 | Vermeidet sie unnötige Navigation? | Ja |
+
+→ Eine Frage mit Nein: **UI neu entwerfen. Kein Code vorher.**  
+→ Alle Ja: **WORKFLOW APPROVED** → weiter zu Stufe 2.
+
+**Stufe 2 — SUPREMÉ GATE**
 
 | Frage | Anforderung |
 |-------|-------------|
@@ -198,7 +278,7 @@ Vor jeder Freigabe beantwortet das Board:
 | Unterstützt sie die Vision einer professionellen mobilen Live-Performance-Groovebox? | Ja |
 | Kann die Verbesserung gegen die wichtigste Regel nachgewiesen werden? | Ja |
 
-Nur wenn alle Fragen mit **Ja** beantwortet werden können:  
+Nur wenn beide Stufen vollständig bestanden sind:  
 **SUPREMÉ APPROVED – GO FOR IMPLEMENTATION.**
 
 ---

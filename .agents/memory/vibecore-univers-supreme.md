@@ -29,7 +29,31 @@ VibeCoreUnivers/
     └── 07_Future_Constitution.md     ← Plugin SDK · Cloud · Desktop · VST/AU · Multi-user · Hardware
 ```
 
-## SUPREMÉ APPROVED Gate (all 7 must be YES)
+## WORKFLOW FIRST POLICY — oberstes Gate (added 2026-08-01)
+> "Der Workflow ist das Produkt."
+Phase 1 must be 100% complete before any audio/DSP/performance/test work.
+No feature code without WORKFLOW APPROVED status.
+Development order: Workflow → UI → UX → Live Performance → Architecture → Implementation → Integration → Tests → Performance → Release
+
+### Workflow Gate (all 7 must be YES — else redesign UI, no code)
+1. Reachable in ≤ 5 seconds?
+2. Operable with one hand?
+3. Usable in live performance without thinking?
+4. Ergonomic on both phone and tablet?
+5. Instantly findable during a performance?
+6. Requires ≤ 1 touch or clear gesture?
+7. Avoids unnecessary navigation?
+
+### WORKFLOW FIRST — mandatory before any code change
+1. Analyze workflow → 2. Identify duplicate functions → 3. Remove unnecessary nav →
+4. Reduce clicks/gestures → 5. Check live workflow → 6. Design optimal UI → 7. Executive Board approval → THEN implement.
+
+### Executive Board evaluates (workflow criteria only, before all else)
+One Touch · Five Second Rule · Hardware Feeling · Live Performance · Consistency · Ergonomics · Learnability · Modularity · Visibility · Creative Flow
+
+## SUPREMÉ APPROVED Gate — now 2 stages
+Stage 1: Workflow Gate (7 questions above) → WORKFLOW APPROVED
+Stage 2: SUPREMÉ Gate (original 7 questions)
 1. Improves creative workflow?
 2. Deterministic and realtime-capable?
 3. Compatible with platform architecture?
@@ -37,7 +61,7 @@ VibeCoreUnivers/
 5. Long-term maintainable and modularly extensible?
 6. Supports professional mobile live-performance groovebox vision?
 7. Improvement provable against The One Rule?
-→ Only then: SUPREMÉ APPROVED – GO FOR IMPLEMENTATION.
+→ Only when both stages pass: SUPREMÉ APPROVED – GO FOR IMPLEMENTATION.
 
 ## Critical Invariants (quick lookup)
 - ONE Oboe engine · ONE VibeCore Sync · ZERO allocs in audio thread
