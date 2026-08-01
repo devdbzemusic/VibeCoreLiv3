@@ -90,6 +90,24 @@
     --font-mono: "JetBrains Mono", ui-monospace, monospace;
     --font-body: "Inter", system-ui, sans-serif;
 
+    /* Spacing scale (4-pt grid) */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-6: 24px;
+    --space-8: 32px;
+
+    /* Elevation shadows */
+    --shadow-sm: 0 2px 4px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.5);
+    --shadow-lg: 0 8px 24px hsl(0 0% 0% / 0.6);
+    --shadow-xl: 0 16px 48px hsl(0 0% 0% / 0.7);
+
+    /* Easing curves */
+    --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+    --ease-spring: cubic-bezier(0.2, 0.9, 0.3, 1.2);
+    --ease-out: cubic-bezier(0, 0, 0.3, 1);
     --transition-snap: cubic-bezier(0.2, 0.9, 0.3, 1.2);
   }
 
@@ -318,6 +336,17 @@
   0% { transform: scaleY(0.2); }
   100% { transform: scaleY(1); }
 }
+@keyframes slide-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes beat-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50%       { transform: scale(1.08); opacity: 1; }
+}
+
+.animate-slide-up { animation: slide-up 0.25s var(--ease-spring) both; }
+.animate-beat-pulse { animation: beat-pulse 0.5s var(--ease-snappy) ease-in-out infinite; }
 
 /* ── MOBILE PERFORMANCE OVERRIDES ────────────────────────────────
    Mid-range Android Chrome struggles with backdrop-filter, layered

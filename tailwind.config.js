@@ -12,6 +12,20 @@ module.exports = {
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
+  			// ── VibeCore neon palette ─────────────────────────────────────
+  			// Maps CSS custom properties to Tailwind utilities.
+  			// Usage: text-neon-cyan, bg-neon-crimson, border-neon-lime, etc.
+  			'neon-cyan':    'hsl(var(--cyan))',
+  			'neon-magenta': 'hsl(var(--magenta))',
+  			'neon-lime':    'hsl(var(--lime))',
+  			'neon-amber':   'hsl(var(--amber))',
+  			'neon-crimson': 'hsl(var(--crimson))',
+  			'neon-violet':  'hsl(var(--violet))',
+  			'surface-0': 'hsl(var(--surface-0))',
+  			'surface-1': 'hsl(var(--surface-1))',
+  			'surface-2': 'hsl(var(--surface-2))',
+  			'surface-3': 'hsl(var(--surface-3))',
+  			'surface-elev': 'hsl(var(--surface-elev))',
   			card: {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
@@ -87,7 +101,10 @@ module.exports = {
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up':   'accordion-up 0.2s ease-out',
+  			'pulse-neon':     'pulse-neon 1.2s ease-in-out infinite',
+  			'slide-up':       'slide-up 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2) both',
+  			'beat-pulse':     'beat-pulse 0.5s ease-in-out infinite',
   		}
   	}
   },

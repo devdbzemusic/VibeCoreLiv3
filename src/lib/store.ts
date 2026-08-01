@@ -24,7 +24,7 @@ import { defaultBass3D as _defaultBass3D, type Bass3DParams } from "@/lib/bass3d
 import { defaultArpConfig, type ArpConfig } from "@/lib/audio/arpEngine";
 import { buildGroove } from "@/lib/audio/aiSceneBuild";
 
-export type TabKey = "MIX" | "SEQ" | "ROLL" | "ARP" | "FX" | "SMPL" | "SND" | "BRN" | "SPC" | "AI" | "PROD" | "SYNC" | "SETUP" | "DBG" | "LIB" | "VOICE" | "REMIX" | "PTN" | "PERF" | "SYNTH3D" | "BASS3D";
+export type TabKey = "HOME" | "MIX" | "SEQ" | "ROLL" | "ARP" | "FX" | "SMPL" | "SND" | "BRN" | "SPC" | "AI" | "PROD" | "SYNC" | "SETUP" | "DBG" | "LIB" | "VOICE" | "REMIX" | "PTN" | "PERF" | "SYNTH3D" | "BASS3D";
 export type QualityMode = "AUTO" | "LOW" | "MEDIUM" | "HIGH";
 export type QualityLevel = "LOW" | "MEDIUM" | "HIGH";
 export type PsychoPresetName = "NEUTRAL" | "WARM" | "CRUNCH" | "HI_DEF";
@@ -357,7 +357,7 @@ export const useGroove = create<State>()(persist((set) => ({
   currentQuality: "HIGH",
   psychoPreset: "NEUTRAL",
 
-  tab: "SEQ",
+  tab: "HOME" as TabKey,
   selectedPart: 0,
   selectedPattern: 0,
   selectedSceneIdx: 0,

@@ -44,7 +44,7 @@ export function Synth3DPage() {
 
   return (
     <div className="space-y-3">
-      <ModuleHeader moduleName="3D SYNTH" />
+      {/* ModuleHeader is rendered by the <ModulePage> wrapper in Index.tsx */}
 
       {/* Voice picker — which part this instrument drives */}
       <div className="panel p-2">

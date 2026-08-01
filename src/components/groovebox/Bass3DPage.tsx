@@ -44,7 +44,7 @@ export function Bass3DPage() {
 
   return (
     <div className="space-y-3">
-      <ModuleHeader moduleName="3D BASS" />
+      {/* ModuleHeader is rendered by the <ModulePage> wrapper in Index.tsx */}
 
       {/* Voice picker */}
       <div className="panel p-2">

@@ -1,35 +1,63 @@
 import { useEffect } from "react";
-import { TopBar } from "@/components/groovebox/TopBar";
-import { TabBar } from "@/components/groovebox/TabBar";
-import { SeqTab } from "@/components/groovebox/SeqTab";
-import { PianoRollTab } from "@/components/groovebox/PianoRollTab";
-import { MixTab } from "@/components/groovebox/MixTab";
-
-import { FxTab } from "@/components/groovebox/FxTab";
-import { SmplTab } from "@/components/groovebox/SmplTab";
-import { SoundTab } from "@/components/groovebox/SoundTab";
-import { BrainwaveTab } from "@/components/groovebox/BrainwaveTab";
-import { SpatialTab } from "@/components/groovebox/SpatialTab";
-import { AiSceneTab } from "@/components/groovebox/AiSceneTab";
-import { ArpPanel } from "@/components/groovebox/ArpPanel";
-import { ProdTab } from "@/components/groovebox/ProdTab";
-import { SyncTab } from "@/components/groovebox/SyncTab";
-import { SetupTab } from "@/components/groovebox/SetupTab";
-import { LibTab } from "@/components/groovebox/LibTab";
-import { VoiceTab } from "@/components/groovebox/VoiceTab";
-import { RemixTab } from "@/components/groovebox/RemixTab";
-import { PtnTab } from "@/components/groovebox/PtnTab";
-import { PerformanceTab } from "@/components/groovebox/PerformanceTab";
-import { Synth3DPage } from "@/components/groovebox/Synth3DPage";
-import { Bass3DPage } from "@/components/groovebox/Bass3DPage";
-
-
-import { DiagPanel } from "@/components/groovebox/DiagPanel";
-import { useGroove } from "@/lib/store";
+import { TopBar }          from "@/components/groovebox/TopBar";
+import { TabBar }          from "@/components/groovebox/TabBar";
+import { ModuleHeader }    from "@/components/groovebox/ModuleHeader";
+import { HomeTab }         from "@/components/groovebox/HomeTab";
+import { SeqTab }          from "@/components/groovebox/SeqTab";
+import { PianoRollTab }    from "@/components/groovebox/PianoRollTab";
+import { MixTab }          from "@/components/groovebox/MixTab";
+import { FxTab }           from "@/components/groovebox/FxTab";
+import { SmplTab }         from "@/components/groovebox/SmplTab";
+import { SoundTab }        from "@/components/groovebox/SoundTab";
+import { BrainwaveTab }    from "@/components/groovebox/BrainwaveTab";
+import { SpatialTab }      from "@/components/groovebox/SpatialTab";
+import { AiSceneTab }      from "@/components/groovebox/AiSceneTab";
+import { ArpPanel }        from "@/components/groovebox/ArpPanel";
+import { ProdTab }         from "@/components/groovebox/ProdTab";
+import { SyncTab }         from "@/components/groovebox/SyncTab";
+import { LibTab }          from "@/components/groovebox/LibTab";
+import { VoiceTab }        from "@/components/groovebox/VoiceTab";
+import { RemixTab }        from "@/components/groovebox/RemixTab";
+import { PtnTab }          from "@/components/groovebox/PtnTab";
+import { PerformanceTab }  from "@/components/groovebox/PerformanceTab";
+import { Synth3DPage }     from "@/components/groovebox/Synth3DPage";
+import { Bass3DPage }      from "@/components/groovebox/Bass3DPage";
+import { DiagPanel }       from "@/components/groovebox/DiagPanel";
+import { SettingsPage }    from "@/components/groovebox/SettingsPage";
+import { useGroove, type TabKey } from "@/lib/store";
 import { initSchedulerBindings } from "@/lib/audio/scheduler";
-import { bindParamUpdates } from "@/lib/audio/engine";
-import { bindInternalSource } from "@/lib/clock/sources/internalSource";
-import { startQualityManager } from "@/lib/audio/quality";
+import { bindParamUpdates }      from "@/lib/audio/engine";
+import { bindInternalSource }    from "@/lib/clock/sources/internalSource";
+import { startQualityManager }   from "@/lib/audio/quality";
+
+// ── Module-name mapping ──────────────────────────────────────────────────────
+// Maps every TabKey to its display module name shown in the ModuleHeader.
+// This drives the unified header without touching individual module components.
+const MODULE_NAMES: Partial<Record<TabKey, string>> = {
+  HOME:    "HOME",
+  SEQ:     "GROOVE",  ROLL:  "GROOVE",  PTN:  "GROOVE",  SND: "GROOVE",
+  ARP:     "ARP",
+  SYNTH3D: "3D SYNTH",
+  BASS3D:  "3D BASS",
+  SMPL:    "SAMPLE FORGE",
+  FX:      "FX MIX LAB", MIX:  "FX MIX LAB", PROD: "FX MIX LAB",
+  VOICE:   "VOICE",
+  REMIX:   "REMIX",   PERF:  "REMIX",
+  AI:      "AI",
+  BRN:     "bRAINWAVEz", SPC: "bRAINWAVEz",
+  SETUP:   "SETTINGS", SYNC: "SETTINGS", DBG: "SETTINGS", LIB: "SETTINGS",
+};
+
+/** Wraps any module content with the canonical ModuleHeader. */
+function ModulePage({ tab, children }: { tab: TabKey; children: React.ReactNode }) {
+  const name = MODULE_NAMES[tab] ?? tab;
+  return (
+    <>
+      <ModuleHeader module={name} />
+      {children}
+    </>
+  );
+}
 
 const Index = () => {
   const { tab } = useGroove();
@@ -44,7 +72,6 @@ const Index = () => {
     initSchedulerBindings();
     bindParamUpdates();
     // Quality manager: measures FPS + voice load → AUTO profile selection.
-    // Writes currentQuality + fps back to the store at 2 Hz via setInterval.
     startQualityManager();
   }, []);
 
@@ -54,31 +81,46 @@ const Index = () => {
 
       <main className="flex-1 overflow-y-auto px-3 py-3 pb-24 animate-slide-up">
         <h1 className="sr-only">VibeCoreLiv3 — Mobile Groovebox & Sound Workstation</h1>
-        {tab === "MIX" && <MixTab />}
-        {tab === "SEQ" && <SeqTab />}
-        {tab === "ROLL" && <PianoRollTab />}
-        {tab === "ARP" && <ArpPanel />}
-        {tab === "FX" && <FxTab />}
-        {tab === "SMPL" && <SmplTab />}
-        {tab === "SND" && <SoundTab />}
-        {tab === "BRN" && <BrainwaveTab />}
-        {tab === "SPC" && <SpatialTab />}
-        {tab === "AI" && <AiSceneTab />}
-        {tab === "PROD" && <ProdTab />}
-        {tab === "SYNC" && <SyncTab />}
-        {tab === "SETUP" && <SetupTab />}
-        {tab === "DBG" && <DiagPanel embedded />}
-        {tab === "LIB" && <LibTab />}
-        {tab === "VOICE" && <VoiceTab />}
-        {tab === "REMIX" && <RemixTab />}
-        {tab === "PTN" && <PtnTab />}
-        {tab === "PERF" && <PerformanceTab />}
-        {tab === "SYNTH3D" && <Synth3DPage />}
-        {tab === "BASS3D" && <Bass3DPage />}
 
+        {/* HOME — no ModuleHeader; HomeTab has its own hero layout */}
+        {tab === "HOME" && <HomeTab />}
+
+        {/* GROOVE */}
+        {tab === "SEQ"  && <ModulePage tab="SEQ"><SeqTab /></ModulePage>}
+        {tab === "ROLL" && <ModulePage tab="ROLL"><PianoRollTab /></ModulePage>}
+        {tab === "ARP"  && <ModulePage tab="ARP"><ArpPanel /></ModulePage>}
+        {tab === "PTN"  && <ModulePage tab="PTN"><PtnTab /></ModulePage>}
+        {tab === "SND"  && <ModulePage tab="SND"><SoundTab /></ModulePage>}
+
+        {/* INSTRUMENTS */}
+        {tab === "SYNTH3D" && <ModulePage tab="SYNTH3D"><Synth3DPage /></ModulePage>}
+        {tab === "BASS3D"  && <ModulePage tab="BASS3D"><Bass3DPage /></ModulePage>}
+        {tab === "SMPL"    && <ModulePage tab="SMPL"><SmplTab /></ModulePage>}
+        {tab === "VOICE"   && <ModulePage tab="VOICE"><VoiceTab /></ModulePage>}
+
+        {/* MIX / FX */}
+        {tab === "FX"   && <ModulePage tab="FX"><FxTab /></ModulePage>}
+        {tab === "MIX"  && <ModulePage tab="MIX"><MixTab /></ModulePage>}
+        {tab === "PROD" && <ModulePage tab="PROD"><ProdTab /></ModulePage>}
+
+        {/* PERFORMANCE */}
+        {tab === "REMIX" && <ModulePage tab="REMIX"><RemixTab /></ModulePage>}
+        {tab === "PERF"  && <ModulePage tab="PERF"><PerformanceTab /></ModulePage>}
+
+        {/* CREATIVE */}
+        {tab === "AI"  && <ModulePage tab="AI"><AiSceneTab /></ModulePage>}
+        {tab === "BRN" && <ModulePage tab="BRN"><BrainwaveTab /></ModulePage>}
+        {tab === "SPC" && <ModulePage tab="SPC"><SpatialTab /></ModulePage>}
+
+        {/* SETTINGS — consolidated Setup + Diagnostics */}
+        {tab === "SETUP" && <ModulePage tab="SETUP"><SettingsPage /></ModulePage>}
+        {tab === "SYNC"  && <ModulePage tab="SYNC"><SyncTab /></ModulePage>}
+        {tab === "DBG"   && <ModulePage tab="DBG"><DiagPanel embedded /></ModulePage>}
+        {tab === "LIB"   && <ModulePage tab="LIB"><LibTab /></ModulePage>}
       </main>
 
       <TabBar />
+      {/* DiagPanel floating overlay (triggered from TopBar diagnostics button) */}
       <DiagPanel />
     </div>
   );
