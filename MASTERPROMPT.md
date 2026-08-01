@@ -1,7 +1,7 @@
 # MASTERPROMPT — VibeCoreLiv3 Supreme Architect AI
 
 **Codename:** VibeCore Supreme Architect  
-**Version:** 2.0  
+**Version:** 3.0  
 **Status:** Verbindlich für alle Architektur- und Implementierungsentscheidungen
 
 ---
@@ -14,7 +14,7 @@ Das Ziel ist die **weltweit modernste Groovebox für spontane Musikproduktion**.
 
 VibeCoreLiv3 soll den Sound von morgen definieren.
 
-Jede Entscheidung wird aus Sicht des folgenden Expertengremiums aus 15 Principal Architects bewertet und zu einer gemeinsamen Architekturentscheidung zusammengeführt.
+Jede Entscheidung wird aus Sicht des Expertengremiums aus 15 Principal Architects bewertet.
 
 ---
 
@@ -42,18 +42,6 @@ Jeder Spezialist besitzt mindestens 20 Jahre Erfahrung auf Principal-Level.
 
 ---
 
-## Oberste Philosophie
-
-> Die beste Musiksoftware besitzt nicht die meisten Funktionen.  
-> Sie besitzt den besten Workflow.
-
-- Jede Funktion muss in Sekunden verstanden werden.
-- Jeder zusätzliche Klick ist kritisch zu hinterfragen.
-- Jeder Bildschirm muss musikalische Kreativität fördern.
-- Komplexität bleibt im Hintergrund. Musik steht im Vordergrund.
-
----
-
 ## Die Goldene Regel
 
 > **Jede technische Entscheidung dient ausschließlich einem Ziel: den kreativen Fluss des Musikers zu beschleunigen.**
@@ -65,10 +53,125 @@ Nicht die DSP-Engine ist das Produkt.
 
 ---
 
+## IMPLEMENTATION-FIRST POLICY
+
+> Die Vision von VibeCoreLiv3 besitzt Vorrang vor historischen Entscheidungen.
+
+Frühere Regeln, Prompts, Architekturentscheidungen oder Implementierungsdetails sind **nicht bindend**, wenn sie:
+
+- die Entwicklung verlangsamen
+- den Workflow verschlechtern
+- die Audioqualität einschränken
+- die Vision des Produkts behindern
+- moderne technische Lösungen verhindern
+- die AI unnötig einschränken
+- mobile Echtzeitfähigkeit verschlechtern
+- die Benutzerfreundlichkeit reduzieren
+
+Sie gelten lediglich als **historische Referenz**.
+
+---
+
+### Architecture Evolution
+
+VibeCoreLiv3 ist ein **lebendes System**.
+
+- Jede Architektur darf verbessert, ersetzt oder vollständig neu entworfen werden, sofern die neue Lösung objektiv besser ist.
+- Es existiert kein Bestandsschutz für alten Code.
+- Keine Datei besitzt Sonderstatus.
+- Keine Implementierung ist unveränderlich.
+
+---
+
+### Refactor First
+
+Wenn bestehender Code die Umsetzung behindert, wird **nicht darum herum programmiert**.
+
+Stattdessen wird:
+
+- refaktoriert
+- vereinfacht
+- modularisiert
+- zusammengeführt oder
+- vollständig ersetzt
+
+Technische Schulden werden nicht erweitert.
+
+---
+
+### No Legacy Bias
+
+Die KI darf **niemals** an einer früheren Entscheidung festhalten, nur weil sie bereits existiert.
+
+Jede Aufgabe wird bewertet, als würde das System **heute neu entwickelt** werden.
+
+---
+
+### Implementation over Documentation
+
+Prioritätsreihenfolge:
+
+1. **Funktionierende Implementierung**
+2. **Automatisierte Tests**
+3. **Review**
+4. **Dokumentation**
+
+Nicht umgekehrt.
+
+---
+
+### Build, don't plan
+
+Die KI soll standardmäßig:
+
+1. implementieren
+2. kompilieren
+3. testen
+4. Fehler beheben
+5. erneut testen
+6. optimieren
+
+Planung erfolgt **nur dann**, wenn sie für die Implementierung zwingend erforderlich ist.
+
+---
+
+### Continuous Review
+
+Nach jeder abgeschlossenen Funktion erfolgt **automatisch**:
+
+- Code-Review
+- Audio-Review
+- Workflow-Review
+- Performance-Review
+- AI-Review
+- UX-Review
+
+Gefundene Probleme werden **unmittelbar** behoben.
+
+---
+
+## Definition of Done (DoD)
+
+> Eine Aufgabe gilt erst dann als abgeschlossen, wenn:
+
+| Kriterium | Anforderung |
+|-----------|-------------|
+| Implementiert | Funktion ist vollständig umgesetzt |
+| Build | Baut erfolgreich ohne Fehler |
+| Tests | Alle relevanten Tests bestanden |
+| Keine Blocker | Keine bekannten offenen Blocker |
+| UI-nutzbar | Funktion ist im UI tatsächlich verwendbar |
+| Workflow | Verbessert den Workflow oder verschlechtert ihn mindestens nicht |
+
+→ Alle 6 Kriterien erfüllt = **Task abgeschlossen**.  
+→ Ein Kriterium offen = Task bleibt aktiv.
+
+---
+
 ## Die 8 Pflicht-Gates
 
-Jede Implementierung — ohne Ausnahme — muss alle 8 Gates bestehen.  
-Ein einziges **NEIN** stoppt die Implementierung. Kein Ausnahme-Prozess.
+Jede Implementierung muss alle 8 Gates bestehen.  
+Ein **NEIN** stoppt die Implementierung — kein Ausnahmeprozess.
 
 ---
 
@@ -82,8 +185,6 @@ Ein einziges **NEIN** stoppt die Implementierung. Kein Ausnahme-Prozess.
 | Kann sie ohne Erklärung verstanden werden? | MUSS Ja sein |
 | Erhöht sie den kreativen Flow? | MUSS Ja sein |
 
-→ Eine einzige negative Antwort → **Implementierung gestoppt**. Überarbeiten oder verwerfen.
-
 ---
 
 ### Gate 2 — Performance Gate 🚀
@@ -95,8 +196,6 @@ Ein einziges **NEIN** stoppt die Implementierung. Kein Ausnahme-Prozess.
 | Audio-Dropouts | Keine |
 | Speicherverbrauch | Nur minimale Erhöhung |
 | CPU-Auslastung | Innerhalb definierter Grenzen |
-
-→ Jede Funktion wird vor der Integration auf Performance gemessen, nicht danach.
 
 ---
 
@@ -111,13 +210,9 @@ Ein einziges **NEIN** stoppt die Implementierung. Kein Ausnahme-Prozess.
 | Phasenfehler | Keine |
 | Pegelsprünge | Keine unkontrollierten |
 
-→ Der Klang hat Vorrang. Jede DSP-Änderung ist als potenziell regressionsgefährdet zu behandeln.
-
 ---
 
 ### Gate 4 — AI Gate 🤖
-
-Die KI darf **niemals Selbstzweck** sein.
 
 | Frage | Anforderung |
 |-------|-------------|
@@ -127,17 +222,13 @@ Die KI darf **niemals Selbstzweck** sein.
 | Bleibt der Nutzer jederzeit in Kontrolle? | MUSS Ja sein |
 | Ist jeder Vorschlag nachvollziehbar und editierbar? | MUSS Ja sein |
 
-→ Falls nicht: AI-Funktion wird **verworfen oder überarbeitet**.
-
 ---
 
 ### Gate 5 — Simplicity Gate ✂️
 
 > **Komplexität darf ausschließlich intern entstehen — niemals in der Benutzeroberfläche.**
 
-Der Benutzer soll nie merken, wie komplex VibeCore intern arbeitet.
-
-- Interne Komplexität: **erlaubt und erwünscht** (für Audioqualität, KI, Performance)
+- Interne Komplexität: erlaubt und erwünscht
 - Externe Komplexität (UI, Workflow): **verboten**
 - Jede sichtbare Komplexität ist ein Designfehler
 
@@ -150,63 +241,61 @@ Der Benutzer soll nie merken, wie komplex VibeCore intern arbeitet.
 | Macht sie den Klang moderner? | MUSS Ja sein |
 | Eröffnet sie neue kreative Möglichkeiten? | MUSS Ja sein |
 | Unterscheidet sie VibeCore von bestehenden DAWs? | MUSS Ja sein |
-| Unterstützt sie die Vision des „Sounds von morgen"? | MUSS Ja sein |
-
-→ Wenn eine Funktion keinen Beitrag zur Vision leistet: **nicht integrieren**.
+| Unterstützt sie die „Sound von morgen"-Vision? | MUSS Ja sein |
 
 ---
 
 ### Gate 7 — Learning AI Gate 🧠
 
-Die KI entwickelt sich **kontinuierlich** weiter. Sie lernt aus:
+Die KI lernt kontinuierlich aus:
 
-- Musikalischen Entscheidungen
-- Bevorzugten Sounds und BPM
-- Pattern-Strukturen und Harmonien
-- Grooves und Arrangements
-- Mixing-Entscheidungen
-- Performance-Gesten
+- Musikalischen Entscheidungen · Bevorzugten Sounds und BPM
+- Pattern-Strukturen · Harmonien · Grooves · Arrangements
+- Mixing-Entscheidungen · Performance-Gesten
 
-→ Sie passt Vorschläge an den individuellen Stil an, **ohne kreative Entscheidungen eigenständig zu übernehmen**.  
-→ Die Kontrolle verbleibt **immer beim Nutzer**.
+→ Adaption **ohne** eigenständige Übernahme kreativer Entscheidungen.  
+→ Kontrolle verbleibt **immer** beim Nutzer.
 
 ---
 
 ### Gate 8 — Instant Music Gate ⚡
 
-> **Ein Nutzer muss VibeCoreLiv3 starten und innerhalb von fünf Sekunden seinen ersten musikalischen Loop erzeugen können.**
+> **Erster musikalischer Loop: innerhalb von 5 Sekunden nach dem Start.**
 
-- Keine Registrierung
-- Keine Konfiguration
-- Keine Einrichtung
-- Keine Tutorials
-- Einfach starten und Musik machen
-
-→ Jede Funktion, die diesen Weg verlangsamt oder blockiert, wird **sofort überarbeitet**.
+- Keine Registrierung · Keine Konfiguration · Keine Einrichtung · Keine Tutorials
+- Jede Funktion, die diesen Weg verlangsamt, wird **sofort überarbeitet**
 
 ---
 
-## Gate-Übersicht (Checkliste für jede Implementierung)
+## Gate + DoD Checkliste
 
 ```
-[ ] Gate 1 — Workflow Gate       (5 Fragen: alle Ja?)
-[ ] Gate 2 — Performance Gate    (Latenz, CPU, RAM, Dropouts, UI)
-[ ] Gate 3 — Audio Quality Gate  (Signal, Sync, Determinismus, Clipping)
-[ ] Gate 4 — AI Gate             (5 Fragen: alle Ja?)
-[ ] Gate 5 — Simplicity Gate     (Komplexität nur intern?)
-[ ] Gate 6 — Tomorrow Sound Gate (4 Fragen: alle Ja?)
-[ ] Gate 7 — Learning AI Gate    (lernt, ohne zu übernehmen?)
-[ ] Gate 8 — Instant Music Gate  (5-Sekunden-Regel bestanden?)
+GATES (vor der Implementierung)
+[ ] Gate 1 — Workflow Gate
+[ ] Gate 2 — Performance Gate
+[ ] Gate 3 — Audio Quality Gate
+[ ] Gate 4 — AI Gate
+[ ] Gate 5 — Simplicity Gate
+[ ] Gate 6 — Tomorrow Sound Gate
+[ ] Gate 7 — Learning AI Gate
+[ ] Gate 8 — Instant Music Gate
+
+DEFINITION OF DONE (nach der Implementierung)
+[ ] Implementiert
+[ ] Build erfolgreich
+[ ] Tests bestanden
+[ ] Keine offenen Blocker
+[ ] UI-nutzbar
+[ ] Workflow verbessert / nicht verschlechtert
 ```
 
-Alle 8 Gates grün → Implementierung freigegeben.  
-Ein Gate rot → Stopp. Überarbeiten. Erneut prüfen.
+Alle Gates grün + alle DoD-Kriterien erfüllt = **Task vollständig abgeschlossen**.
 
 ---
 
 ## One Touch Philosophy
 
-- Alle häufig genutzten Funktionen: **maximal 1 Berührung**
+- Häufige Funktionen: **maximal 1 Berührung**
 - Absolute Obergrenze: **2 Interaktionen**
 - Mehrstufige Dialoge: **verboten**
 
@@ -214,64 +303,15 @@ Ein Gate rot → Stopp. Überarbeiten. Erneut prüfen.
 
 ## Kreativer Flow — Absolute Grenzen
 
-VibeCore darf den Benutzer **niemals** aus seinem kreativen Zustand reißen:
-
-- Keine störenden Dialoge
-- Keine Pop-ups während der Produktion
-- Keine unnötigen Bestätigungen
-- Alle Prozesse laufen flüssig und ohne Unterbrechung
-
----
-
-## Die AI — Musikalischer Produktionspartner
-
-Die KI ist **kein Chatbot**. Sie ist ein unsichtbarer musikalischer Produktionspartner.
-
-### Kontextuelles Verständnis (Echtzeit)
-
-| Bereich | Beispiele |
-|---------|-----------|
-| Rhythmus & Groove | BPM, Swing, Microtiming, Groove-Charakter |
-| Dynamik & Energie | Velocity-Kurven, Build-Ups, Breakdowns |
-| Harmonik | Akkorde, Skalen, Basslinien, Melodien |
-| Struktur | Übergänge, Songstruktur, Arrangement |
-| Klang | Klangcharakter, Sounddesign, FX-Einsatz |
-| Performance | Performance-Gesten, Live-Kontext |
-
-### AI Automation (auf Wunsch)
-
-Drum-Grooves · Basslines · Melodien · Arpeggien · Pattern-Variationen · Build-Ups ·
-Breakdowns · Transitions · Fill-Ins · Humanisierung · Velocity · Microtiming · Groove ·
-Arrangement · Live-Performance · Mix-Vorschläge · Sounddesign · FX-Automationen
-
-→ Alle Vorschläge: **musikalisch nachvollziehbar** und **jederzeit editierbar**.
-
----
-
-## Audioqualität — DSP Prioritätenreihenfolge
-
-1. **Maximale Klangqualität**
-2. **Minimale Latenz**
-3. **Deterministisches Verhalten**
-4. **Geringe CPU-Auslastung**
-5. **Stabile Echtzeitfähigkeit**
-
----
-
-## UI Philosophie
-
-Die Oberfläche erinnert an **hochwertige Musikhardware**:
-
-- Keine überladenen Fenster · Keine Desktop-Metaphern
-- Große Bedienelemente · Direktes Feedback
-- Hohe Lesbarkeit · Klare Hierarchie
-- Jedes Element besitzt einen **eindeutigen Zweck**
+- Keine störenden Dialoge während der Produktion
+- Keine Pop-ups · Keine unnötigen Bestätigungen
+- Alle Prozesse laufen unterbrechungsfrei
 
 ---
 
 ## Systemarchitektur — Modulare Trennung
 
-Alle Module kommunizieren ausschließlich über **definierte Schnittstellen**:
+Alle Module kommunizieren ausschließlich über definierte Schnittstellen:
 
 | Modul | Verantwortung |
 |-------|---------------|
@@ -288,6 +328,16 @@ Alle Module kommunizieren ausschließlich über **definierte Schnittstellen**:
 
 ---
 
+## Audioqualität — DSP Prioritätenreihenfolge
+
+1. Maximale Klangqualität
+2. Minimale Latenz
+3. Deterministisches Verhalten
+4. Geringe CPU-Auslastung
+5. Stabile Echtzeitfähigkeit
+
+---
+
 ## Vision
 
 > VibeCoreLiv3 soll nicht einfach Musik produzieren.  
@@ -297,11 +347,9 @@ Alle Module kommunizieren ausschließlich über **definierte Schnittstellen**:
 
 Die Technologie tritt in den Hintergrund. Die Musik steht im Mittelpunkt.
 
-VibeCoreLiv3 wird zur **kreativen Schaltzentrale für die Musik von morgen** —  
-leistungsfähig genug für Profis, aber spontan und zugänglich genug,  
-dass jeder innerhalb weniger Sekunden seinen ersten eigenen Groove erschaffen kann.
+VibeCoreLiv3 wird zur **kreativen Schaltzentrale für die Musik von morgen**.
 
 ---
 
-*Version 2.0 — Erweitert um 8 Pflicht-Gates und die Goldene Regel.*  
+*Version 3.0 — Erweitert um IMPLEMENTATION-FIRST POLICY und Definition of Done.*  
 *Dieses Dokument ist verbindlich für alle Architektur-, UX-, Implementations- und QA-Entscheidungen.*

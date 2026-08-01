@@ -1,67 +1,64 @@
 ---
-name: VibeCoreLiv3 MASTERPROMPT v2.0
-description: Supreme Architect governing rules — 15-specialist panel, 8 mandatory gates, Golden Rule. Every implementation must pass all 8 gates before a single line of code is written.
+name: VibeCoreLiv3 MASTERPROMPT v3.0
+description: Supreme Architect governing rules — Implementation-First Policy, 8 mandatory gates, Definition of Done, Golden Rule. Build first, plan only when necessary.
 ---
 
-# VibeCoreLiv3 MASTERPROMPT v2.0 — Agent Reference
+# VibeCoreLiv3 MASTERPROMPT v3.0 — Agent Reference
 
 ## The Golden Rule
 > Every technical decision serves one purpose only: to accelerate the musician's creative flow.
-> The creative flow is the product — not the code, not the AI, not the DSP engine.
+> The creative flow is the product.
 
-## The 8 Mandatory Gates (ALL must be green before implementation)
+## IMPLEMENTATION-FIRST POLICY (new in v3.0)
+- Vision > historical decisions. Old rules/prompts/arch decisions are HISTORICAL REFERENCE only if they slow development, hurt workflow, limit audio quality, block vision, prevent modern solutions, restrict AI, hurt mobile perf, or reduce UX.
+- **Architecture Evolution**: any architecture can be improved, replaced, or fully redesigned if the new solution is objectively better. No file has special status. No implementation is immutable.
+- **Refactor First**: if existing code blocks implementation → refactor, simplify, modularize, merge, or replace. Do NOT code around it. Do NOT add technical debt.
+- **No Legacy Bias**: never hold onto a past decision just because it exists. Evaluate every task as if the system is being built today.
+- **Implementation over Documentation**: priority order: 1. Working implementation 2. Automated tests 3. Review 4. Documentation
+- **Build, don't plan**: default behavior = implement → compile → test → fix → retest → optimize. Plan ONLY when strictly required for implementation.
+- **Continuous Review**: after every completed feature, automatically run: Code / Audio / Workflow / Performance / AI / UX review. Fix findings immediately.
 
-### Gate 1 — Workflow Gate
-5 questions, all must be YES:
-- Musikalisch sinnvoll? · Reduziert Arbeit? · Intuitiv? · Ohne Erklärung verständlich? · Erhöht kreativen Flow?
+## Definition of Done (new in v3.0)
+A task is complete ONLY when ALL of these are true:
+1. Implemented (fully)
+2. Build succeeds (no errors)
+3. All relevant tests pass
+4. No known open blockers
+5. Feature is usable in the UI
+6. Workflow improved or at minimum not degraded
 
-### Gate 2 — Performance Gate
-- Audio latency within budget · UI stays smooth · No audio dropouts · Minimal memory increase · CPU within limits
+One criterion open = task stays active. No exceptions.
 
-### Gate 3 — Audio Quality Gate
-- No signal degradation · Sample-accurate sync · Deterministic behavior · No clipping artifacts · No phase errors · No uncontrolled level jumps
+## The 8 Mandatory Gates (apply BEFORE implementation)
+Run all 8 before writing code. One NO = stop, rework, re-check.
 
-### Gate 4 — AI Gate
-5 questions, all must be YES:
-- Supports creative process? · Saves time? · Learns from user decisions? · User stays in control at all times? · Every suggestion explainable and editable?
+- **Gate 1 — Workflow**: musikalisch sinnvoll? reduziert Arbeit? intuitiv? ohne Erklärung verständlich? erhöht Flow? (all YES)
+- **Gate 2 — Performance**: latency in budget · UI smooth · no dropouts · minimal RAM · CPU in limits
+- **Gate 3 — Audio Quality**: no signal degradation · sample-accurate sync · deterministic · no clipping · no phase errors · no level jumps
+- **Gate 4 — AI**: supports creative process · saves time · learns from user · user in control always · suggestions explainable & editable (all YES)
+- **Gate 5 — Simplicity**: complexity ONLY internal — never in UI. Visible complexity = design failure.
+- **Gate 6 — Tomorrow Sound**: makes sound more modern · opens new creative options · differentiates from DAWs · supports vision (all YES)
+- **Gate 7 — Learning AI**: AI learns continuously, adapts to individual style WITHOUT taking over. User control always.
+- **Gate 8 — Instant Music**: first loop within 5 seconds of launch. No registration/config/setup/tutorial. Any feature slowing this = rework immediately.
 
-### Gate 5 — Simplicity Gate
-- Complexity is ONLY allowed internally — never in the UI
-- Visible complexity = design failure
-
-### Gate 6 — Tomorrow Sound Gate
-4 questions, all must be YES:
-- Makes the sound more modern? · Opens new creative possibilities? · Differentiates VibeCore from existing DAWs? · Supports "sound of tomorrow" vision?
-
-### Gate 7 — Learning AI Gate
-- AI learns continuously from musical decisions, sounds, patterns, grooves, arrangements, mix choices, performance gestures
-- Adapts suggestions to individual style WITHOUT taking over creative decisions
-- Control remains with the user at ALL times
-
-### Gate 8 — Instant Music Gate
-- User must be able to create their first musical loop within 5 seconds of launch
-- No registration, no configuration, no setup, no tutorials
-- Any feature that slows or blocks this path is immediately reworked
-
-## Gate Checklist (apply before every implementation)
+## Combined Checklist
 ```
-[ ] Gate 1 — Workflow Gate
-[ ] Gate 2 — Performance Gate
-[ ] Gate 3 — Audio Quality Gate
-[ ] Gate 4 — AI Gate
-[ ] Gate 5 — Simplicity Gate
-[ ] Gate 6 — Tomorrow Sound Gate
-[ ] Gate 7 — Learning AI Gate
-[ ] Gate 8 — Instant Music Gate
+GATES (before):           DoD (after):
+[ ] Gate 1 Workflow       [ ] Implemented
+[ ] Gate 2 Performance    [ ] Build OK
+[ ] Gate 3 Audio Quality  [ ] Tests pass
+[ ] Gate 4 AI             [ ] No blockers
+[ ] Gate 5 Simplicity     [ ] UI usable
+[ ] Gate 6 Tomorrow Sound [ ] Workflow OK
+[ ] Gate 7 Learning AI
+[ ] Gate 8 Instant Music
 ```
-All 8 green → implementation approved. One red → stop, rework, re-check.
 
 ## Other non-negotiable rules
-- One Touch Philosophy: max 1 touch for common actions, ceiling 2 interactions, no multi-step dialogs
-- No creative disruption: zero blocking dialogs, popups, or confirmations during production
-- Module isolation: Sync / Groove / Remix / Voice / Sample Forge / FX Lab / Synth / Bass / AI / Brainwavez — interfaces only
-- DSP priority order: max quality → min latency → deterministic → low CPU → stable realtime
-- UI = high-end hardware feeling: large controls, direct feedback, single purpose per element
+- One Touch: max 1 touch for common actions, ceiling 2, no multi-step dialogs
+- No disruption: zero blocking dialogs/popups/confirmations during production
+- Module isolation: Sync/Groove/Remix/Voice/Forge/FX/Synth/Bass/AI/Brainwavez — interfaces only
+- DSP priority: max quality → min latency → deterministic → low CPU → stable realtime
 
 ## Full document
-`MASTERPROMPT.md` in the project root (v2.0).
+`MASTERPROMPT.md` in project root (v3.0).
