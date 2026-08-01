@@ -25,18 +25,26 @@ When a user must think "where is this function?" → the workflow has failed →
 - One button = one expected action
 - No function operated differently at multiple locations
 
-## 11-Phase Creative Flow (immutable order)
-1. IDEE — HOME module, ≤5s to first sound
-2. GROOVE — GROOVE module (ROLL · PTN · SND · ARP)
-3. BASS — 3D BASS
-4. HARMONIE — 3D SYNTH (Chord mode)
-5. MELODIE — 3D SYNTH (Lead mode) · GROOVE (ROLL)
-6. SOUND DESIGN — SAMPLE FORGE · 3D SYNTH/BASS (Design mode) — optional deep dive
-7. FX — FX MIX LAB (FX · MIX)
-8. LIVE PERFORMANCE — FX MIX LAB (PERFORM) · GROOVE (ARP) · AI
-9. REMIX — FX MIX LAB (REMIX) · SAMPLE FORGE
-10. ARRANGEMENT — GROOVE (PTN sequence) · future Arrangement View
-11. EXPORT — SETTINGS (LIB + Export)
+## 4 Workflow Rules (added 2026-08-01)
+1. No modules — only work phases. Musician sees phases, not software modules.
+2. Always exactly ONE creative focus per screen. Everything else hidden.
+3. AI is context-dependent — only suggests what is relevant for the active phase.
+4. FX MIX LAB = Control Center (AI Director + ARP + Makros + Szenen + Morphing + Remix + 3D Matrix + Mixer + FX).
+
+## Module → Phase mapping
+GROOVE → BEAT | 3D SYNTH → MELODIE | 3D BASS → BASS | SAMPLE FORGE → SOUND | FX MIX LAB → LIVE (Control Center)
+
+## 9-Phase Creative Flow (replaces 11-phase, immutable order)
+START — immediate sound, ≤5s, no onboarding
+1. IDEE — HOME; genre/BPM impulse; AI optional genre suggestion
+2. BEAT — GROOVE (ROLL·PTN·SND); ARP in beat context; beat-only makros visible
+3. BASS — 3D BASS; ARP in bass context; bass-only makros visible
+4. MELODIE — 3D SYNTH chord+lead; Piano Roll; ARP in melodic context
+5. SOUND — SAMPLE FORGE + 3D SYNTH/BASS design mode + WAVE; optional deep dive, never mandatory
+6. LIVE — FX MIX LAB Control Center (Makros·Szenen·Morphing·AI Director·Mixer·FX·3D Matrix·ARP)
+7. REMIX — FX MIX LAB (REMIX) + SAMPLE FORGE; chop/pitch/reverse/stutter
+8. ARRANGE — GROOVE PTN sequence + FX MIX LAB scene sequence; energy-curve view
+9. EXPORT — SETTINGS (LIB + Export); stems/MP3/share
 
 ## File
 `VibeCoreUnivers/CREATIVE_WORKFLOW_CONSTITUTION.md`
