@@ -1,1 +1,2 @@
 - [SonicArchitect architecture](sonic-architect-arch.md) — key engine/clock/store invariants that must be preserved across all edits
+- [VibeCoreLiv3 MASTERPROMPT](masterprompt.md) — supreme governing rules: 5-second rule, One Touch, Workflow First gate, AI-as-partner, DSP priority order, 15-specialist decision panel
