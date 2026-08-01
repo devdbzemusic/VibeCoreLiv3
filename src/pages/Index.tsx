@@ -29,14 +29,23 @@ import { useGroove } from "@/lib/store";
 import { initSchedulerBindings } from "@/lib/audio/scheduler";
 import { bindParamUpdates } from "@/lib/audio/engine";
 import { bindInternalSource } from "@/lib/clock/sources/internalSource";
+import { startQualityManager } from "@/lib/audio/quality";
 
 const Index = () => {
   const { tab } = useGroove();
 
   useEffect(() => {
+    // Wire the three core engine/clock bindings in dependency order:
+    //   1. bindInternalSource  — establishes BPM/transport → MasterClock link
+    //   2. initSchedulerBindings — subscribes MasterClock transport events → scheduler
+    //   3. bindParamUpdates    — subscribes store audio params → AudioParam setTargetAtTime
+    // Must run before the first user interaction that triggers ensureAudio().
+    bindInternalSource();
     initSchedulerBindings();
     bindParamUpdates();
-    bindInternalSource();
+    // Quality manager: measures FPS + voice load → AUTO profile selection.
+    // Writes currentQuality + fps back to the store at 2 Hz via setInterval.
+    startQualityManager();
   }, []);
 
   return (

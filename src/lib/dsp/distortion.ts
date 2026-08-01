@@ -59,7 +59,7 @@ export function createDistortion(
   const input = ctx.createGain();
   input.gain.value = dbToLin(p.preGain ?? 0);
   const shaper = ctx.createWaveShaper();
-  shaper.curve = getCurve(p);
+  shaper.curve = getCurve(p) as Float32Array<ArrayBuffer>;
   shaper.oversample = p.oversample ?? "2x";
   const output = ctx.createGain();
   output.gain.value = dbToLin(p.postGain ?? 0);

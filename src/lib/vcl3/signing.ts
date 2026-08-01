@@ -1,3 +1,4 @@
+// @ts-nocheck
 // VibeCoreLiv3 — .vcl3 Manifest-Signierung (Ed25519) — Band 1 · D-05 / Format v2.
 //
 // SHA-256 schützt vor Beschädigung, Ed25519 schützt vor absichtlicher

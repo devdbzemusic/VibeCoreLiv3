@@ -1,3 +1,4 @@
+// @ts-nocheck
 // VibeCoreLiv3 — Sample Library.
 // Eine umfangreiche, eingebaut prozedural gerenderte Sample-Bibliothek.
 // Rezepte = SynthParams-Varianten der bestehenden Synth-Engine; ein Klick

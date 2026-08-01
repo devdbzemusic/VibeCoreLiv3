@@ -1,0 +1,1 @@
+- [SonicArchitect architecture](sonic-architect-arch.md) — key engine/clock/store invariants that must be preserved across all edits

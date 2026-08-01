@@ -134,6 +134,12 @@ interface State {
   fxClip: number[];
   fxFloorDb: number[];
   fxSharedFloor: boolean;
+
+  /** Per-part bus routing: maps part id → engine FX bus index (0–5), or null = direct-to-master. */
+  partBusAssignments: Record<number, number | null>;
+  /** Per-bus level controls for the 6 engine FX buses.
+   *  volume: 0–100 (linear percentage), mute: silences the bus post-FX. */
+  busLevels: { volume: number; mute: boolean }[];
   limiterReduction: number;
 
   audioReady: boolean;
@@ -250,6 +256,10 @@ interface State {
   setFxBoost: (slot: number, v: number) => void;
   toggleFxBypass: (slot: number) => void;
   toggleFxSharedFloor: () => void;
+  /** Route a part's dry (main) output to a numbered FX bus, or null to return it to master. */
+  setPartBusAssignment: (partId: number, busIdx: number | null) => void;
+  /** Update the volume/mute for one of the 6 engine FX buses. volume: 0–100. */
+  setBusLevelAction: (busIdx: number, volume: number, mute: boolean) => void;
   setFxType: (slot: number, t: FxSlot["type"]) => void;
   setFxParam: (slot: number, key: string, v: number) => void;
   setChannel: (id: number, patch: Partial<Channel>) => void;
@@ -335,6 +345,8 @@ export const useGroove = create<State>()(persist((set) => ({
   fxClip: Array.from({ length: 6 }, () => 0),
   fxFloorDb: Array.from({ length: 6 }, () => -60),
   fxSharedFloor: false,
+  partBusAssignments: {},
+  busLevels: Array.from({ length: 6 }, () => ({ volume: 100, mute: false })),
   limiterReduction: 0,
 
   audioReady: false,
@@ -813,6 +825,14 @@ export const useGroove = create<State>()(persist((set) => ({
   setFxBoost: (slot, v) => set((s) => ({ fx: s.fx.map((f, i) => i === slot ? { ...f, boost: Math.max(0, Math.min(100, v)) } : f) })),
   toggleFxBypass: (slot) => set((s) => ({ fx: s.fx.map((f, i) => i === slot ? { ...f, bypass: !f.bypass } : f) })),
   toggleFxSharedFloor: () => set((s) => ({ fxSharedFloor: !s.fxSharedFloor })),
+  setPartBusAssignment: (partId, busIdx) => set((s) => ({
+    partBusAssignments: { ...s.partBusAssignments, [partId]: busIdx },
+  })),
+  setBusLevelAction: (busIdx, volume, mute) => set((s) => {
+    const next = s.busLevels.slice();
+    next[busIdx] = { volume: Math.max(0, Math.min(100, volume)), mute };
+    return { busLevels: next };
+  }),
   setFxType: (slot, t) => set((s) => ({ fx: s.fx.map((f, i) => i === slot ? { ...f, type: t, params: defaultFxParams(t) } : f) })),
   setFxParam: (slot, key, v) => set((s) => ({
     fx: s.fx.map((f, i) => i === slot ? { ...f, params: { ...f.params, [key]: v } } : f),

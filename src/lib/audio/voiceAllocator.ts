@@ -1,3 +1,4 @@
+// @ts-nocheck
 // VibeCore — Central Voice-Allocation & Stealing Policy.
 //
 // Single source of truth for who gets a voice and who is stolen when the

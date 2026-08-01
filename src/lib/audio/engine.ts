@@ -1473,6 +1473,22 @@ export function bindParamUpdates() {
       s.masterVolume !== prev.masterVolume ||
       s.bpm !== prev.bpm;
     if (ctx && audioChanged) applyAllParams();
+
+    // ── FxMixLab bus routing ─────────────────────────────────────────────
+    // Re-patch part dry→bus connections when assignments change.  Uses
+    // numeric bus indices from the store — named FxMixLab bus IDs require
+    // callers to pass an explicit busIdMap to applyFxMixLabRouting() directly.
+    if (ctx && s.partBusAssignments !== prev.partBusAssignments) {
+      Object.entries(s.partBusAssignments as Record<string, number | null>).forEach(
+        ([pidStr, busIdx]) => { routePartMainToBus(Number(pidStr), busIdx); },
+      );
+    }
+    if (ctx && s.busLevels !== prev.busLevels) {
+      (s.busLevels as { volume: number; mute: boolean }[]).forEach((b, i) => {
+        setBusChannelLevel(i, b.volume / 100, b.mute);
+      });
+    }
+
     if (s.transport.currentPattern !== prevPatternForCrossfade) {
       prevPatternForCrossfade = s.transport.currentPattern;
       crossfadePatternChange();
@@ -1703,6 +1719,129 @@ export async function softStart(): Promise<void> {
 
 /** Ramp master down, then optionally flush still-playing one-shot voices.
  *  Resolves after the fade so callers can sequence the actual scheduler stop. */
+// ─── FxMixLab bus-routing integration ──────────────────────────────────────
+//
+// The engine owns six numbered FX buses (fxBuses[0..5]).  These map 1-to-1
+// to the six FxSlot entries in the store, and each part has six matching
+// send GainNodes (chain.sends[0..5]).
+//
+// The FxMixLab module provides a richer *named-bus* routing model
+// (MixerChannel.busTarget, BusChannel.volume/pan/mute/solo).  The two
+// functions below bridge that model to the engine's concrete graph:
+//
+//   applyFxMixLabRouting  — updates bus-level volume/mute from BusChannel
+//                            data and re-patches part dry → bus or master.
+//   routePartMainToBus    — imperatively re-patches a single part's dry
+//                            signal to a numbered bus or back to master.
+//   setBusChannelLevel    — adjust one bus's post-FX volume/mute in place.
+
+/**
+ * Map a bus-target string to a numbered engine bus index (0–5), or null for master.
+ *
+ * Resolution order:
+ *   1. "master" or empty  → null
+ *   2. busIdMap lookup    → explicit name→index binding (e.g. "bus_drums" → 2)
+ *   3. Numeric string     → parseInt  ("3", "bus:3" → 3)
+ *   4. No match           → null  (routes dry signal to master as safe fallback)
+ *
+ * @param busIdMap  Optional caller-provided name→index map for named bus IDs
+ *                  produced by FxMixLab presets.  Without a map, named targets
+ *                  that are not numeric fall back to master rather than resolving
+ *                  to a wrong index.
+ */
+function busTargetToIndex(target: string, busIdMap: Record<string, number> = {}): number | null {
+  if (!target || target === "master") return null;
+  if (Object.prototype.hasOwnProperty.call(busIdMap, target)) {
+    const mapped = busIdMap[target];
+    return Number.isFinite(mapped) && mapped >= 0 && mapped < 6 ? Math.floor(mapped) : null;
+  }
+  const t = target.startsWith("bus:") ? target.slice(4) : target;
+  const n = Number(t);
+  return Number.isFinite(n) && n >= 0 && n < 6 ? Math.floor(n) : null;
+}
+
+/**
+ * Apply FxMixLab routing data to the live audio graph.
+ *
+ * @param channels   Per-part routing entries (partId + busTarget string).
+ *                   Absent entries keep their current routing.
+ * @param buses      Per-bus level entries ({ idx, volume 0–100, mute }).
+ * @param busIdMap   Optional explicit name→engine-index mapping for named bus
+ *                   IDs produced by FxMixLab presets (e.g. {"bus_drums": 2}).
+ *                   Numeric targets ("0".."5", "bus:0".."bus:5") are resolved
+ *                   automatically without a map. Named targets with no map entry
+ *                   fall back to master (safe default — never silently mismatch).
+ *
+ * Call this whenever the FxMixLab routing model changes (e.g. when the user
+ * changes a part's bus assignment in MixTab or FxTab).
+ */
+export function applyFxMixLabRouting(
+  channels: { partId: number; busTarget?: string }[],
+  buses: { idx: number; volume: number; mute: boolean; solo?: boolean }[],
+  busIdMap: Record<string, number> = {},
+): void {
+  if (!ctx || !masterIn) return;
+
+  // 1. Per-part: re-patch dry output to the requested bus (or master).
+  for (const ch of channels) {
+    routePartMainToBus(
+      ch.partId,
+      ch.busTarget ? busTargetToIndex(ch.busTarget, busIdMap) : null,
+    );
+  }
+
+  // 2. Per-bus: apply volume / mute to the bus wet gain.
+  for (const b of buses) {
+    setBusChannelLevel(b.idx, b.volume / 100, b.mute);
+  }
+}
+
+/**
+ * Route the *dry* (main) output of a part to a numbered FX bus, or back to
+ * master when busIdx is null.
+ *
+ * The part's send-FX path (chain.sends[0..5]) is unchanged — only the dry
+ * signal tap (chain.dry) is re-patched.  The change takes effect immediately
+ * with no audio discontinuity (both the old and new targets are GainNodes
+ * so the disconnect/connect happens at AudioNode granularity, not sample
+ * granularity; any in-flight sample will tail naturally).
+ */
+export function routePartMainToBus(partId: number, busIdx: number | null): void {
+  if (!ctx || !masterIn) return;
+  const chain = parts.get(partId);
+  if (!chain) return;
+
+  // Disconnect from current target (harmless if already disconnected).
+  try { chain.dry.disconnect(); } catch { /* noop */ }
+
+  if (busIdx !== null && fxBuses[busIdx]) {
+    chain.dry.connect(fxBuses[busIdx].input);
+  } else {
+    // Default: dry → masterIn (bypass bus entirely).
+    chain.dry.connect(masterIn);
+  }
+}
+
+/**
+ * Set the post-FX output volume of one bus channel.
+ *
+ * @param busIdx       0-based index into fxBuses (0..5).
+ * @param volumeLinear 0..1 gain (e.g. 0.85 for 85 % / −1.4 dBFS).
+ * @param mute         When true, gain is forced to 0 regardless of volume.
+ */
+export function setBusChannelLevel(
+  busIdx: number,
+  volumeLinear: number,
+  mute: boolean,
+): void {
+  const bus = fxBuses[busIdx];
+  if (!bus || !ctx) return;
+  const target = mute ? 0 : Math.max(0, Math.min(4, volumeLinear));
+  // Use the bus boost node (post-FX gain stage) for volume so it stacks
+  // correctly with the per-FX "boost" control already exposed in FxTab.
+  bus.boost.gain.setTargetAtTime(target, ctx.currentTime, 0.02);
+}
+
 export function softStop(flushVoices = true): Promise<void> {
   if (!ctx || !masterGain) return Promise.resolve();
   const now = ctx.currentTime;

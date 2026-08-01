@@ -22,7 +22,8 @@ class StubSource implements ExternalClockSource {
 // here under the ExternalClockSource interface so existing import sites get
 // the implementation without changing their imports (Band 4 §6.1 external sync).
 export const midiSource: ExternalClockSource = {
-  start: () => startMidiSync(),
+  // startMidiSync returns MidiSyncStatus; ExternalClockSource.start expects void.
+  start: () => startMidiSync().then(() => undefined),
   stop: () => { stopMidiSync(); },
   isRunning: () => getMidiSyncStatus().connected,
 };

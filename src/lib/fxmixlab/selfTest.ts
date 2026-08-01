@@ -255,10 +255,16 @@ function testInsertTypes() {
 
 function testAutomationSchedulerBpm() {
   // The scheduler must expose setBpm to avoid drift when tempo changes.
+  // Type cast: the literal `curve: "lin"` is widened to string by inference.
+  // The runtime value is correct; the cast tells TypeScript the curve literal
+  // satisfies AutomationCurve without importing every narrowing type here.
   const binding = {
     lane: {
-      id: "s1", target: "volume", channelRef: "part:0", enabled: true,
-      points: [{ songTicks: 0, value: 50, curve: "lin" }],
+      id: "s1",
+      target: "volume" as import("./types").AutomationTarget,
+      channelRef: "part:0",
+      enabled: true,
+      points: [{ songTicks: 0, value: 50, curve: "lin" as import("./types").AutomationCurve }],
     },
     apply: () => {},
   };

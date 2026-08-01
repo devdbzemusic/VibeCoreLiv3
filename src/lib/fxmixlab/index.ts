@@ -18,9 +18,10 @@ export type {
 } from "./types";
 
 // ── Insert Chains ─────────────────────────────────────────────────────────────
+// buildInsert is an internal factory — only buildInsertChain is public API.
 export {
   type InsertChainNode, type BuiltInsertChain,
-  buildInsert, buildInsertChain,
+  buildInsertChain,
 } from "./insertChain";
 
 // ── Routing ───────────────────────────────────────────────────────────────────

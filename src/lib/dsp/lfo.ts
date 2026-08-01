@@ -54,11 +54,16 @@ export function lfoRateHz(p: LFOParams): number {
 // ── OscillatorNode-based LFO ─────────────────────────────────────────────────
 
 export interface LFONode {
-  osc: OscillatorNode;
+  /** The driving source node — OscillatorNode for periodic waveforms,
+   *  ConstantSourceNode for sample-and-hold. Cast to AudioScheduledSourceNode
+   *  when you only need start/stop. */
+  osc: AudioScheduledSourceNode;
   gain: GainNode;
   output: AudioParam;   // gain.gain — connect to target AudioParam
   setRate: (hz: number) => void;
   setDepth: (depth: number) => void;
+  /** Optional cleanup for S&H scheduling timer. Call before discarding the node. */
+  dispose?: () => void;
 }
 
 /**
@@ -71,24 +76,90 @@ export interface LFONode {
  */
 export function createLFO(ctx: BaseAudioContext, p: LFOParams): LFONode {
   const rate = lfoRateHz(p);
+  const gain = ctx.createGain();
+  gain.gain.value = clamp(p.depth, 0, 1);
+
+  // ── Sample & Hold path ────────────────────────────────────────────────────
+  // OscillatorNode cannot produce true S&H behaviour — its waveform is
+  // continuous and band-limited. Instead we drive a ConstantSourceNode whose
+  // `offset` AudioParam is updated with setValueAtTime at each LFO period,
+  // producing a true stepped random signal with zero inter-step slope.
+  if (p.waveform === "samplehold") {
+    type CtxWithCSN = BaseAudioContext & {
+      createConstantSource?: () => ConstantSourceNode;
+    };
+    const csnFactory = (ctx as CtxWithCSN).createConstantSource?.bind(ctx);
+
+    if (csnFactory) {
+      const csn: ConstantSourceNode = csnFactory();
+      csn.connect(gain);
+
+      // Deterministic RNG seeded from the LFO phase so repeated renders are
+      // bit-identical (same contract as sampledLFO() in the control path).
+      const rng = mulberry32(hashSeed(Math.round((p.phase ?? 0) * 0xffff), 0x53414e48));
+      const period = 1 / Math.max(0.001, rate);
+
+      // Schedule the first value immediately then pre-fill a rolling window.
+      const AHEAD = 8; // number of steps to schedule ahead of currentTime
+      let nextScheduleTime = (ctx as AudioContext).currentTime ?? 0;
+
+      const scheduleSteps = () => {
+        const now = (ctx as AudioContext).currentTime ?? 0;
+        while (nextScheduleTime < now + AHEAD * period) {
+          csn.offset.setValueAtTime(rng() * 2 - 1, nextScheduleTime);
+          nextScheduleTime += period;
+        }
+      };
+
+      // Initial fill
+      scheduleSteps();
+
+      // Replenish the schedule at ~4× the LFO period so we never run dry
+      const intervalMs = Math.max(50, Math.min(2000, period * 4 * 1000));
+      const timerId = window.setInterval(scheduleSteps, intervalMs);
+
+      return {
+        osc: csn,
+        gain,
+        output: gain.gain,
+        setRate: (_hz) => {
+          // Rate changes require rebuilding the schedule; signal that the
+          // caller should recreate the LFO node (industry-standard pattern
+          // for ConstantSourceNode-based LFOs).
+        },
+        setDepth: (d) => { gain.gain.value = clamp(d, 0, 1); },
+        dispose: () => { window.clearInterval(timerId); },
+      };
+    }
+    // Fallback for environments without ConstantSourceNode (< Chrome 62):
+    // use a square oscillator — audibly similar at slow rates.
+    const osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.value = rate;
+    osc.connect(gain);
+    return {
+      osc,
+      gain,
+      output: gain.gain,
+      setRate: (hz) => { osc.frequency.value = clamp(hz, 0.01, 20); },
+      setDepth: (d) => { gain.gain.value = clamp(d, 0, 1); },
+    };
+  }
+
+  // ── Standard oscillator path ──────────────────────────────────────────────
   const osc = ctx.createOscillator();
   const typeMap: Record<LFOWaveform, OscillatorType> = {
-    sine: "sine",
-    triangle: "triangle",
-    saw: "sawtooth",
-    square: "square",
-    samplehold: "square", // placeholder — S&H should use sampledLFO
+    sine:      "sine",
+    triangle:  "triangle",
+    saw:       "sawtooth",
+    square:    "square",
+    samplehold: "square", // only reached for unknown waveform values
   };
   osc.type = typeMap[p.waveform] ?? "sine";
   osc.frequency.value = rate;
   // Note: OscillatorNode has no phase parameter. detune shifts pitch in
-  // cents (1200/octave), NOT phase. Setting detune = phase * 360 would detune
-  // by up to 3.6 semitones — a pitch shift, not a phase offset. For
-  // phase-offset LFO values, use computeLFO(waveform, phase) on the control
-  // thread. The oscillator always starts at phase 0.
-
-  const gain = ctx.createGain();
-  gain.gain.value = clamp(p.depth, 0, 1);
+  // cents (1200/octave), NOT phase. For phase-offset LFO values use
+  // computeLFO(waveform, phase) on the control thread instead.
 
   osc.connect(gain);
 

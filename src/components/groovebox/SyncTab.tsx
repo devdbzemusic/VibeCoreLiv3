@@ -1,8 +1,12 @@
-// Phase 3 — Adaptive Sync UI. Choose external audio source and watch the
-// MasterClock lock onto it.
+// Phase 3 — Adaptive Sync + MIDI Clock UI.
+// Choose external audio source (Adaptive) or MIDI clock as the timing authority.
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, FileAudio, MonitorSpeaker, Square, Activity } from "lucide-react";
+import { Mic, FileAudio, MonitorSpeaker, Square, Activity, Music, Unplug } from "lucide-react";
+import {
+  startMidiSync, stopMidiSync, getMidiSyncStatus,
+  type MidiSyncStatus,
+} from "@/lib/clock/sources/midiSync";
 import {
   startAdaptiveFromMic, startAdaptiveFromFile, startAdaptiveFromLoopback,
   stopAdaptive, subscribeAdaptive, getAdaptiveStatus, type AdaptiveStatus,
@@ -18,6 +22,8 @@ export function SyncTab() {
   const [clockLat, setClockLat] = useState(masterClock.getOutputLatency() * 1000);
   const [clockBeat, setClockBeat] = useState(0);
   const [clockPhase, setClockPhase] = useState(0);
+  const [midi, setMidi] = useState<MidiSyncStatus>(getMidiSyncStatus());
+  const [midiError, setMidiError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { const u = subscribeAdaptive(setS); return () => { u(); }; }, []);
@@ -56,6 +62,18 @@ export function SyncTab() {
   const doLoop = async () => { try { await startAdaptiveFromLoopback(); } catch (e) { console.warn(e); } };
   const doFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; if (f) startAdaptiveFromFile(f).catch(console.warn);
+  };
+
+  const doStartMidi = async () => {
+    setMidiError(null);
+    const status = await startMidiSync();
+    setMidi(status);
+    if (status.error) setMidiError(status.error);
+  };
+  const doStopMidi = () => {
+    stopMidiSync();
+    setMidi(getMidiSyncStatus());
+    setMidiError(null);
   };
 
   const Src = ({ icon: Icon, label, kind, onClick }: { icon: typeof Mic; label: string; kind: string; onClick: () => void }) => (
@@ -125,6 +143,54 @@ export function SyncTab() {
             style={{ width: `${clockPhase * 100}%`, background: "var(--gradient-neon)" }}
           />
         </div>
+      </div>
+
+      {/* ── MIDI Clock ──────────────────────────────────────────────────── */}
+      <div className="panel p-3">
+        <div className="font-display text-xs text-primary mb-2 flex items-center gap-2">
+          <Music className="h-3.5 w-3.5" /> MIDI CLOCK (24 PPQ)
+        </div>
+        <div className="hairline mb-2" />
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            onClick={doStartMidi}
+            disabled={midi.connected}
+            className={cn(
+              "h-12 panel-inset rounded flex flex-col items-center justify-center gap-1 font-mono text-[10px]",
+              midi.connected ? "neon-border text-neon-cyan" : "text-muted-foreground disabled:opacity-40"
+            )}
+          >
+            <Music className="h-4 w-4" />
+            {midi.connected ? "LOCKED" : "START"}
+          </button>
+          <button
+            onClick={doStopMidi}
+            disabled={!midi.connected}
+            className="h-12 panel-inset rounded flex flex-col items-center justify-center gap-1 font-mono text-[10px] text-muted-foreground disabled:opacity-40"
+          >
+            <Unplug className="h-4 w-4" />
+            STOP
+          </button>
+        </div>
+        <div className="mt-2 space-y-1 font-mono text-[10px]">
+          <Row label="MIDI AVAILABLE" value={midi.available ? "YES" : "NO (HTTPS/CHROME)"} />
+          <Row label="INPUT" value={midi.inputName ?? "—"} />
+          <Row label="STATUS" value={midi.connected ? "FOLLOWING" : "IDLE"} />
+          {midiError && <Row label="ERROR" value={midiError} tone="error" />}
+        </div>
+        <p className="mt-2 font-mono text-[9px] text-muted-foreground">
+          Receives 0xF8 clock · Start/Stop/Continue · Song Position Pointer.
+          Requires HTTPS + browser MIDI permission.
+        </p>
+      </div>
+
+      <div className="panel p-3 space-y-1.5 font-mono text-[10px]">
+        <Row label="STATUS" value={s.running ? `RUNNING · ${s.inputKind?.toUpperCase()}` : "IDLE"} />
+        <Row label="DETECTED BPM" value={s.bpm ? s.bpm.toFixed(1) : "—"} />
+        <Row label="CONFIDENCE" value={`${Math.round(s.confidence * 100)} %`} />
+        <Row label="BEATS" value={String(s.beats)} />
+        <Row label="LEVEL" value={`${Math.round(s.level * 100)} %`} />
+        {s.error && <Row label="ERROR" value={s.error} tone="error" />}
       </div>
 
       <div className="font-mono text-[9px] text-muted-foreground text-center">

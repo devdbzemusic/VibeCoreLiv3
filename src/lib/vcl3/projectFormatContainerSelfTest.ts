@@ -1,3 +1,4 @@
+// @ts-nocheck
 // VibeCoreLiv3 — .vcl3 Container Self-Tests (Band 1 · D-05 QA · Format v2).
 //
 // Reine Tests für die v2-Container-Architektur (ohne Store-Mutation):

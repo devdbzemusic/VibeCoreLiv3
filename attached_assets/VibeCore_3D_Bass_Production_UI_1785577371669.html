@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>VibeCore 3D Bass — Production UI</title>
+  <style>
+    :root{
+      --bg:#070A0F;
+      --panel:#111620;
+      --panel2:#151B26;
+      --panel3:#0E131C;
+      --line:rgba(255,255,255,.08);
+      --line2:rgba(0,229,255,.18);
+      --text:#F3F7FF;
+      --muted:#8290A6;
+      --muted2:#566174;
+      --accent:#00E5FF;
+      --accent2:#0A84FF;
+      --ok:#63FBD7;
+      --warn:#FFD166;
+      --danger:#FF6B7A;
+      --shadow:0 18px 48px rgba(0,0,0,.52);
+      --radius:22px;
+      --radius2:16px;
+      --encoderSize:128px;
+      --knobLabel:12px;
+      --knobValue:18px;
+      --touch:64px;
+      font-synthesis-weight:none;
+      text-rendering:optimizeLegibility;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        radial-gradient(1100px 600px at 20% -10%, rgba(0,229,255,.14), transparent 62%),
+        radial-gradient(900px 520px at 100% 0%, rgba(10,132,255,.10), transparent 55%),
+        radial-gradient(1200px 800px at 50% 100%, rgba(0,229,255,.06), transparent 60%),
+        linear-gradient(180deg, #05070B 0%, #070A0F 100%);
+      color:var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      overflow:hidden;
+      -webkit-tap-highlight-color:transparent;
+      user-select:none;
+    }
+
+    .app{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      position:relative;
+      isolation:isolate;
+    }
+
+    .app::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+      background-size: 48px 48px, 48px 48px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,.75), transparent 100%);
+      opacity:.22;
+      z-index:0;
+    }
+
+    .shell{
+      position:relative;
+      z-index:1;
+      display:flex;
+      flex-direction:column;
+      height:100%;
+      min-height:0;
+    }
+
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      padding:14px 16px;
+      background:linear-gradient(180deg, rgba(17,22,32,.92), rgba(12,16,24,.82));
+      border-bottom:1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .eyebrow{
+      font-size:10px;
+      letter-spacing:.24em;
+      text-transform:uppercase;
+      color:var(--muted);
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .titleRow{
+      display:flex;
+      align-items:baseline;
+      gap:10px;
+      min-width:0;
+    }
+
+    .title{
+      font-size: clamp(18px, 2.2vw, 24px);
+      font-weight:900;
+      letter-spacing:-.03em;
+      white-space:nowrap;
+    }
+
+    .statusPill{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(0,229,255,.18);
+      background:rgba(0,229,255,.08);
+      color:var(--accent);
+      font-size:10px;
+      text-transform:uppercase;
+      font-weight:800;
+      letter-spacing:.14em;
+      white-space:nowrap;
+    }
+
+    .statusDot{
+      width:7px;height:7px;border-radius:50%;
+      background:var(--accent);
+      box-shadow:0 0 10px rgba(0,229,255,.9);
+      animation:pulse 2s infinite;
+    }
+
+    .presetCenter{
+      flex:1;
+      display:flex;
+      justify-content:center;
+      min-width:0;
+    }
+
+    .presetBar{
+      width:min(100%, 520px);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      min-width:0;
+    }
+
+    .presetControls{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+      width:100%;
+      justify-content:center;
+    }
+
+    .presetName{
+      min-width:0;
+      flex:1;
+      max-width:320px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:11px 14px;
+      border-radius:999px;
+      background:linear-gradient(180deg, rgba(25,30,41,.96), rgba(17,22,32,.96));
+      border:1px solid var(--line);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+      overflow:hidden;
+    }
+
+    .presetIcon{
+      width:18px;height:18px;border-radius:50%;
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow:0 0 16px rgba(0,229,255,.45);
+      flex:0 0 auto;
+    }
+
+    .presetText{
+      font-size:13px;
+      font-weight:700;
+      color:var(--text);
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .presetCode{
+      font-size:10px;
+      letter-spacing:.16em;
+      color:var(--muted2);
+      text-transform:uppercase;
+      font-weight:700;
+    }
+
+    .headerActions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    button, .button{
+      border:none;
+      outline:none;
+      -webkit-appearance:none;
+      appearance:none;
+      color:inherit;
+      font:inherit;
+    }
+
+    .btn{
+      min-height:38px;
+      padding:0 14px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+      color:rgba(255,255,255,.82);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      font-weight:800;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      cursor:pointer;
+      transition:transform .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
+      white-space:nowrap;
+      touch-action:manipulation;
+    }
+
+    .btn:hover{background:rgba(255,255,255,.08)}
+    .btn:active{transform:scale(.98)}
+    .btn.primary{
+      color:#031017;
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      border-color:rgba(0,229,255,.35);
+      box-shadow:0 0 22px rgba(0,229,255,.28);
+    }
+    .btn.primary:hover{box-shadow:0 0 30px rgba(0,229,255,.38)}
+    .btn.light{
+      background:rgba(255,255,255,.92);
+      color:#071018;
+      border-color:transparent;
+    }
+
+    .content{
+      flex:1;
+      min-height:0;
+      display:grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap:12px;
+      padding:14px 16px 16px;
+    }
+
+    .mainPanel{
+      min-height:0;
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(20,25,35,.94), rgba(12,16,24,.92));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      position:relative;
+      overflow:hidden;
+      display:grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap:14px;
+      padding:14px;
+    }
+
+    .mainPanel::before,
+    .mainPanel::after{
+      content:"";
+      position:absolute;
+      border-radius:50%;
+      pointer-events:none;
+      filter: blur(2px);
+    }
+
+    .mainPanel::before{
+      inset:auto auto auto auto;
+      width:360px;height:360px;
+      right:-110px; top:-120px;
+      background: radial-gradient(circle, rgba(0,229,255,.08) 0%, rgba(0,229,255,0) 70%);
+    }
+
+    .mainPanel::after{
+      width:280px;height:280px;
+      left:-90px; bottom:-90px;
+      background: radial-gradient(circle, rgba(10,132,255,.08) 0%, rgba(10,132,255,0) 70%);
+    }
+
+    .controls{
+      min-height:0;
+      display:grid;
+      grid-template-rows: auto 1fr;
+      gap:14px;
+      z-index:1;
+    }
+
+    .controlGrid{
+      min-height:0;
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap:14px;
+      align-content:stretch;
+    }
+
+    .knobCard,
+    .switchCard,
+    .vizCard{
+      border-radius:20px;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(22,27,38,.95), rgba(13,18,27,.95));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+      overflow:hidden;
+    }
+
+    .knobCard{
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 12px 12px;
+      position:relative;
+      touch-action:none;
+    }
+
+    .knobCard.active{
+      border-color:rgba(0,229,255,.38);
+      box-shadow: 0 0 0 1px rgba(0,229,255,.10), inset 0 1px 0 rgba(255,255,255,.05);
+    }
+
+    .knobLabel{
+      width:100%;
+      text-align:center;
+      font-size:12px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.82);
+      font-weight:900;
+      margin-bottom:8px;
+    }
+
+    .knobSub{
+      width:100%;
+      text-align:center;
+      font-size:10px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-top:8px;
+      min-height:12px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .knob{
+      width:var(--encoderSize);
+      height:var(--encoderSize);
+      border-radius:50%;
+      position:relative;
+      display:grid;
+      place-items:center;
+      background:
+        radial-gradient(circle at 50% 40%, rgba(255,255,255,.08) 0 12%, rgba(255,255,255,0) 13% 100%),
+        radial-gradient(circle at 50% 50%, #202835 0%, #161c26 58%, #0e1219 100%);
+      box-shadow:
+        inset 0 2px 14px rgba(0,0,0,.8),
+        inset 0 0 0 1px rgba(255,255,255,.05),
+        0 12px 28px rgba(0,0,0,.4);
+      cursor:grab;
+      touch-action:none;
+    }
+
+    .knob:active{cursor:grabbing}
+    .knob::before{
+      content:"";
+      position:absolute;
+      inset:10px;
+      border-radius:50%;
+      background:
+        conic-gradient(from 225deg,
+          rgba(255,255,255,.06) 0deg,
+          rgba(255,255,255,.02) 25deg,
+          rgba(255,255,255,0) 70deg,
+          rgba(255,255,255,.05) 100deg,
+          rgba(255,255,255,0) 180deg,
+          rgba(255,255,255,.04) 260deg,
+          rgba(255,255,255,0) 360deg);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+
+    .knob::after{
+      content:"";
+      position:absolute;
+      width:5px;
+      height:24px;
+      border-radius:999px;
+      background:linear-gradient(180deg, #fff, rgba(255,255,255,.55));
+      top:12px;
+      left:50%;
+      transform:translateX(-50%) rotate(calc(var(--angle) * 1deg));
+      transform-origin:50% calc(50% + 48px);
+      box-shadow: 0 0 16px rgba(255,255,255,.35);
+      opacity:.95;
+    }
+
+    .knobRing{
+      position:absolute;
+      inset:0;
+      border-radius:50%;
+      background:
+        conic-gradient(from 225deg, var(--accent) 0deg, var(--accent2) calc(var(--angle) * 1deg), rgba(255,255,255,.06) calc(var(--angle) * 1deg), rgba(255,255,255,.06) 360deg);
+      -webkit-mask: radial-gradient(circle, transparent 0 61%, #000 62% 66%, transparent 67%);
+              mask: radial-gradient(circle, transparent 0 61%, #000 62% 66%, transparent 67%);
+      filter: drop-shadow(0 0 10px rgba(0,229,255,.14));
+    }
+
+    .knobCenter{
+      width:68px;
+      height:68px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background:linear-gradient(180deg, rgba(10,14,20,.92), rgba(28,35,47,.95));
+      border:1px solid rgba(255,255,255,.06);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 6px 16px rgba(0,0,0,.42);
+      position:relative;
+      z-index:1;
+    }
+
+    .knobValue{
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:-.03em;
+      color:var(--text);
+      line-height:1;
+      text-shadow:0 0 14px rgba(0,229,255,.14);
+    }
+
+    .knobFoot{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      margin-top:8px;
+    }
+
+    .monoSwitch{
+      width:100%;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 12px 12px;
+    }
+
+    .toggle{
+      width:100%;
+      display:grid;
+      place-items:center;
+      flex:1;
+      min-height:0;
+    }
+
+    .toggleBtn{
+      width:min(168px, 100%);
+      height:var(--encoderSize);
+      border-radius:22px;
+      border:1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(21,26,37,.95), rgba(13,18,27,.96));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+      position:relative;
+      overflow:hidden;
+      cursor:pointer;
+      touch-action:manipulation;
+      display:grid;
+      place-items:center;
+      gap:10px;
+      transition:all .18s ease;
+    }
+
+    .toggleBtn.on{
+      border-color:rgba(0,229,255,.35);
+      box-shadow: 0 0 0 1px rgba(0,229,255,.06), inset 0 1px 0 rgba(255,255,255,.05);
+    }
+
+    .toggleBtn .stateText{
+      position:absolute;
+      bottom:18px;
+      left:50%;
+      transform:translateX(-50%);
+      font-size:13px;
+      letter-spacing:.16em;
+      font-weight:900;
+      color:var(--muted);
+      text-transform:uppercase;
+    }
+
+    .toggleBtn.on .stateText{color:var(--accent)}
+    .toggleTrack{
+      width:84px;
+      height:44px;
+      border-radius:999px;
+      background:rgba(0,0,0,.28);
+      border:1px solid rgba(255,255,255,.08);
+      position:relative;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,.42);
+    }
+
+    .toggleTrack::before{
+      content:"";
+      position:absolute;
+      inset:4px;
+      width:36px;
+      border-radius:999px;
+      background:linear-gradient(180deg, rgba(255,255,255,.9), rgba(200,213,230,.9));
+      transition:transform .18s ease;
+      box-shadow: 0 0 14px rgba(255,255,255,.18);
+    }
+
+    .toggleBtn.on .toggleTrack{
+      background:rgba(0,229,255,.12);
+      border-color:rgba(0,229,255,.22);
+    }
+
+    .toggleBtn.on .toggleTrack::before{
+      transform:translateX(38px);
+      background:linear-gradient(180deg, var(--accent), var(--accent2));
+      box-shadow: 0 0 18px rgba(0,229,255,.42);
+    }
+
+    .side{
+      display:grid;
+      grid-template-rows: auto 1fr;
+      gap:14px;
+      min-width:0;
+      z-index:1;
+    }
+
+    .infoCard{
+      border-radius:20px;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(22,27,38,.95), rgba(13,18,27,.95));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+      padding:14px;
+      min-width:0;
+    }
+
+    .infoCard h3{
+      margin:0 0 10px;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      color:var(--muted);
+      font-weight:900;
+    }
+
+    .miniViz{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+
+    .meter{
+      height:16px;
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .meter > span{
+      position:absolute;
+      inset:0 auto 0 0;
+      width:50%;
+      border-radius:inherit;
+      background:linear-gradient(90deg, rgba(0,229,255,.12), rgba(0,229,255,.78));
+      box-shadow:0 0 18px rgba(0,229,255,.2);
+    }
+
+    .meter.out > span{
+      background:linear-gradient(90deg, rgba(10,132,255,.18), rgba(0,229,255,.80));
+    }
+
+    .meter.sub > span{
+      background:linear-gradient(90deg, rgba(0,229,255,.14), rgba(99,251,215,.72));
+    }
+
+    .meterMeta{
+      margin-top:6px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.14em;
+      color:var(--muted2);
+      font-weight:800;
+    }
+
+    .vizBox{
+      margin-top:12px;
+      height:220px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.06);
+      background:
+        radial-gradient(100% 100% at 50% 25%, rgba(0,229,255,.08), rgba(0,0,0,0) 60%),
+        linear-gradient(180deg, rgba(8,11,16,.92), rgba(14,17,24,.96));
+      position:relative;
+      overflow:hidden;
+    }
+
+    .vizBox svg{width:100%; height:100%}
+    .vizGrid line{
+      stroke:rgba(255,255,255,.06);
+      stroke-width:1;
+    }
+    .vizCurve{
+      fill:none;
+      stroke:var(--accent);
+      stroke-width:4;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+      filter: drop-shadow(0 0 10px rgba(0,229,255,.35));
+    }
+    .vizFill{
+      fill:url(#curveGlow);
+      opacity:.85;
+    }
+
+    .sideStack{
+      display:grid;
+      gap:14px;
+      align-content:start;
+    }
+
+    .chips{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:10px;
+    }
+
+    .chip{
+      min-height:58px;
+      padding:10px 12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.06);
+      background:rgba(255,255,255,.04);
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:4px;
+    }
+
+    .chip .k{
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      color:var(--muted2);
+      font-weight:800;
+    }
+
+    .chip .v{
+      font-size:16px;
+      font-weight:900;
+      letter-spacing:-.02em;
+    }
+
+    .footerBar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:0 4px;
+      min-height:32px;
+      color:rgba(255,255,255,.28);
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.14em;
+      font-weight:800;
+    }
+
+    .footerBar strong{
+      color:rgba(255,255,255,.72);
+    }
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      z-index:80;
+      padding:12px 16px;
+      border-radius:999px;
+      border:1px solid rgba(0,229,255,.30);
+      background:rgba(14,31,38,.95);
+      color:var(--accent);
+      font-size:11px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      font-weight:900;
+      box-shadow:0 0 24px rgba(0,229,255,.20);
+      display:none;
+      align-items:center;
+      gap:10px;
+      pointer-events:none;
+    }
+
+    .toast .dot{
+      width:8px;height:8px;border-radius:50%;
+      background:var(--accent);
+      box-shadow:0 0 10px rgba(0,229,255,.9);
+    }
+
+    .overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(2,4,8,.66);
+      display:none;
+      z-index:90;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .overlay.open{display:flex}
+
+    .modal{
+      width:min(1080px, 100%);
+      max-height:min(92vh, 900px);
+      overflow:hidden;
+      border-radius:26px;
+      background:linear-gradient(180deg, rgba(20,26,37,.98), rgba(12,16,24,.98));
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow:0 30px 90px rgba(0,0,0,.6);
+      display:grid;
+      grid-template-rows:auto 1fr;
+    }
+
+    .modalHeader{
+      padding:16px 18px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .modalHeader .h{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .modalHeader .h .t{
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:-.03em;
+    }
+
+    .modalHeader .h .s{
+      font-size:10px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:var(--muted);
+      font-weight:800;
+    }
+
+    .modalBody{
+      padding:16px 18px 18px;
+      overflow:auto;
+      display:grid;
+      gap:14px;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+    }
+
+    .advCard{
+      border-radius:20px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+      padding:14px;
+    }
+
+    .advCard h4{
+      margin:0 0 12px;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      color:var(--muted);
+      font-weight:900;
+    }
+
+    .advList{
+      display:grid;
+      gap:10px;
+    }
+
+    .advItem{
+      min-height:48px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.06);
+      background:rgba(10,13,19,.6);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .advItem .l{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      min-width:0;
+    }
+
+    .advItem .l .k{
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.14em;
+      color:rgba(255,255,255,.72);
+      font-weight:900;
+    }
+
+    .advItem .l .d{
+      font-size:11px;
+      color:var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .pill{
+      flex:0 0 auto;
+      font-size:10px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--accent);
+      border:1px solid rgba(0,229,255,.2);
+      background:rgba(0,229,255,.08);
+      border-radius:999px;
+      padding:6px 10px;
+      font-weight:900;
+    }
+
+    .hidden{display:none !important}
+
+    @keyframes pulse{
+      50%{opacity:.45}
+    }
+
+    @media (max-width: 1100px){
+      .mainPanel{
+        grid-template-columns:1fr;
+      }
+      .side{
+        grid-template-columns:1fr 1fr;
+        grid-template-rows:auto;
+      }
+    }
+
+    @media (max-width: 900px){
+      :root{ --encoderSize:114px; }
+      header{
+        flex-wrap:wrap;
+        justify-content:center;
+      }
+      .presetCenter{
+        order:3;
+        width:100%;
+      }
+      .brand{order:1}
+      .headerActions{order:2}
+      .content{
+        padding:12px;
+      }
+      .mainPanel{
+        padding:12px;
+      }
+      .controlGrid{
+        grid-template-columns: repeat(2, minmax(0,1fr));
+      }
+      .side{
+        grid-template-columns:1fr;
+      }
+      .modalBody{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width: 560px){
+      :root{ --encoderSize:104px; }
+      .title{font-size:18px}
+      .btn{min-height:36px; padding:0 12px; font-size:10px}
+      .presetControls{gap:8px}
+      .presetName{padding:10px 12px}
+      .presetText{font-size:12px}
+      .vizBox{height:180px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="shell">
+    <header>
+      <div class="brand">
+        <div class="eyebrow">VibeCore • Bass Module</div>
+        <div class="titleRow">
+          <div class="title">VibeCore 3D Bass</div>
+          <div class="statusPill"><span class="statusDot"></span> Engine Active</div>
+        </div>
+      </div>
+
+      <div class="presetCenter">
+        <div class="presetBar">
+          <div class="presetControls">
+            <button class="btn" id="prevPreset" aria-label="Vorheriges Preset">◀</button>
+            <div class="presetName" title="Preset">
+              <div class="presetIcon"></div>
+              <div class="presetText" id="presetText">Neon Substructure</div>
+            </div>
+            <button class="btn" id="nextPreset" aria-label="Nächstes Preset">▶</button>
+          </div>
+          <div class="presetCode" id="presetCode">BASS • P-07</div>
+        </div>
+      </div>
+
+      <div class="headerActions">
+        <button class="btn" id="saveBtn">Save</button>
+        <button class="btn primary" id="randomBtn">Random</button>
+        <button class="btn light" id="advancedBtn">Advanced</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <section class="mainPanel">
+        <div class="controls">
+          <div class="controlGrid" id="controls"></div>
+          <div class="footerBar">
+            <div><strong>Touch</strong> optimized • landscape first</div>
+            <div>Max 8 main controls visible</div>
+          </div>
+        </div>
+
+        <aside class="side">
+          <div class="sideStack">
+            <div class="infoCard">
+              <h3>Live Visuals</h3>
+              <div class="miniViz">
+                <div>
+                  <div class="meter sub"><span id="meterSub"></span></div>
+                  <div class="meterMeta"><span>Bass Energy</span><span id="subReadout">72%</span></div>
+                </div>
+                <div>
+                  <div class="meter"><span id="meterWidth"></span></div>
+                  <div class="meterMeta"><span>Stereo Width</span><span id="widthReadout">38%</span></div>
+                </div>
+                <div>
+                  <div class="meter out"><span id="meterOut"></span></div>
+                  <div class="meterMeta"><span>Output Level</span><span id="levelReadout">84%</span></div>
+                </div>
+              </div>
+              <div class="vizBox" style="margin-top:12px;">
+                <svg viewBox="0 0 480 240" preserveAspectRatio="none" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="curveFill" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stop-color="rgba(0,229,255,.45)"/>
+                      <stop offset="100%" stop-color="rgba(0,229,255,0)"/>
+                    </linearGradient>
+                    <radialGradient id="curveGlow">
+                      <stop offset="0%" stop-color="rgba(0,229,255,.35)"/>
+                      <stop offset="100%" stop-color="rgba(0,229,255,0)"/>
+                    </radialGradient>
+                  </defs>
+                  <g class="vizGrid" opacity=".9">
+                    <line x1="24" y1="40" x2="456" y2="40"/>
+                    <line x1="24" y1="80" x2="456" y2="80"/>
+                    <line x1="24" y1="120" x2="456" y2="120"/>
+                    <line x1="24" y1="160" x2="456" y2="160"/>
+                    <line x1="24" y1="200" x2="456" y2="200"/>
+                    <line x1="64" y1="20" x2="64" y2="220"/>
+                    <line x1="136" y1="20" x2="136" y2="220"/>
+                    <line x1="208" y1="20" x2="208" y2="220"/>
+                    <line x1="280" y1="20" x2="280" y2="220"/>
+                    <line x1="352" y1="20" x2="352" y2="220"/>
+                    <line x1="424" y1="20" x2="424" y2="220"/>
+                  </g>
+                  <path id="vizArea" class="vizFill" d="M24 182 C90 164, 114 132, 160 120 C209 108, 232 88, 276 82 C332 74, 368 120, 456 108 L456 220 L24 220 Z" fill="url(#curveFill)"/>
+                  <path id="vizCurve" class="vizCurve" d="M24 182 C90 164, 114 132, 160 120 C209 108, 232 88, 276 82 C332 74, 368 120, 456 108"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="infoCard">
+            <h3>Core Snapshot</h3>
+            <div class="chips">
+              <div class="chip"><div class="k">Mono Safe</div><div class="v" id="monoSnapshot">ON</div></div>
+              <div class="chip"><div class="k">Drive</div><div class="v" id="driveSnapshot">42%</div></div>
+              <div class="chip"><div class="k">Filter</div><div class="v" id="filterSnapshot">61%</div></div>
+              <div class="chip"><div class="k">Punch</div><div class="v" id="punchSnapshot">75%</div></div>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span class="dot"></span><span id="toastText">Preset saved</span></div>
+
+  <div class="overlay" id="advancedOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="advancedTitle">
+      <div class="modalHeader">
+        <div class="h">
+          <div class="t" id="advancedTitle">Advanced</div>
+          <div class="s">Expert parameters are isolated from the main workflow</div>
+        </div>
+        <button class="btn" id="closeAdvanced">Close</button>
+      </div>
+      <div class="modalBody">
+        <div class="advCard">
+          <h4>Oscillator & Voice Engine</h4>
+          <div class="advList">
+            <div class="advItem"><div class="l"><div class="k">Additional Oscillators</div><div class="d">Layered bass harmonics</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">Waveform Selection</div><div class="d">Sine / saw / square / custom</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">Fine Tune</div><div class="d">Micro detune for phase character</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">Phase</div><div class="d">Oscillator start alignment</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">Unison</div><div class="d">Spread and stacking control</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">Voice Count</div><div class="d">Polyphony / paraphony limits</div></div><div class="pill">Hidden</div></div>
+          </div>
+        </div>
+
+        <div class="advCard">
+          <h4>Modulation & Engine</h4>
+          <div class="advList">
+            <div class="advItem"><div class="l"><div class="k">Keytracking</div><div class="d">Keyboard tracking response</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">Envelope Editor</div><div class="d">Attack, decay, sustain, release</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">LFO</div><div class="d">Rate, phase, destination routing</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">Mod Matrix</div><div class="d">Advanced modulation routing</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">Distortion Algorithms</div><div class="d">Multiple saturation models</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">Oversampling</div><div class="d">Engine quality / aliasing control</div></div><div class="pill">Hidden</div></div>
+          </div>
+        </div>
+
+        <div class="advCard">
+          <h4>System & Debug</h4>
+          <div class="advList">
+            <div class="advItem"><div class="l"><div class="k">Engine Quality</div><div class="d">Performance / fidelity switch</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">CPU Information</div><div class="d">Runtime and thermal diagnostics</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">Debug Functions</div><div class="d">Internal checks and profiling</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">MIDI / Sync</div><div class="d">Routing and external clocking</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">Preset Memory</div><div class="d">Store, recall, compare states</div></div><div class="pill">Hidden</div></div>
+            <div class="advItem"><div class="l"><div class="k">Safety Limits</div><div class="d">Sub mono compatibility guardrails</div></div><div class="pill">Hidden</div></div>
+          </div>
+        </div>
+
+        <div class="advCard">
+          <h4>Design Constraint</h4>
+          <div class="advList">
+            <div class="advItem"><div class="l"><div class="k">Main Page Rule</div><div class="d">Never expose more than 8 main controls</div></div><div class="pill">Locked</div></div>
+            <div class="advItem"><div class="l"><div class="k">Workflow Goal</div><div class="d">Fast bass design in seconds</div></div><div class="pill">Locked</div></div>
+            <div class="advItem"><div class="l"><div class="k">Primary Priority</div><div class="d">SUB • FILTER • DRIVE</div></div><div class="pill">Locked</div></div>
+            <div class="advItem"><div class="l"><div class="k">Touch Target</div><div class="d">Large, high-contrast controls only</div></div><div class="pill">Locked</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const presets = [
+    { name: "Neon Substructure", code: "BASS • P-07" },
+    { name: "Iron Glide", code: "BASS • P-12" },
+    { name: "Cyan Pressure", code: "BASS • P-21" },
+    { name: "Dark Punchline", code: "BASS • P-03" },
+    { name: "Mono Forge", code: "BASS • P-18" }
+  ];
+
+  const state = {
+    presetIndex: 0,
+    values: {
+      sub: 72,
+      level: 84,
+      drive: 42,
+      filter: 61,
+      glide: 26,
+      mono: 1,
+      width: 38,
+      punch: 75
+    },
+    active: null
+  };
+
+  const defs = {
+    sub:   { label: "SUB",   sub: "Subbass",   min: 0, max: 100, unit: "%" },
+    level: { label: "LEVEL", sub: "Output",    min: 0, max: 100, unit: "%" },
+    drive: { label: "DRIVE", sub: "Saturation",min: 0, max: 100, unit: "%" },
+    filter:{ label: "FILTER",sub: "Lowpass",   min: 0, max: 100, unit: "%" },
+    glide: { label: "GLIDE", sub: "Portamento",min: 0, max: 100, unit: "%" },
+    width: { label: "WIDTH", sub: "Stereo",    min: 0, max: 100, unit: "%" },
+    punch: { label: "PUNCH", sub: "Transient", min: 0, max: 100, unit: "%" }
+  };
+
+  const controls = document.getElementById('controls');
+
+  function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+  function valueText(v){ return `${Math.round(v)}%`; }
+
+  function knobAngle(value){
+    // Map 0..100 to 225°..495° (270° sweep)
+    return 225 + (clamp(value,0,100) / 100) * 270;
+  }
+
+  function knobMarkup(key, cfg){
+    const current = state.values[key];
+    return `
+      <div class="knobCard" data-key="${key}">
+        <div class="knobLabel">${cfg.label}</div>
+        <div class="knob" role="slider" tabindex="0" aria-label="${cfg.label}" aria-valuemin="${cfg.min}" aria-valuemax="${cfg.max}" aria-valuenow="${Math.round(current)}" style="--angle:${knobAngle(current)}">
+          <div class="knobRing"></div>
+          <div class="knobCenter"><div class="knobValue">${valueText(current)}</div></div>
+        </div>
+        <div class="knobSub">${cfg.sub}</div>
+      </div>
+    `;
+  }
+
+  function toggleMarkup(){
+    return `
+      <div class="switchCard knobCard" data-key="mono">
+        <div class="knobLabel">MONO</div>
+        <div class="toggle">
+          <div class="toggleBtn ${state.values.mono ? 'on' : ''}" role="switch" tabindex="0" aria-checked="${state.values.mono ? 'true' : 'false'}" aria-label="Mono">
+            <div class="toggleTrack"></div>
+            <div class="stateText">${state.values.mono ? 'On' : 'Off'}</div>
+          </div>
+        </div>
+        <div class="knobSub">Legato Behavior</div>
+      </div>
+    `;
+  }
+
+  function renderControls(){
+    controls.innerHTML = [
+      knobMarkup('sub', defs.sub),
+      knobMarkup('level', defs.level),
+      knobMarkup('drive', defs.drive),
+      knobMarkup('filter', defs.filter),
+      knobMarkup('glide', defs.glide),
+      toggleMarkup(),
+      knobMarkup('width', defs.width),
+      knobMarkup('punch', defs.punch)
+    ].join('');
+    bindControls();
+    updateUI();
+  }
+
+  function bindControls(){
+    document.querySelectorAll('.knobCard[data-key]').forEach(card => {
+      const key = card.dataset.key;
+      if(key === 'mono'){
+        const toggle = card.querySelector('.toggleBtn');
+        const flip = () => {
+          state.values.mono = state.values.mono ? 0 : 1;
+          showActive('mono');
+          renderControls();
+          toast(`Mono ${state.values.mono ? 'On' : 'Off'}`);
+        };
+        toggle.addEventListener('click', flip);
+        toggle.addEventListener('keydown', e => {
+          if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); flip(); }
+        });
+        return;
+      }
+
+      const knob = card.querySelector('.knob');
+      const onPointerDown = (e) => {
+        e.preventDefault();
+        showActive(key);
+        const startY = e.clientY ?? (e.touches && e.touches[0].clientY) ?? 0;
+        const startValue = state.values[key];
+
+        const move = (ev) => {
+          const y = ev.clientY ?? (ev.touches && ev.touches[0].clientY) ?? startY;
+          const delta = (startY - y) * 0.25;
+          state.values[key] = clamp(startValue + delta, 0, 100);
+          updateUI();
+        };
+        const up = () => {
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+          window.removeEventListener('pointercancel', up);
+        };
+
+        window.addEventListener('pointermove', move, { passive:false });
+        window.addEventListener('pointerup', up, { once:true });
+        window.addEventListener('pointercancel', up, { once:true });
+      };
+
+      knob.addEventListener('pointerdown', onPointerDown);
+      knob.addEventListener('keydown', (e) => {
+        if(e.key === 'ArrowUp' || e.key === 'ArrowRight'){
+          e.preventDefault();
+          showActive(key);
+          state.values[key] = clamp(state.values[key] + 1, 0, 100);
+          updateUI();
+        }else if(e.key === 'ArrowDown' || e.key === 'ArrowLeft'){
+          e.preventDefault();
+          showActive(key);
+          state.values[key] = clamp(state.values[key] - 1, 0, 100);
+          updateUI();
+        }
+      });
+    });
+  }
+
+  function showActive(key){
+    state.active = key;
+    document.querySelectorAll('.knobCard').forEach(card => card.classList.remove('active'));
+    const match = document.querySelector(`.knobCard[data-key="${key}"]`);
+    if(match) match.classList.add('active');
+  }
+
+  function updateUI(){
+    const preset = presets[state.presetIndex];
+    document.getElementById('presetText').textContent = preset.name;
+    document.getElementById('presetCode').textContent = preset.code;
+
+    const sub = state.values.sub;
+    const level = state.values.level;
+    const drive = state.values.drive;
+    const filter = state.values.filter;
+    const glide = state.values.glide;
+    const width = state.values.width;
+    const punch = state.values.punch;
+    const mono = state.values.mono;
+
+    document.querySelectorAll('.knobCard[data-key]').forEach(card => {
+      const key = card.dataset.key;
+      if(key === 'mono'){
+        const btn = card.querySelector('.toggleBtn');
+        btn.classList.toggle('on', !!mono);
+        btn.setAttribute('aria-checked', mono ? 'true' : 'false');
+        card.querySelector('.stateText').textContent = mono ? 'On' : 'Off';
+        return;
+      }
+
+      const value = state.values[key];
+      const knob = card.querySelector('.knob');
+      const display = card.querySelector('.knobValue');
+      knob.style.setProperty('--angle', knobAngle(value));
+      knob.setAttribute('aria-valuenow', Math.round(value));
+      display.textContent = valueText(value);
+    });
+
+    const bassEnergy = clamp(sub * .68 + drive * .20 + punch * .12, 0, 100);
+    const stereoWidth = clamp(width * (mono ? .12 : 1), 0, 100);
+    const output = clamp(level * .78 + drive * .08 + punch * .14, 0, 100);
+    const filterSkew = clamp(filter * .9 + glide * .1, 0, 100);
+
+    document.getElementById('meterSub').style.width = bassEnergy + '%';
+    document.getElementById('meterWidth').style.width = stereoWidth + '%';
+    document.getElementById('meterOut').style.width = output + '%';
+
+    document.getElementById('subReadout').textContent = `${Math.round(bassEnergy)}%`;
+    document.getElementById('widthReadout').textContent = `${Math.round(stereoWidth)}%`;
+    document.getElementById('levelReadout').textContent = `${Math.round(output)}%`;
+
+    document.getElementById('monoSnapshot').textContent = mono ? 'ON' : 'OFF';
+    document.getElementById('driveSnapshot').textContent = `${Math.round(drive)}%`;
+    document.getElementById('filterSnapshot').textContent = `${Math.round(filter)}%`;
+    document.getElementById('punchSnapshot').textContent = `${Math.round(punch)}%`;
+
+    const curve = buildCurve(filter, glide, sub, drive, punch, mono);
+    document.getElementById('vizCurve').setAttribute('d', curve);
+    document.getElementById('vizArea').setAttribute('d', curve + ' L456 220 L24 220 Z');
+  }
+
+  function buildCurve(filter, glide, sub, drive, punch, mono){
+    const baseY = 190;
+    const lift = (100 - filter) * 0.65;
+    const subLift = sub * 0.15;
+    const driveLift = drive * 0.14;
+    const punchLift = punch * 0.12;
+    const monoBias = mono ? 10 : 0;
+    const y1 = baseY - lift * .70 - subLift;
+    const y2 = baseY - lift * .82 - driveLift - monoBias;
+    const y3 = baseY - lift * .95 - punchLift;
+    const y4 = baseY - lift * .75 - glide * .05;
+    const y5 = baseY - lift * .52;
+    return `M24 ${baseY - 8}
+      C90 ${y1}, 114 ${y2}, 160 ${y3}
+      C209 ${y4}, 232 ${y5}, 276 ${Math.max(52, y5 - 10)}
+      C332 ${Math.max(40, y4 - 4)}, 368 ${Math.max(90, y2)}, 456 ${Math.max(70, y3 + 8)}`;
+  }
+
+  function toast(msg){
+    const t = document.getElementById('toast');
+    document.getElementById('toastText').textContent = msg;
+    t.style.display = 'inline-flex';
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(() => t.style.display = 'none', 1400);
+  }
+
+  function randomize(){
+    state.values.sub = rand(58, 92);
+    state.values.level = rand(70, 100);
+    state.values.drive = rand(10, 78);
+    state.values.filter = rand(32, 88);
+    state.values.glide = rand(0, 45);
+    state.values.mono = Math.random() > .15 ? 1 : 0;
+    state.values.width = rand(0, 58);
+    state.values.punch = rand(48, 96);
+    updateUI();
+    toast('Randomized');
+  }
+
+  function rand(min, max){
+    return Math.round(min + Math.random() * (max - min));
+  }
+
+  function savePreset(){
+    toast(`Saved ${presets[state.presetIndex].name}`);
+  }
+
+  function nextPreset(dir){
+    state.presetIndex = (state.presetIndex + dir + presets.length) % presets.length;
+    updateUI();
+  }
+
+  document.getElementById('saveBtn').addEventListener('click', savePreset);
+  document.getElementById('randomBtn').addEventListener('click', randomize);
+  document.getElementById('prevPreset').addEventListener('click', () => nextPreset(-1));
+  document.getElementById('nextPreset').addEventListener('click', () => nextPreset(1));
+
+  const overlay = document.getElementById('advancedOverlay');
+  const openAdvanced = () => {
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+  };
+  const closeAdvanced = () => {
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+  };
+
+  document.getElementById('advancedBtn').addEventListener('click', openAdvanced);
+  document.getElementById('closeAdvanced').addEventListener('click', closeAdvanced);
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) closeAdvanced(); });
+  window.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeAdvanced(); });
+
+  renderControls();
+  showActive('sub');
+  updateUI();
+
+  // light movement in the visualizer for a more alive surface
+  let phase = 0;
+  const curve = document.getElementById('vizCurve');
+  const area = document.getElementById('vizArea');
+  function animate(){
+    phase += 0.02;
+    const wobble = Math.sin(phase) * 2.5;
+    const filter = state.values.filter;
+    const sub = state.values.sub;
+    const drive = state.values.drive;
+    const punch = state.values.punch;
+    const mono = state.values.mono;
+    const curveD = buildCurve(filter, state.values.glide, sub, drive, punch, mono)
+      .replace(/(\d+\.?\d*)/g, m => (Number(m) + (Math.random() * .3 - .15)).toFixed(2));
+    curve.setAttribute('d', curveD);
+    area.setAttribute('d', curveD + ' L456 220 L24 220 Z');
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+</script>
+</body>
+</html>

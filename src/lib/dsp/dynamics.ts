@@ -119,7 +119,7 @@ export function createGate(
 /** Create a soft-clip stage using a cubic-law wave shaper curve. */
 export function createSoftClip(ctx: BaseAudioContext, amount = 1): WaveShaperNode {
   const shaper = ctx.createWaveShaper();
-  shaper.curve = makeSoftClipCurve(amount);
+  shaper.curve = makeSoftClipCurve(amount) as Float32Array<ArrayBuffer>;
   shaper.oversample = amount > 0.5 ? "4x" : "2x";
   return shaper;
 }
@@ -127,7 +127,7 @@ export function createSoftClip(ctx: BaseAudioContext, amount = 1): WaveShaperNod
 /** Create an overdrive / hard-clip stage. */
 export function createOverdrive(ctx: BaseAudioContext, amount = 0.5): WaveShaperNode {
   const shaper = ctx.createWaveShaper();
-  shaper.curve = makeOverdriveCurve(amount);
+  shaper.curve = makeOverdriveCurve(amount) as Float32Array<ArrayBuffer>;
   shaper.oversample = "4x";
   return shaper;
 }

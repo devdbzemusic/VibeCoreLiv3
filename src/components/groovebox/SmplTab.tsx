@@ -294,7 +294,14 @@ export function SmplTab() {
     }
   };
 
-  useEffect(() => { /* hook reserved */ }, [selectedPart]);
+  useEffect(() => {
+    // Clear any transient status message and release any active waveform drag
+    // handle when the selected part changes. Without this, a mid-drag pointer
+    // event or a stale "Normalized ✓" from the previous part would show under
+    // the new part — confusing the user about which part was just edited.
+    setStatus("");
+    dragRef.current = null;
+  }, [selectedPart]);
 
   return (
     <div className="space-y-3" onPointerMove={onPointerMove} onPointerUp={onPointerUp}>

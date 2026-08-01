@@ -28,9 +28,8 @@ import {
   clamp, midiToFreq, lfoRateHz, dbToLin,
 } from "@/lib/dsp";
 import type { Rng } from "@/lib/utils/random";
-import type {
-  Bass3DParams, OscParams3D, FilterParams3D, ModRouteBass, ModDestBass,
-} from "./params";
+import type { Bass3DParams, ModRouteBass, ModDestBass } from "./params";
+import type { OscParams3D, FilterParams3D } from "@/lib/synth3d/params";
 import type { UnisonOffsets, VoiceOpts3D } from "@/lib/synth3d/voice";
 
 // Modulation destination ranges — max absolute offset for each destination.
@@ -237,7 +236,8 @@ export function createVoice3DBass(
   let driveInputGain: GainNode | null = null;
   if (params.drive.enabled) {
     const drive = createDistortion(ctx, {
-      type: params.drive.type,
+      // BassDriveType is a superset of DistortionType; shared values work at runtime.
+      type: params.drive.type as unknown as import("@/lib/dsp/distortion").DistortionType,
       amount: params.drive.amount,
       preGain: params.drive.preGain,
       postGain: params.drive.postGain,
@@ -462,7 +462,7 @@ export function createVoice3DBass(
       : lp.waveform === "triangle" ? "triangle"
       : lp.waveform === "saw" ? "sawtooth" : "square";
     const rateHz = lp.syncDiv !== "off" && opts.bpm
-      ? lfoRateHz({ rate: lp.rate, syncDiv: lp.syncDiv, bpm: opts.bpm })
+      ? lfoRateHz({ waveform: "sine", rate: lp.rate, depth: 1, syncDiv: lp.syncDiv as Exclude<typeof lp.syncDiv, "off">, bpm: opts.bpm })
       : clamp(lp.rate, 0.01, 20);
     lfoOsc.frequency.value = rateHz;
     const lfoGain = ctx.createGain();

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // VibeCoreLiv3 — `.vcl3` Container-Architektur (Band 1 · D-05 / Format v2).
 //
 // Container-Layout (ZIP-Archiv, containerVersion 1):

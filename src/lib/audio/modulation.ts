@@ -39,7 +39,7 @@ let midiInput: MidiCcInput | null = null;
 export function setRibbonInput(r: RibbonInput | null) { ribbonInput = r; }
 export function setMidiCcInput(m: MidiCcInput | null) { midiInput = m; }
 
-function srcValue(src: ModSource, t: number, currentStep: number, bpm: number): number {
+function srcValue(src: ModSource, t: number, currentStep: number, bpm: number, cc?: number): number {
   switch (src) {
     case "LFO 1": return Math.sin(2 * Math.PI * 0.5 * t);
     case "LFO 2": return Math.sin(2 * Math.PI * 0.25 * t + 1.1);
@@ -68,7 +68,7 @@ function srcValue(src: ModSource, t: number, currentStep: number, bpm: number): 
       return randomHold;
     }
     case "Ribbon": return ribbonInput ? (ribbonInput.read() * 2 - 1) : 0;
-    case "MIDI CC": return midiInput ? (midiInput.read(0) * 2 - 1) : 0;
+    case "MIDI CC": return midiInput ? (midiInput.read(cc ?? 0) * 2 - 1) : 0;
     default: return 0;
   }
 }
@@ -134,7 +134,7 @@ export function startModulationLoop() {
     state.mod.forEach((r) => {
       if (!r.enabled) return;
       const partStep = state.playheads.step ?? 0;
-      const raw = srcValue(r.source, now, partStep, state.bpm);
+      const raw = srcValue(r.source, now, partStep, state.bpm, r.cc);
       const shaped = applyCurve(raw, r.curve);
       const scaled = shaped * (r.amount / 100); // -1..1
       const key = `${r.partId}|${r.destParam}`;

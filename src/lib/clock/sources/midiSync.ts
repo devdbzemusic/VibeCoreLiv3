@@ -29,7 +29,7 @@ export interface MidiSyncStatus {
   error: string | null;
 }
 
-type MidiAccess = WebMIDIAccess;
+type MidiAccess = MIDIAccess;
 type MidiInput = MIDIInput;
 
 const nav = (typeof navigator !== "undefined"
@@ -132,7 +132,7 @@ export async function startMidiSync(inputId?: string): Promise<MidiSyncStatus> {
   }
   try {
     midi = await nav.requestMIDIAccess();
-    const inputs = Array.from(midi.inputs.values());
+    const inputs: MIDIInput[] = Array.from((midi.inputs as unknown as Map<string, MIDIInput>).values());
     if (!inputs.length) {
       useGroove.getState().setSyncStatus({ midiConnected: false, error: "Kein MIDI-Input" });
       return { available: true, connected: false, inputName: null, error: "Kein MIDI-Input" };
@@ -152,7 +152,7 @@ export async function startMidiSync(inputId?: string): Promise<MidiSyncStatus> {
 export function stopMidiSync(): void {
   if (input) input.onmidimessage = null;
   input = null;
-  if (midi) { try { midi.close(); } catch { /* ignore */ } }
+  if (midi) { try { (midi as MIDIAccess & { close?: () => void }).close?.(); } catch { /* ignore */ } }
   midi = null;
   clockIntervals = [];
   lastClockAt = 0;

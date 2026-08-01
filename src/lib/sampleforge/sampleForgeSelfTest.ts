@@ -26,7 +26,7 @@ import {
 } from "./loopEngine";
 import {
   classifyDrum, classifyInstrument, suggestSlices, suggestLoopPoints,
-  generateSampleTags, computeFingerprint, fingerprintSimilarity,
+  generateSampleTags, computeFingerprint, fingerprintSimilarity, findSimilarSamples,
 } from "./aiAssistant";
 
 interface TestResult { name: string; pass: boolean; detail?: string; }

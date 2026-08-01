@@ -397,7 +397,7 @@ export function createVoice3D(
       : lp.waveform === "saw" ? "sawtooth" : "square";
     // Rate: free-run or BPM-synced via DSP Core's lfoRateHz
     const rateHz = lp.syncDiv !== "off" && opts.bpm
-      ? lfoRateHz({ rate: lp.rate, syncDiv: lp.syncDiv, bpm: opts.bpm })
+      ? lfoRateHz({ waveform: "sine", rate: lp.rate, depth: 1, syncDiv: lp.syncDiv as Exclude<typeof lp.syncDiv, "off">, bpm: opts.bpm })
       : clamp(lp.rate, 0.01, 20);
     lfoOsc.frequency.value = rateHz;
     const lfoGain = ctx.createGain();

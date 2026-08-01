@@ -405,6 +405,8 @@ export interface ModRoute {
   amount: number;
   curve: ModCurve;
   enabled: boolean;
+  /** MIDI CC number (0–127) used when source === "MIDI CC". Defaults to 0. */
+  cc?: number;
 }
 
 export const PART_PRESETS: Pick<Part, "name" | "category" | "color">[] = [

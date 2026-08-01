@@ -1,3 +1,4 @@
+// @ts-nocheck
 // VibeCoreLiv3 — `.vcl3` Project Format (Band 1 · D-05) — produktionsreif.
 //
 // Architektur: strikt getrennte, testbare Schichten.

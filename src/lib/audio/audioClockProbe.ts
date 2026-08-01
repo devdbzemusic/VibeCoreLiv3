@@ -130,12 +130,14 @@ export async function installProbe(ctx: AudioContext): Promise<void> {
     // every quantum while emitting silence.
     node.connect(mute).connect(ctx.destination);
     node.port.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as
-        | { type: "observed"; events: Array<{ scheduledAt: number; scheduledFor: number; observedAt: number; seq: number }> }
-        | { type: string };
-      if (m && m.type === "observed" && Array.isArray(m.events)) {
-        for (const e of m.events) {
-          commitObserved(e.scheduledAt, e.scheduledFor, e.observedAt);
+      type ObservedMsg = { type: "observed"; events: Array<{ scheduledAt: number; scheduledFor: number; observedAt: number; seq: number }> };
+      const m = ev.data as ObservedMsg | { type: string };
+      if (m && m.type === "observed") {
+        const om = m as ObservedMsg;
+        if (Array.isArray(om.events)) {
+          for (const e of om.events) {
+            commitObserved(e.scheduledAt, e.scheduledFor, e.observedAt);
+          }
         }
       }
     };
