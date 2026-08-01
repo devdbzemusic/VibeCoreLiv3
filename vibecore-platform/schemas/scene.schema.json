@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vibecore.local/schemas/scene.schema.json",
+  "title": "VibeCoreLiv3 Scene",
+  "description": "Szene innerhalb eines Patterns. Trägt Länge (shared per scene) + Steps/Notes pro Part (08_Groove.md).",
+  "type": "object",
+  "required": ["id", "length", "partSteps", "partNotes"],
+  "properties": {
+    "id": { "type": "string" },
+    "length": { "type": "integer", "minimum": 2, "maximum": 16, "description": "Schrittzahl, shared von allen Parts der Szene." },
+    "partSteps": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["on", "velocity"],
+          "properties": {
+            "on": { "type": "boolean" },
+            "velocity": { "type": "integer", "minimum": 1, "maximum": 127 },
+            "probability": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "gate": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "ratchet": { "type": "integer", "minimum": 1, "maximum": 8 },
+            "micro": { "type": "integer", "minimum": -50, "maximum": 50 },
+            "accent": { "type": "boolean" },
+            "pitch": { "type": "integer", "minimum": 0, "maximum": 127 },
+            "humanize": { "type": "number" }
+          }
+        }
+      }
+    },
+    "partNotes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["id", "step", "pitch", "length", "velocity"],
+          "properties": {
+            "id": { "type": "string" },
+            "step": { "type": "integer", "minimum": 0 },
+            "pitch": { "type": "integer", "minimum": 0, "maximum": 127 },
+            "length": { "type": "number", "minimum": 0.25 },
+            "velocity": { "type": "integer", "minimum": 1, "maximum": 127 },
+            "micro": { "type": "integer", "minimum": -50, "maximum": 50 }
+          }
+        }
+      }
+    }
+  }
+}

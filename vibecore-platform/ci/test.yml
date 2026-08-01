@@ -1,0 +1,29 @@
+name: test
+on:
+  workflow_run:
+    workflows: ["build"]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macos-13, windows-2022]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - name: Configure (Debug + Sanitizers)
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DVIBECORE_ENABLE_SANITIZERS=ON
+      - name: Build
+        run: cmake --build build -j
+      - name: Unit + Integration
+        run: ctest --test-dir build --output-on-failure -L "unit|integration"
+      - name: Realtime Stress (Jitter/Dropout)
+        run: ctest --test-dir build --output-on-failure -L "realtime"
+      - name: Regression (Reference Audio)
+        run: ctest --test-dir build --output-on-failure -L "regression"
+      - name: Benchmark (Regression < 5%)
+        run: cmake --build build --target vibecore_bench && ./build/bench/vibecore_bench --ci-gate
+      - name: Coverage
+        if: matrix.os == 'ubuntu-22.04'
+        run: cmake --build build --target vibecore_coverage && bash ci/scripts/coverage_gate.sh 70

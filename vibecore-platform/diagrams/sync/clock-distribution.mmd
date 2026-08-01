@@ -1,0 +1,16 @@
+%%{init: {'theme':'dark'}}%%
+sequenceDiagram
+  participant EXT as Externe Quelle<br/>(MIDI-Clock/Link/Audio)
+  participant SYNC as Sync-Engine
+  participant MOD as Module<br/>(Seq/Looper/Vocoder)
+  participant IO as Audio-I/O
+
+  EXT->>SYNC: Onsets / Clock-Ticks
+  Note over SYNC: Konfidenz-Gate (≥0,5)<br/>PLL re-anchor auf konfidenten Beat
+  SYNC->>SYNC: setTempo + alignDownbeat
+  loop jeder Block
+    MOD->>SYNC: getStateAt(audioTime)
+    SYNC-->>MOD: bpm · beat · bar · phase01
+    MOD->>IO: trigger / buffer (sync-konsistent)
+  end
+  Note over MOD: keine eigene Uhr — Sync ist einziger Synchronisierer

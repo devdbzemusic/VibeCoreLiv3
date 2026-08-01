@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vibecore.local/schemas/asset.schema.json",
+  "title": "VibeCoreLiv3 Asset",
+  "description": "Audio-Asset (Sample/IR/Stem-Bundle). Inhalt im Asset-Store, referenziert via asset_id (11_Sample_Forge.md, 16_Security.md).",
+  "type": "object",
+  "required": ["asset_id", "kind", "sha256", "manifestSig", "format"],
+  "properties": {
+    "asset_id": { "type": "string", "pattern": "^[a-f0-9]{64}$", "description": "SHA-256-basierte ID." },
+    "kind": { "type": "string", "enum": ["sample", "ir", "stem_bundle"] },
+    "format": { "type": "string", "enum": ["wav", "aiff", "flac", "mp3"] },
+    "channels": { "type": "integer", "minimum": 1, "maximum": 64 },
+    "sampleRate": { "type": "integer", "minimum": 8000, "maximum": 192000 },
+    "frames": { "type": "integer", "minimum": 0 },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "manifestSig": { "type": "string", "description": "Ed25519-Signatur des Manifests (16_Security.md)." },
+    "tags": { "type": "array", "items": { "type": "string" }, "description": "Auto-Tags (12_AI.md): kick/snare/bass/key/…" },
+    "detectedBpm": { "type": ["number", "null"], "minimum": 20, "maximum": 300 },
+    "detectedKey": { "type": ["string", "null"] },
+    "slices": {
+      "type": "array",
+      "items": { "type": "object", "required": ["start", "end"], "properties": { "start": { "type": "number" }, "end": { "type": "number" }, "label": { "type": "string" } } }
+    }
+  }
+}

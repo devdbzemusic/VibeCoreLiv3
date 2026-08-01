@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vibecore.local/schemas/preset.schema.json",
+  "title": "VibeCoreLiv3 Preset",
+  "description": "Synth/Sound-Preset. Versioniert; Layer = geordnete Stimmen (10_Synth.md).",
+  "type": "object",
+  "required": ["presetVersion", "dspVersion", "engine", "layers"],
+  "properties": {
+    "presetVersion": { "type": "string", "description": "Semantic Version des Presets." },
+    "dspVersion": { "type": "string", "description": "DSP-Version, gegen die das Preset gerendert wurde (21_Migration.md)." },
+    "name": { "type": "string" },
+    "category": { "type": "string", "enum": ["kick", "snare", "perc", "hat", "bass", "synth", "sample"] },
+    "engine": { "type": "string", "enum": ["Kick", "Snare", "Hat", "Bass", "Synth"] },
+    "layers": { "type": "array", "items": { "$ref": "#/definitions/layer" } },
+    "modulation": { "type": "array", "items": { "type": "object" } },
+    "spatial": { "type": "object" }
+  },
+  "definitions": {
+    "layer": {
+      "type": "object",
+      "required": ["gain", "params"],
+      "properties": {
+        "gain": { "type": "number", "minimum": 0, "maximum": 1 },
+        "sampleRef": { "type": "string", "description": "asset_id für sample/hybrid Layer (11_Sample_Forge.md)." },
+        "params": { "type": "object" }
+      }
+    },
+    "partRef": {
+      "type": "object",
+      "required": ["id", "name", "category", "channel", "source"],
+      "properties": {
+        "id": { "type": "integer" },
+        "name": { "type": "string" },
+        "category": { "type": "string", "enum": ["kick", "snare", "perc", "hat", "bass", "synth", "sample"] },
+        "volume": { "type": "number", "minimum": 0, "maximum": 1 },
+        "pan": { "type": "number", "minimum": -1, "maximum": 1 },
+        "pitch": { "type": "number", "minimum": -24, "maximum": 24 },
+        "mute": { "type": "boolean" },
+        "solo": { "type": "boolean" },
+        "sends": { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 } },
+        "channel": { "type": "object" },
+        "source": { "type": "string", "enum": ["sample", "synth", "hybrid"] },
+        "synth": { "type": "object" },
+        "hybrid": { "type": "object" }
+      }
+    }
+  }
+}

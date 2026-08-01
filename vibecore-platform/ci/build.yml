@@ -1,0 +1,30 @@
+name: build
+on:
+  push: { branches: [main, 'phase/**', 'feature/**', 'cr/**'] }
+  pull_request: { branches: [main] }
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macos-13, windows-2022]
+        compiler: [gcc, clang, msvc]
+        exclude:
+          - { os: windows-2022, compiler: gcc }
+          - { os: windows-2022, compiler: clang }
+          - { os: macos-13, compiler: msvc }
+          - { os: ubuntu-22.04, compiler: msvc }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DVIBECORE_ENABLE_VALIDATOR=ON
+      - name: Build
+        run: cmake --build build -j
+      - name: Static Analysis (clang-tidy)
+        if: matrix.compiler == 'clang'
+        run: cmake --build build --target vibecore_tidy
+      - name: Realtime Validator
+        run: cmake --build build --target vibecore_validate
+      - uses: actions/upload-artifact@v4
+        with: { name: build-${{ matrix.os }}-${{ matrix.compiler }}, path: build/ }

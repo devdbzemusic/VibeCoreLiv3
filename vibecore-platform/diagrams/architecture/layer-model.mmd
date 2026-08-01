@@ -1,0 +1,30 @@
+%%{init: {'theme':'dark'}}%%
+graph TB
+  subgraph SDK["SDK (Phase 5)"]
+    SDK1["C-ABI · Wrapper · Validator"]
+  end
+  subgraph HOST["Host Runtime (Phase 4)"]
+    H1["Module-Loader · I/O · Safe-Mode"]
+  end
+  subgraph PROJ["Project Runtime (Phase 3)"]
+    P1["Project/Scene/Pattern · Autosave · Recovery"]
+  end
+  subgraph SYNC["Sync Engine (Phase 2)"]
+    S1["BPM · Beat · Bar · Tick · SongPos<br/>EINZIGE ZEITBASIS"]
+  end
+  subgraph CORE["Platform Core (Phase 1)"]
+    C1["DSP-Graph · Routing · Serialisierung · Diagnostics"]
+  end
+  MUSIK["Groove(6) → FX(7) → Synth(8) → Sample(9) → Remix(10)"]
+
+  SDK1 --> H1
+  H1 --> P1
+  H1 --> CORE
+  P1 --> SYNC
+  P1 --> CORE
+  SYNC --> CORE
+  H1 --> MUSIK
+  SYNC --> MUSIK
+
+  classDef only fill:#6C9EFF,stroke:#6C9EFF,color:#0A0F1E
+  class SYNC only

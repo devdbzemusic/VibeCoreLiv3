@@ -1,0 +1,13 @@
+%%{init: {'theme':'dark'}}%%
+flowchart LR
+  UI["UI-Thread<br/>(Param-Snapshot Write)"] -- "atomic snapshot" --> AUDIO
+  AUDIO["Audio-Thread (RT)<br/>DSP-Block · Param-Read"] --> IO["Audio/MIDI I/O"]
+  AUDIO -- "Meter-Snapshot SPSC" --> UI
+  HOST["Host"] -- "Module-Loader" --> AUDIO
+  PROJ["Project Runtime"] -- "async File-I/O-Thread" --> DISK[("Disk")]
+  DIAG["Diagnostics-Thread<br/>(opt-in Telemetrie)"] -. "metrics" .-> UI
+
+  classDef rt fill:#6C9EFF,stroke:#6C9EFF,color:#0A0F1E
+  classDef no fill:#3a2412,stroke:#f59e0b,color:#fff
+  class AUDIO rt
+  class DISK no
