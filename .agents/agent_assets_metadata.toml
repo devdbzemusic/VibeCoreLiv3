@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "tHJraHop5ZRo3JiInCyDo"
+uri = "file://VibeCoreLiv3_DevExport_2026-08-01.zip"
+type = "unspecified"
+title = "VibeCoreLiv3 — Developer Export 2026-08-01"
+description = "Vollständiges Projektpaket: Quellcode (src/), Docs, Konfiguration, Production Build (dist/), detaillierter Testbericht (TEST_RESULTS_DETAILED.md), Projektstruktur-Übersicht. 1,3 MB ZIP."
