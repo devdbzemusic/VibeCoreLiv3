@@ -47,6 +47,8 @@ let input: MidiInput | null = null;
 let lastClockAt = 0;
 let clockIntervals: number[] = [];
 let running = false;
+/** BPM stored before MIDI sync started so it can be restored on disconnect. */
+let preSyncBpm: number | null = null;
 
 function median(vals: number[]): number {
   if (!vals.length) return 0;
@@ -58,10 +60,16 @@ function median(vals: number[]): number {
 function handleMsg(e: MIDIMessageEvent) {
   if (!e.data || e.data.length < 1) return;
   const ctx = getCtx();
-  const now = ctx?.currentTime ?? performance.now() / 1000;
   const status = e.data[0];
 
   if (status === CLOCK) {
+    // Tempo estimation requires AudioContext timestamps (audio-time domain).
+    // If the context is not yet running, skip this pulse — CLOCK fires at
+    // 24 PPQ so the estimator will re-converge within a few ms once audio starts.
+    // Falling back to performance.now()/1000 would write a wall-clock anchor
+    // into MasterClock, creating a time-domain mismatch once audio starts.
+    if (!ctx) return;
+    const now = ctx.currentTime;
     if (lastClockAt > 0) {
       const ioi = now - lastClockAt;
       if (ioi > 0) {
@@ -69,10 +77,19 @@ function handleMsg(e: MIDIMessageEvent) {
         if (clockIntervals.length > 24) clockIntervals.shift();
         if (clockIntervals.length >= 6) {
           const med = median(clockIntervals);
-          const bpm = 60 / (med * 24); // 24 clocks per quarter note
-          if (Number.isFinite(bpm) && bpm >= 40 && bpm <= 300) {
-            masterClock.setTempo(Math.round(bpm * 10) / 10, now);
+          const rawBpm = 60 / (med * 24); // 24 clocks per quarter note
+          const roundedBpm = Math.round(rawBpm * 10) / 10;
+          if (Number.isFinite(rawBpm) && rawBpm >= 40 && rawBpm <= 300) {
+            masterClock.setTempo(roundedBpm, now);
             if (masterClock.getState().source !== "midi") masterClock.setSource("midi", now);
+            // Mirror the MIDI-estimated BPM into the store so the scheduler
+            // (which reads from masterClock) and the UI (which reads from store)
+            // both stay in sync. internalSource will echo this back to
+            // masterClock.setTempo() but the early-exit `bpm === state.bpm`
+            // guard makes that a no-op — no feedback loop.
+            if (useGroove.getState().bpm !== roundedBpm) {
+              useGroove.getState().setBpm(roundedBpm);
+            }
             useGroove.getState().setSyncStatus({ source: "midi", confidence: 0.9, externalActive: true });
           }
         }
@@ -81,6 +98,11 @@ function handleMsg(e: MIDIMessageEvent) {
     lastClockAt = now;
     return;
   }
+
+  // Transport commands use audio time when available; fall back to 0 only when
+  // the AudioContext hasn't started (safe: the transport commands re-anchor or
+  // stop the clock so an imprecise initial anchor is immediately overwritten).
+  const now = ctx?.currentTime ?? 0;
 
   if (status === START) {
     useGroove.getState().setSyncStatus({ source: "midi", externalActive: true });
@@ -137,6 +159,9 @@ export async function startMidiSync(inputId?: string): Promise<MidiSyncStatus> {
       useGroove.getState().setSyncStatus({ midiConnected: false, error: "Kein MIDI-Input" });
       return { available: true, connected: false, inputName: null, error: "Kein MIDI-Input" };
     }
+    // Save internal BPM before handing control to the external device so we can
+    // restore it exactly when the user disconnects MIDI sync.
+    preSyncBpm = useGroove.getState().bpm;
     input = (inputId ? inputs.find((i) => i.id === inputId) : null) ?? inputs[0];
     input.onmidimessage = handleMsg;
     running = true;
@@ -158,7 +183,16 @@ export function stopMidiSync(): void {
   lastClockAt = 0;
   running = false;
   const ctx = getCtx();
-  masterClock.setSource("internal", ctx?.currentTime ?? 0);
+  const t = ctx?.currentTime ?? 0;
+  // Restore the pre-sync internal BPM so the user's setting is preserved
+  // across a MIDI-sync session. Without this, store.bpm ends up at the last
+  // MIDI-estimated tempo and the internal clock restarts at the wrong speed.
+  if (preSyncBpm !== null) {
+    useGroove.getState().setBpm(preSyncBpm);
+    masterClock.setTempo(preSyncBpm, t);
+    preSyncBpm = null;
+  }
+  masterClock.setSource("internal", t);
   useGroove.getState().setSyncStatus({
     source: "internal", midiConnected: false, externalActive: false, confidence: 1, error: null,
   });

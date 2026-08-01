@@ -315,7 +315,13 @@ function tick() {
   const baseLatency = (ctx as AudioContext & { baseLatency?: number }).baseLatency ?? 0;
   const outputLatency = (ctx as AudioContext & { outputLatency?: number }).outputLatency ?? 0;
   const lookAhead = q.lookAheadSec + baseLatency + outputLatency;
-  const dur = stepDurSec(state.bpm);
+  // Read BPM from MasterClock — the single timing authority.
+  // store.bpm is the user's *internal* preference; when MIDI or adaptive sync
+  // is active, MasterClock.bpm reflects the actual running tempo. Using the
+  // store directly causes the scheduler to keep running at the old internal BPM
+  // while MasterClock has already locked to the external tempo.
+  const bpm = masterClock.getState().bpm;
+  const dur = stepDurSec(bpm);
   const partsList = state.parts;
 
   while (nextTickTime < ctx.currentTime + lookAhead) {
@@ -328,7 +334,7 @@ function tick() {
     if (stepInScene >= scene.length) stepInScene = 0;
 
     const tickWhen = nextTickTime + q.scheduleOffsetSec;
-    scheduleTickAt(tickWhen, globalTick, pat, scene, stepInScene, state.bpm, partsList);
+    scheduleTickAt(tickWhen, globalTick, pat, scene, stepInScene, bpm, partsList);
     recordScheduledTick(ctx.currentTime, tickWhen);
 
     globalTick += 1;
