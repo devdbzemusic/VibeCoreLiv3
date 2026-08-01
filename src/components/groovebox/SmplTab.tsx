@@ -1,7 +1,17 @@
+// VibeCoreLiv3 — Sample Forge Module Page.
+//
+// UX Rules: Waveform is the primary UI (≥60% of screen height).
+// All editing actions live in a scrollable horizontal toolbar below the waveform.
+// Slice markers are draggable on the waveform surface.
+// AI "Auto Slice" button uses the existing autoChopBuffer transient detector.
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useGroove } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Folder, Scissors, Repeat, Rewind, Snowflake, Upload, Play, Wand2, Volume2, Loader2, Download, FileUp, Crop, Music2, Clock, Zap, Sparkles } from "lucide-react";
+import {
+  Scissors, Repeat, Rewind, Snowflake, Upload, Play, Wand2, Volume2,
+  Loader2, Download, FileUp, Crop, Music2, Clock, Zap, Sparkles, ChevronDown, ChevronUp,
+} from "lucide-react";
 import {
   ensureAudio, getBuffer, assignBufferToPart, previewBuffer, decodeSampleFile,
   triggerPart, triggerSampleRegion, normalizeBuffer, reverseBuffer,
@@ -10,6 +20,7 @@ import {
   trimBufferRegion, applyFadeBuffer, pitchShiftAudioBuffer, timeStretchAudioBuffer,
   spectralFreezeAudioBuffer, autoChopBuffer,
 } from "@/lib/audio/sampleForge";
+import { AiContextButton } from "./AiContextButton";
 import type { WaveEdit } from "@/lib/model";
 
 interface LoadedSample {
@@ -29,13 +40,26 @@ export function SmplTab() {
   const [selected, setSelected] = useState(0);
   const [status, setStatus] = useState<string>("");
   const [busy, setBusy] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [partsOpen, setPartsOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const presetRef = useRef<HTMLInputElement>(null);
   const waveRef = useRef<HTMLDivElement>(null);
 
+  // Slice positions — local state (normalized 0..1 for each interior divider)
+  const [slicePositions, setSlicePositions] = useState<number[]>([]);
+  const sliceDragRef = useRef<{ idx: number } | null>(null);
+
+  // Keep slicePositions in sync when wave.slices changes
+  useEffect(() => {
+    const n = wave.slices;
+    setSlicePositions(
+      Array.from({ length: n - 1 }, (_, i) => (i + 1) / n),
+    );
+  }, [wave.slices]);
+
   const partBuffer = getBuffer(selectedPart);
   const sample = library[selected];
-  // Editor always edits the part's assigned buffer if it exists, else preview the browser-selected one.
   const editorBuffer = partBuffer ?? sample?.buffer ?? null;
 
   const wavePeaks = useMemo(() => {
@@ -77,29 +101,48 @@ export function SmplTab() {
     await ensureAudio();
     assignBufferToPart(selectedPart, sample.buffer);
     setPartSampleName(selectedPart, sample.name);
-    // reset markers
     setWaveEdit(selectedPart, { start: 0, end: 1 });
     setStatus(`Assigned ${sample.name} → ${part.name}`);
   };
 
   // ─── marker drag ─────────────────────────────────────────────
-  const dragRef = useRef<"start" | "end" | null>(null);
-  const onPointerDown = (e: React.PointerEvent, which: "start" | "end") => {
+  const markerDragRef = useRef<"start" | "end" | null>(null);
+
+  const onWavePointerDown = (e: React.PointerEvent, which: "start" | "end") => {
     e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
-    dragRef.current = which;
+    markerDragRef.current = which;
   };
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!dragRef.current || !waveRef.current) return;
+  const onWavePointerMove = (e: React.PointerEvent) => {
+    if (!waveRef.current) return;
     const rect = waveRef.current.getBoundingClientRect();
     const t = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    if (dragRef.current === "start") {
+
+    if (markerDragRef.current === "start") {
       setWaveEdit(selectedPart, { start: Math.min(t, wave.end - 0.005) });
-    } else {
+    } else if (markerDragRef.current === "end") {
       setWaveEdit(selectedPart, { end: Math.max(t, wave.start + 0.005) });
+    } else if (sliceDragRef.current !== null) {
+      const { idx } = sliceDragRef.current;
+      setSlicePositions((prev) => {
+        const next = [...prev];
+        const lo = idx === 0 ? wave.start + 0.01 : prev[idx - 1] + 0.01;
+        const hi = idx === prev.length - 1 ? wave.end - 0.01 : prev[idx + 1] - 0.01;
+        next[idx] = Math.max(lo, Math.min(hi, t));
+        return next;
+      });
     }
   };
-  const onPointerUp = () => { dragRef.current = null; };
+  const onWavePointerUp = () => {
+    markerDragRef.current = null;
+    sliceDragRef.current = null;
+  };
+
+  const onSlicePointerDown = (e: React.PointerEvent, idx: number) => {
+    e.stopPropagation();
+    (e.target as Element).setPointerCapture(e.pointerId);
+    sliceDragRef.current = { idx };
+  };
 
   // ─── actions ─────────────────────────────────────────────────
   const doPreview = async () => {
@@ -128,18 +171,16 @@ export function SmplTab() {
     setBusy(false);
   };
 
-  // ─── Phase 4 — Sample Forge offline DSP ──────────────────────
   const withBusy = async (label: string, op: () => AudioBuffer) => {
     if (!partBuffer) { setStatus("No sample assigned to part"); return; }
     setBusy(true);
     try {
       await ensureAudio();
-      // Yield so spinner can paint before sync DSP work.
       await new Promise((r) => setTimeout(r, 16));
       const out = op();
       assignBufferToPart(selectedPart, out);
       setStatus(`${label} ✓`);
-    } catch (e) {
+    } catch {
       setStatus(`${label} failed`);
     } finally {
       setBusy(false);
@@ -154,15 +195,15 @@ export function SmplTab() {
     () => timeStretchAudioBuffer(partBuffer!, wave.timeStretch / 100));
   const doSpectralFreeze = () => withBusy("Spectral freeze rendered",
     () => spectralFreezeAudioBuffer(partBuffer!, wave.freezePos / 100, Math.max(0.5, wave.freezeSize / 1000 * 4)));
+
   const doAutoChop = async () => {
     if (!partBuffer) { setStatus("No sample assigned"); return; }
     setBusy(true);
     try {
       const slices = autoChopBuffer(partBuffer, 0.6, 16);
       const n = Math.max(2, Math.min(16, slices.length));
-      // Round count down to a supported slice option.
       const supported = [2, 4, 8, 16];
-      const chosen = supported.reverse().find((v) => v <= n) ?? 2;
+      const chosen = supported.slice().reverse().find((v) => v <= n) ?? 2;
       setWaveEdit(selectedPart, { slices: chosen });
       setStatus(`Auto-chop: ${slices.length} transients → ${chosen} slices`);
     } finally {
@@ -173,43 +214,22 @@ export function SmplTab() {
   const triggerSlice = async (i: number) => {
     await ensureAudio();
     if (!partBuffer) return;
-    const s = i / wave.slices;
-    const e = (i + 1) / wave.slices;
+    const positions = [wave.start, ...slicePositions, wave.end];
+    const s = positions[i];
+    const e = positions[i + 1];
     triggerSampleRegion(selectedPart, s, e, 110);
   };
 
-  // ─── Sample-editor preset export / import ──────────────────
   const exportPreset = (scope: "part" | "all") => {
     const payload =
       scope === "part"
-        ? {
-            kind: "vibecore-wave-preset",
-            version: 1,
-            scope: "part" as const,
-            partId: selectedPart,
-            partName: part.name,
-            sampleName: part.sampleName,
-            wave: part.wave,
-          }
-        : {
-            kind: "vibecore-wave-preset",
-            version: 1,
-            scope: "all" as const,
-            waves: parts.map((p) => ({
-              partId: p.id,
-              partName: p.name,
-              sampleName: p.sampleName,
-              wave: p.wave,
-            })),
-          };
+        ? { kind: "vibecore-wave-preset", version: 1, scope: "part" as const, partId: selectedPart, partName: part.name, sampleName: part.sampleName, wave: part.wave }
+        : { kind: "vibecore-wave-preset", version: 1, scope: "all" as const, waves: parts.map((p) => ({ partId: p.id, partName: p.name, sampleName: p.sampleName, wave: p.wave })) };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download =
-      scope === "part"
-        ? `vibecore-wave-${part.name.replace(/\s+/g, "_")}.json`
-        : `vibecore-wave-all.json`;
+    a.download = scope === "part" ? `vibecore-wave-${part.name.replace(/\s+/g, "_")}.json` : "vibecore-wave-all.json";
     a.click();
     URL.revokeObjectURL(url);
     setStatus(scope === "part" ? `Exported ${part.name}` : "Exported all 16 parts");
@@ -223,7 +243,6 @@ export function SmplTab() {
     const bool = (v: unknown, def: boolean) => (typeof v === "boolean" ? v : def);
     const oneOf = <T extends string>(v: unknown, opts: readonly T[], def: T): T =>
       (typeof v === "string" && (opts as readonly string[]).includes(v) ? v as T : def);
-
     return {
       ...fallback,
       start: num(r.start, fallback.start, 0, 1),
@@ -266,10 +285,7 @@ export function SmplTab() {
     try {
       const text = await files[0].text();
       const data = JSON.parse(text);
-      if (data?.kind !== "vibecore-wave-preset") {
-        setStatus("Invalid preset file");
-        return;
-      }
+      if (data?.kind !== "vibecore-wave-preset") { setStatus("Invalid preset file"); return; }
       if (data.scope === "all" && Array.isArray(data.waves)) {
         let n = 0;
         (data.waves as Array<{ partId?: number; wave?: unknown }>).forEach((entry) => {
@@ -287,7 +303,7 @@ export function SmplTab() {
       } else {
         setStatus("Unrecognized preset structure");
       }
-    } catch (e) {
+    } catch {
       setStatus("Failed to read preset JSON");
     } finally {
       if (presetRef.current) presetRef.current.value = "";
@@ -295,97 +311,70 @@ export function SmplTab() {
   };
 
   useEffect(() => {
-    // Clear any transient status message and release any active waveform drag
-    // handle when the selected part changes. Without this, a mid-drag pointer
-    // event or a stale "Normalized ✓" from the previous part would show under
-    // the new part — confusing the user about which part was just edited.
     setStatus("");
-    dragRef.current = null;
+    markerDragRef.current = null;
+    sliceDragRef.current = null;
   }, [selectedPart]);
 
-  return (
-    <div className="space-y-3" onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
-      {/* ─── Library ─────────────────────────────── */}
-      <div className="panel p-3">
-        <div className="flex items-center justify-between mb-2">
-          <div className="font-display text-xs text-primary flex items-center gap-2">
-            <Folder className="h-3.5 w-3.5" /> SAMPLE BROWSER
-          </div>
-          <label className="h-7 px-2 rounded panel-inset font-mono text-[10px] flex items-center gap-1 cursor-pointer">
-            <Upload className="h-3 w-3" /> IMPORT
-            <input ref={fileRef} type="file" accept="audio/*,.wav,.aif,.aiff,.flac,.ogg,.mp3" multiple className="hidden"
-              onChange={(e) => handleFiles(e.target.files)} />
-          </label>
-        </div>
-        <div className="hairline mb-2" />
-        {library.length === 0 && (
-          <div className="font-mono text-[10px] text-muted-foreground py-3 text-center">
-            Tap IMPORT to load WAV / AIFF / FLAC / OGG / MP3
-          </div>
-        )}
-        <div className="space-y-1 max-h-40 overflow-y-auto no-scrollbar">
-          {library.map((s, i) => (
-            <div key={i} className={cn("w-full flex items-center gap-2 px-2 py-1.5 rounded panel-inset", selected === i && "neon-border")}>
-              <button onClick={() => setSelected(i)} className="flex-1 flex items-center gap-2 text-left">
-                <span className="font-mono text-[9px] w-5 text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
-                <span className="font-display text-[11px] flex-1 truncate">{s.name}</span>
-                <span className="font-mono text-[9px] text-muted-foreground">{s.dur}</span>
-              </button>
-              <button onClick={async () => { await ensureAudio(); previewBuffer(s.buffer); }}
-                className="h-6 w-6 grid place-items-center rounded panel-inset text-primary" aria-label="Preview">
-                <Play className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-        {status && <div className="mt-2 font-mono text-[9px] text-neon-cyan">{status}</div>}
-      </div>
+  // ─── Toolbar action definition ────────────────────────────────
+  type ToolbarAction = {
+    label: string;
+    icon: React.ReactNode;
+    onClick: () => void;
+    color?: string;
+    disabled?: boolean;
+  };
+  const toolbarActions: ToolbarAction[] = [
+    { label: "PLAY",      icon: <Play className="h-4 w-4" />,      onClick: doPreview,       color: "text-primary",      disabled: !editorBuffer },
+    { label: "ASSIGN",    icon: <Wand2 className="h-4 w-4" />,     onClick: assignToSelected, color: "text-neon-lime",   disabled: !sample },
+    { label: "NORM",      icon: <Volume2 className="h-4 w-4" />,   onClick: doNormalize,     color: "text-neon-lime",    disabled: busy || !partBuffer },
+    { label: "REV",       icon: <Rewind className="h-4 w-4" />,    onClick: doReverseBuffer, color: "text-neon-amber",   disabled: busy || !partBuffer },
+    { label: "TRIM",      icon: <Crop className="h-4 w-4" />,      onClick: doTrim,          color: "text-primary",      disabled: busy || !partBuffer },
+    { label: "FADE",      icon: <Wand2 className="h-4 w-4" />,     onClick: doFade,          color: "text-neon-lime",    disabled: busy || !partBuffer },
+    { label: `PITCH${wave.pitchShift !== 0 ? (wave.pitchShift > 0 ? "+" : "") + wave.pitchShift : ""}`,
+                          icon: <Music2 className="h-4 w-4" />,    onClick: doPitch,         color: "text-neon-magenta", disabled: busy || !partBuffer },
+    { label: `STR ${wave.timeStretch}%`,
+                          icon: <Clock className="h-4 w-4" />,     onClick: doStretch,       color: "text-neon-cyan",    disabled: busy || !partBuffer },
+    { label: "SPEC FRZ",  icon: <Snowflake className="h-4 w-4" />, onClick: doSpectralFreeze,color: "text-neon-cyan",    disabled: busy || !partBuffer },
+    { label: "TRIGGER",   icon: <Play className="h-4 w-4" />,
+      onClick: async () => { await ensureAudio(); triggerPart(selectedPart, 0, { velocity: 110 }); },
+      color: "text-neon-cyan", disabled: !partBuffer },
+    { label: "EXP",       icon: <Download className="h-4 w-4" />,  onClick: () => exportPreset("part"), color: "text-neon-cyan" },
+    { label: "EXP ALL",   icon: <Download className="h-4 w-4" />,  onClick: () => exportPreset("all"),  color: "text-neon-cyan" },
+  ];
 
-      {/* ─── Waveform editor ─────────────────────── */}
-      <div className="panel p-3">
+  return (
+    <div className="space-y-3" onPointerMove={onWavePointerMove} onPointerUp={onWavePointerUp}>
+
+      {/* ─── PRIMARY: Waveform editor ─────────────────────── */}
+      <div className="panel p-2">
+        {/* Compact header */}
         <div className="flex items-center justify-between mb-2 gap-2">
           <div className="font-display text-xs truncate flex-1">
-            {part.name} <span className="text-muted-foreground">·</span> {part.sampleName ?? sample?.name ?? "—"}
+            {part.name}
+            {(part.sampleName ?? sample?.name) && (
+              <span className="text-muted-foreground ml-1">· {(part.sampleName ?? sample?.name)}</span>
+            )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => exportPreset("part")}
-              className="h-7 px-2 rounded panel-inset font-mono text-[9px] flex items-center gap-1 text-neon-cyan"
-              title="Export this part's wave settings"
-            >
-              <Download className="h-3 w-3" /> EXP
-            </button>
-            <button
-              onClick={() => exportPreset("all")}
-              className="h-7 px-2 rounded panel-inset font-mono text-[9px] flex items-center gap-1 text-neon-cyan"
-              title="Export all 16 parts"
-            >
-              <Download className="h-3 w-3" /> ALL
-            </button>
-            <label
-              className="h-7 px-2 rounded panel-inset font-mono text-[9px] flex items-center gap-1 text-neon-lime cursor-pointer"
-              title="Import a saved preset JSON"
-            >
-              <FileUp className="h-3 w-3" /> IMP
-              <input
-                ref={presetRef}
-                type="file"
-                accept="application/json,.json"
-                className="hidden"
-                onChange={(e) => handlePresetImport(e.target.files)}
-              />
+            <AiContextButton label="Auto Slice" onAction={doAutoChop} />
+            <label className="h-7 px-2 rounded panel-inset font-mono text-[9px] flex items-center gap-1 cursor-pointer text-neon-lime">
+              <Upload className="h-3 w-3" /> IMP
+              <input ref={fileRef} type="file" accept="audio/*,.wav,.aif,.aiff,.flac,.ogg,.mp3" multiple className="hidden"
+                onChange={(e) => handleFiles(e.target.files)} />
             </label>
-            <div className="font-mono text-[9px] text-muted-foreground ml-1">
+            <div className="font-mono text-[9px] text-muted-foreground">
               {editorBuffer ? `${editorBuffer.duration.toFixed(2)}s` : "—"}
             </div>
           </div>
         </div>
 
-
+        {/* LARGE waveform — ≥60% of visible area */}
         <div
           ref={waveRef}
-          className="panel-inset rounded-md p-2 relative h-32 overflow-hidden scanline touch-none select-none"
+          className="panel-inset rounded-md p-2 relative min-h-[280px] h-[52vh] overflow-hidden scanline touch-none select-none"
         >
+          {/* Waveform bars */}
           <div className="absolute inset-2 flex items-center gap-[1px]">
             {wavePeaks.map((v, i) => (
               <div key={i} className="flex-1 bg-gradient-primary rounded-sm"
@@ -393,34 +382,52 @@ export function SmplTab() {
             ))}
           </div>
 
-          {/* slice markers */}
-          {Array.from({ length: wave.slices - 1 }).map((_, i) => (
-            <div key={i} className="absolute top-1 bottom-1 w-px bg-neon-amber/60 pointer-events-none"
-              style={{ left: `${((i + 1) / wave.slices) * 100}%` }} />
-          ))}
-
-          {/* dimmed regions outside start/end */}
+          {/* Dimmed regions outside start/end */}
           <div className="absolute top-0 bottom-0 left-0 bg-background/70 pointer-events-none"
             style={{ width: `${wave.start * 100}%` }} />
           <div className="absolute top-0 bottom-0 right-0 bg-background/70 pointer-events-none"
             style={{ width: `${(1 - wave.end) * 100}%` }} />
 
-          {/* draggable markers */}
-          <div onPointerDown={(e) => onPointerDown(e, "start")}
-            className="absolute top-0 bottom-0 w-3 -ml-1.5 cursor-ew-resize touch-none"
+          {/* Interior slice markers — draggable */}
+          {slicePositions.map((pos, i) => (
+            <div
+              key={i}
+              className="absolute top-0 bottom-0 w-5 -ml-2.5 cursor-ew-resize touch-none z-10"
+              style={{ left: `${pos * 100}%` }}
+              onPointerDown={(e) => onSlicePointerDown(e, i)}
+            >
+              <div className="absolute top-0 bottom-0 left-2.5 w-px bg-neon-amber/70 shadow-[0_0_4px_hsl(38_100%_58%/0.5)]" />
+              <div className="absolute top-1 left-0.5 w-4 h-4 rounded bg-neon-amber/20 border border-neon-amber/50 grid place-items-center">
+                <span className="font-mono text-[7px] text-neon-amber">{i + 1}</span>
+              </div>
+            </div>
+          ))}
+
+          {/* S/E draggable markers */}
+          <div onPointerDown={(e) => onWavePointerDown(e, "start")}
+            className="absolute top-0 bottom-0 w-3 -ml-1.5 cursor-ew-resize touch-none z-10"
             style={{ left: `${wave.start * 100}%` }}>
             <div className="absolute top-0 bottom-0 left-1.5 w-px bg-primary shadow-[0_0_6px_hsl(var(--primary))]" />
             <div className="absolute top-1 left-0 px-1 rounded font-mono text-[8px] bg-primary text-primary-foreground">S</div>
           </div>
-          <div onPointerDown={(e) => onPointerDown(e, "end")}
-            className="absolute top-0 bottom-0 w-3 -ml-1.5 cursor-ew-resize touch-none"
+          <div onPointerDown={(e) => onWavePointerDown(e, "end")}
+            className="absolute top-0 bottom-0 w-3 -ml-1.5 cursor-ew-resize touch-none z-10"
             style={{ left: `${wave.end * 100}%` }}>
             <div className="absolute top-0 bottom-0 left-1.5 w-px bg-neon-magenta shadow-[0_0_6px_hsl(var(--magenta))]" />
             <div className="absolute top-1 left-0 px-1 rounded font-mono text-[8px] bg-neon-magenta text-background">E</div>
           </div>
+
+          {/* Status overlay */}
+          {busy && (
+            <div className="absolute inset-0 bg-background/80 grid place-items-center z-20">
+              <div className="flex items-center gap-2 font-mono text-[10px] text-neon-cyan">
+                <Loader2 className="h-4 w-4 animate-spin" /> rendering…
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Start / End numeric */}
+        {/* Start / End compact sliders */}
         <div className="grid grid-cols-2 gap-2 mt-2 font-mono text-[10px]">
           <label className="flex items-center gap-1">
             <span className="text-primary w-8">START</span>
@@ -438,149 +445,152 @@ export function SmplTab() {
           </label>
         </div>
 
-        {/* Toggle buttons */}
-        <div className="grid grid-cols-3 gap-1.5 mt-3">
-          <button
-            onClick={() => setWaveEdit(selectedPart, { reverse: !wave.reverse })}
+        {/* ─── Horizontal action toolbar ─── */}
+        <div className="mt-3 -mx-1">
+          <div className="no-scrollbar overflow-x-auto px-1">
+            <div className="flex gap-1.5 min-w-max">
+              {toolbarActions.map((a) => (
+                <button
+                  key={a.label}
+                  onClick={a.onClick}
+                  disabled={a.disabled}
+                  className={cn(
+                    "h-11 min-w-[52px] px-2.5 panel-inset rounded-md flex flex-col items-center justify-center gap-0.5 font-mono text-[8px] shrink-0 disabled:opacity-40",
+                    a.color ?? "text-muted-foreground",
+                  )}
+                >
+                  {a.icon}
+                  {a.label}
+                </button>
+              ))}
+
+              {/* Preset import button */}
+              <label className="h-11 min-w-[52px] px-2.5 panel-inset rounded-md flex flex-col items-center justify-center gap-0.5 font-mono text-[8px] text-neon-lime cursor-pointer shrink-0">
+                <FileUp className="h-4 w-4" />
+                IMP PRE
+                <input ref={presetRef} type="file" accept="application/json,.json" className="hidden"
+                  onChange={(e) => handlePresetImport(e.target.files)} />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Toggle row */}
+        <div className="grid grid-cols-3 gap-1.5 mt-2">
+          <button onClick={() => setWaveEdit(selectedPart, { reverse: !wave.reverse })}
             className={cn("h-10 panel-inset rounded-md flex items-center justify-center gap-1 font-mono text-[10px]",
-              wave.reverse ? "neon-border text-neon-amber" : "text-muted-foreground")}
-          >
+              wave.reverse ? "neon-border text-neon-amber" : "text-muted-foreground")}>
             <Rewind className="h-3.5 w-3.5" /> REVERSE
           </button>
-          <button
-            onClick={() => setWaveEdit(selectedPart, { loop: !wave.loop })}
+          <button onClick={() => setWaveEdit(selectedPart, { loop: !wave.loop })}
             className={cn("h-10 panel-inset rounded-md flex items-center justify-center gap-1 font-mono text-[10px]",
-              wave.loop ? "neon-border text-neon-lime" : "text-muted-foreground")}
-          >
+              wave.loop ? "neon-border text-neon-lime" : "text-muted-foreground")}>
             <Repeat className="h-3.5 w-3.5" /> LOOP
           </button>
-          <button
-            onClick={() => setWaveEdit(selectedPart, { freeze: !wave.freeze, loop: !wave.freeze ? true : wave.loop })}
+          <button onClick={() => setWaveEdit(selectedPart, { freeze: !wave.freeze, loop: !wave.freeze ? true : wave.loop })}
             className={cn("h-10 panel-inset rounded-md flex items-center justify-center gap-1 font-mono text-[10px]",
-              wave.freeze ? "neon-border text-neon-cyan" : "text-muted-foreground")}
-          >
+              wave.freeze ? "neon-border text-neon-cyan" : "text-muted-foreground")}>
             <Snowflake className="h-3.5 w-3.5" /> FREEZE
           </button>
         </div>
 
-        {/* Destructive ops */}
-        <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-          <button onClick={doNormalize} disabled={busy || !partBuffer}
-            className="h-10 panel-inset rounded-md flex items-center justify-center gap-1 font-mono text-[10px] text-neon-lime disabled:opacity-40">
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Volume2 className="h-3.5 w-3.5" />} NORMALIZE
-          </button>
-          <button onClick={doReverseBuffer} disabled={busy || !partBuffer}
-            className="h-10 panel-inset rounded-md flex items-center justify-center gap-1 font-mono text-[10px] text-neon-amber disabled:opacity-40">
-            <Wand2 className="h-3.5 w-3.5" /> REVERSE BUF
-          </button>
-        </div>
+        {status && <div className="mt-2 font-mono text-[9px] text-neon-cyan">{status}</div>}
+      </div>
 
-        {/* ─── Sample Forge (Phase 4) ─── */}
-        <div className="mt-3 panel-inset rounded-md p-2">
-          <div className="flex items-center gap-1.5 mb-2 font-display text-[10px] text-neon-cyan">
-            <Sparkles className="h-3 w-3" /> SAMPLE FORGE
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            <button onClick={doTrim} disabled={busy || !partBuffer}
-              className="h-10 panel-inset rounded flex items-center justify-center gap-1 font-mono text-[9px] text-primary disabled:opacity-40"
-              title="Trim buffer to S/E markers">
-              <Crop className="h-3 w-3" /> TRIM
-            </button>
-            <button onClick={doFade} disabled={busy || !partBuffer}
-              className="h-10 panel-inset rounded flex items-center justify-center gap-1 font-mono text-[9px] text-neon-lime disabled:opacity-40"
-              title="Apply fade-in/out from wave settings">
-              <Wand2 className="h-3 w-3" /> FADE
-            </button>
-            <button onClick={doAutoChop} disabled={busy || !partBuffer}
-              className="h-10 panel-inset rounded flex items-center justify-center gap-1 font-mono text-[9px] text-neon-amber disabled:opacity-40"
-              title="Detect transients and set slice count">
-              <Zap className="h-3 w-3" /> AUTO-CHOP
-            </button>
-            <button onClick={doPitch} disabled={busy || !partBuffer}
-              className="h-10 panel-inset rounded flex items-center justify-center gap-1 font-mono text-[9px] text-neon-magenta disabled:opacity-40"
-              title="Render pitchShift semitones into buffer">
-              <Music2 className="h-3 w-3" /> PITCH {wave.pitchShift > 0 ? "+" : ""}{wave.pitchShift}
-            </button>
-            <button onClick={doStretch} disabled={busy || !partBuffer}
-              className="h-10 panel-inset rounded flex items-center justify-center gap-1 font-mono text-[9px] text-neon-cyan disabled:opacity-40"
-              title="Render time-stretch ratio into buffer">
-              <Clock className="h-3 w-3" /> STRETCH {wave.timeStretch}%
-            </button>
-            <button onClick={doSpectralFreeze} disabled={busy || !partBuffer}
-              className="h-10 panel-inset rounded flex items-center justify-center gap-1 font-mono text-[9px] text-neon-cyan disabled:opacity-40"
-              title="Spectral freeze of position into a sustained texture">
-              <Snowflake className="h-3 w-3" /> SPEC FRZ
-            </button>
-          </div>
-          {busy && (
-            <div className="mt-2 flex items-center justify-center gap-1 text-[9px] font-mono text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" /> rendering…
-            </div>
-          )}
-        </div>
-
-        {/* Slices */}
-        <div className="mt-3">
-          <div className="flex items-center gap-2 text-[10px] font-mono mb-1.5">
-            <Scissors className="h-3.5 w-3.5 text-neon-amber" />
-            <span className="text-muted-foreground">SLICES</span>
-            <div className="flex-1 flex gap-1">
-              {SLICE_OPTIONS.map((n) => (
-                <button key={n} onClick={() => setWaveEdit(selectedPart, { slices: n })}
-                  className={cn("flex-1 h-6 rounded panel-inset text-[10px]",
-                    wave.slices === n ? "neon-border text-primary" : "text-muted-foreground")}>
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${Math.min(wave.slices, 16)}, minmax(0,1fr))` }}>
-            {Array.from({ length: wave.slices }).map((_, i) => (
-              <button key={i} onClick={() => triggerSlice(i)}
-                className="h-8 panel-inset rounded font-mono text-[9px] text-neon-amber active:bg-neon-amber/20">
-                {i + 1}
+      {/* ─── Slices ─────────────────────────── */}
+      <div className="panel p-3">
+        <div className="flex items-center gap-2 text-[10px] font-mono mb-2">
+          <Scissors className="h-3.5 w-3.5 text-neon-amber" />
+          <span className="text-muted-foreground">SLICES</span>
+          <div className="flex-1 flex gap-1">
+            {SLICE_OPTIONS.map((n) => (
+              <button key={n} onClick={() => setWaveEdit(selectedPart, { slices: n })}
+                className={cn("flex-1 h-6 rounded panel-inset text-[10px]",
+                  wave.slices === n ? "neon-border text-primary" : "text-muted-foreground")}>
+                {n}
               </button>
             ))}
           </div>
         </div>
-
-        {/* Bottom action bar */}
-        <div className="grid grid-cols-3 gap-1.5 mt-3">
-          <button onClick={doPreview} disabled={!editorBuffer}
-            className="h-10 panel-inset rounded-md flex items-center justify-center gap-1 font-mono text-[10px] text-primary disabled:opacity-40">
-            <Play className="h-3.5 w-3.5" /> PREVIEW
-          </button>
-          <button onClick={assignToSelected} disabled={!sample}
-            className="h-10 rounded-md bg-gradient-primary text-primary-foreground font-display text-[10px] disabled:opacity-40">
-            ASSIGN → {part.name}
-          </button>
-          <button onClick={async () => { await ensureAudio(); triggerPart(selectedPart, 0, { velocity: 110 }); }}
-            disabled={!partBuffer}
-            className="h-10 panel-inset rounded-md font-mono text-[10px] text-neon-cyan disabled:opacity-40">
-            TRIGGER
-          </button>
+        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${Math.min(wave.slices, 16)}, minmax(0,1fr))` }}>
+          {Array.from({ length: wave.slices }).map((_, i) => (
+            <button key={i} onClick={() => triggerSlice(i)}
+              className="h-9 panel-inset rounded font-mono text-[9px] text-neon-amber active:bg-neon-amber/20">
+              {i + 1}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* ─── Part picker ─────────────────────────── */}
+      {/* ─── Sample browser (collapsible) ─────────────────────── */}
       <div className="panel p-3">
-        <div className="font-display text-xs mb-2">PART ASSIGNMENTS</div>
-        <div className="grid grid-cols-4 sm:grid-cols-8 gap-1">
-          {parts.map((p) => {
-            const has = !!getBuffer(p.id) || !!p.sampleName;
-            return (
-              <button key={p.id} onClick={() => selectPart(p.id)}
-                className={cn("h-12 panel-inset rounded font-mono text-[8px] flex flex-col items-center justify-center leading-tight gap-0.5",
-                  selectedPart === p.id && "neon-border text-primary")}>
-                <span style={{ color: `hsl(var(--${p.color}))` }}>●</span>
-                <span>{p.name}</span>
-                <span className={cn("text-[7px] truncate w-full", has ? "text-neon-lime" : "text-muted-foreground")}>
-                  {p.sampleName ? p.sampleName.slice(0, 10) : "empty"}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <button
+          onClick={() => setLibraryOpen((o) => !o)}
+          className="w-full flex items-center justify-between font-display text-xs text-muted-foreground"
+        >
+          <span className="flex items-center gap-2">
+            SAMPLE BROWSER
+            {library.length > 0 && <span className="font-mono text-[9px] text-primary">{library.length} loaded</span>}
+          </span>
+          {libraryOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+        {libraryOpen && (
+          <div className="mt-3">
+            <div className="hairline mb-2" />
+            {library.length === 0 && (
+              <div className="font-mono text-[10px] text-muted-foreground py-2 text-center">
+                Tap IMPORT to load WAV / AIFF / FLAC / OGG / MP3
+              </div>
+            )}
+            <div className="space-y-1 max-h-48 overflow-y-auto no-scrollbar">
+              {library.map((s, i) => (
+                <div key={i} className={cn("w-full flex items-center gap-2 px-2 py-1.5 rounded panel-inset", selected === i && "neon-border")}>
+                  <button onClick={() => setSelected(i)} className="flex-1 flex items-center gap-2 text-left">
+                    <span className="font-mono text-[9px] w-5 text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="font-display text-[11px] flex-1 truncate">{s.name}</span>
+                    <span className="font-mono text-[9px] text-muted-foreground">{s.dur}</span>
+                  </button>
+                  <button onClick={async () => { await ensureAudio(); previewBuffer(s.buffer); }}
+                    className="h-6 w-6 grid place-items-center rounded panel-inset text-primary">
+                    <Play className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── Part assignments (collapsible) ─────────────────────── */}
+      <div className="panel p-3">
+        <button
+          onClick={() => setPartsOpen((o) => !o)}
+          className="w-full flex items-center justify-between font-display text-xs text-muted-foreground"
+        >
+          <span>PART ASSIGNMENTS</span>
+          {partsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+        {partsOpen && (
+          <div className="mt-3">
+            <div className="hairline mb-2" />
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-1">
+              {parts.map((p) => {
+                const has = !!getBuffer(p.id) || !!p.sampleName;
+                return (
+                  <button key={p.id} onClick={() => selectPart(p.id)}
+                    className={cn("h-12 panel-inset rounded font-mono text-[8px] flex flex-col items-center justify-center leading-tight gap-0.5",
+                      selectedPart === p.id && "neon-border text-primary")}>
+                    <span style={{ color: `hsl(var(--${p.color}))` }}>●</span>
+                    <span>{p.name}</span>
+                    <span className={cn("text-[7px] truncate w-full text-center", has ? "text-neon-lime" : "text-muted-foreground")}>
+                      {p.sampleName ? p.sampleName.slice(0, 10) : "empty"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
