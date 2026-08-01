@@ -5,6 +5,7 @@ import { ModuleHeader }    from "@/components/groovebox/ModuleHeader";
 import { HomeTab }         from "@/components/groovebox/HomeTab";
 import { SeqTab }          from "@/components/groovebox/SeqTab";
 import { PianoRollTab }    from "@/components/groovebox/PianoRollTab";
+import { GrooveModule }    from "@/components/groovebox/GrooveModule";
 import { MixTab }          from "@/components/groovebox/MixTab";
 import { FxTab }           from "@/components/groovebox/FxTab";
 import { SmplTab }         from "@/components/groovebox/SmplTab";
@@ -87,7 +88,7 @@ const Index = () => {
 
         {/* GROOVE */}
         {tab === "SEQ"  && <ModulePage tab="SEQ"><SeqTab /></ModulePage>}
-        {tab === "ROLL" && <ModulePage tab="ROLL"><PianoRollTab /></ModulePage>}
+        {tab === "ROLL" && <ModulePage tab="ROLL"><GrooveModule /></ModulePage>}
         {tab === "ARP"  && <ModulePage tab="ARP"><ArpPanel /></ModulePage>}
         {tab === "PTN"  && <ModulePage tab="PTN"><PtnTab /></ModulePage>}
         {tab === "SND"  && <ModulePage tab="SND"><SoundTab /></ModulePage>}

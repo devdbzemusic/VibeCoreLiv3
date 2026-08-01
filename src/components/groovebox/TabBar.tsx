@@ -36,10 +36,10 @@ interface ModuleDef {
 const MODULES: ModuleDef[] = [
   { id: "HOME",      shortLabel: "HOME",  icon: Home,     primaryTab: "HOME" },
   {
-    id: "GROOVE",    shortLabel: "GRV",   icon: Layers,   primaryTab: "SEQ",
+    id: "GROOVE",    shortLabel: "GRV",   icon: Layers,   primaryTab: "ROLL",
     subTabs: [
-      { key: "SEQ",   label: "SEQ"  },
       { key: "ROLL",  label: "ROLL" },
+      { key: "SEQ",   label: "SEQ"  },
       { key: "PTN",   label: "PTN"  },
       { key: "SND",   label: "SND"  },
     ],
