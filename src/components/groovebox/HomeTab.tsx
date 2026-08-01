@@ -11,8 +11,8 @@ import { useCallback } from "react";
 import { useGroove, type TabKey } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
-  Layers, Repeat, Orbit, Zap, Disc, Sliders,
-  Mic, Shuffle, Bot, Brain, Settings, Play, Pause,
+  Layers, Orbit, Zap, Disc, Sliders,
+  Mic, Shuffle, Bot, Waves, Settings, Play, Pause,
 } from "lucide-react";
 import { ensureAudio, getCtx } from "@/lib/audio/engine";
 import { tapTempo } from "@/lib/clock/tapTempo";
@@ -28,50 +28,47 @@ interface ModuleTile {
   color: string;
 }
 
+// MASTERPROMPT v5.0 — 10 modules (ARP folded into GROOVE, BRAINWAVEZ → WAVE)
 const TILES: ModuleTile[] = [
   {
-    id: "GROOVE",    label: "Groove",        description: "Sequencer · Piano Roll · Patterns",
-    icon: Layers,    primaryTab: "SEQ",      color: "hsl(195 100% 55%)",
+    id: "GROOVE",  label: "Groove",       description: "Piano Roll · Patterns · ARP",
+    icon: Layers,  primaryTab: "ROLL",    color: "hsl(195 100% 55%)",
   },
   {
-    id: "ARP",       label: "Arp",           description: "Spiral · Orbit · DNA arpeggiator",
-    icon: Repeat,    primaryTab: "ARP",      color: "hsl(188 100% 55%)",
+    id: "SYNTH3D", label: "3D Synth",     description: "Spectral · FM · Wavetable synth",
+    icon: Orbit,   primaryTab: "SYNTH3D", color: "hsl(260 100% 68%)",
   },
   {
-    id: "SYNTH3D",   label: "3D Synth",      description: "Spectral · FM · Wavetable synth",
-    icon: Orbit,     primaryTab: "SYNTH3D",  color: "hsl(260 100% 68%)",
+    id: "BASS3D",  label: "3D Bass",      description: "Sub · Drive · Harmonic bass engine",
+    icon: Zap,     primaryTab: "BASS3D",  color: "hsl(280 100% 65%)",
   },
   {
-    id: "BASS3D",    label: "3D Bass",       description: "Sub · Drive · Harmonic bass engine",
-    icon: Zap,       primaryTab: "BASS3D",   color: "hsl(280 100% 65%)",
+    id: "FORGE",   label: "Sample Forge", description: "Slice · Granular · AI sample tools",
+    icon: Disc,    primaryTab: "SMPL",    color: "hsl(320 100% 60%)",
   },
   {
-    id: "FORGE",     label: "Sample Forge",  description: "Slice · Granular · AI sample tools",
-    icon: Disc,      primaryTab: "SMPL",     color: "hsl(320 100% 60%)",
+    id: "FXLAB",   label: "FX Mix Lab",   description: "6-bus FX · Mixer · Mastering",
+    icon: Sliders, primaryTab: "FX",      color: "hsl(38 100% 58%)",
   },
   {
-    id: "FXLAB",     label: "FX Mix Lab",    description: "6-bus FX · Mixer · Mastering",
-    icon: Sliders,   primaryTab: "FX",       color: "hsl(38 100% 58%)",
+    id: "VOICE",   label: "Voice",        description: "Vocoder · Harmoniser · Pitch",
+    icon: Mic,     primaryTab: "VOICE",   color: "hsl(140 100% 55%)",
   },
   {
-    id: "VOICE",     label: "Voice",         description: "Vocoder · Harmoniser · Pitch",
-    icon: Mic,       primaryTab: "VOICE",    color: "hsl(140 100% 55%)",
+    id: "REMIX",   label: "Remix",        description: "Scene chain · Performance controls",
+    icon: Shuffle, primaryTab: "REMIX",   color: "hsl(195 100% 55%)",
   },
   {
-    id: "REMIX",     label: "Remix",         description: "Live remix · Performance controls",
-    icon: Shuffle,   primaryTab: "REMIX",    color: "hsl(195 100% 55%)",
+    id: "AI",      label: "AI",           description: "Co-create beats · Melodies · Stems",
+    icon: Bot,     primaryTab: "AI",      color: "hsl(280 100% 65%)",
   },
   {
-    id: "AI",        label: "AI",            description: "Co-create beats · Melodies · Stems",
-    icon: Bot,       primaryTab: "AI",       color: "hsl(280 100% 65%)",
+    id: "WAVE",    label: "Wave",         description: "Binaural · Psychoacoustic spatial",
+    icon: Waves,   primaryTab: "BRN",     color: "hsl(260 100% 68%)",
   },
   {
-    id: "BRAINWAVEZ",label: "bRAINWAVEz",    description: "Neural · Spatial · Binaural",
-    icon: Brain,     primaryTab: "BRN",      color: "hsl(260 100% 68%)",
-  },
-  {
-    id: "SETTINGS",  label: "Settings",      description: "Audio · MIDI · Sync · Diagnostics",
-    icon: Settings,  primaryTab: "SETUP",    color: "hsl(38 100% 58%)",
+    id: "SETTINGS",label: "Settings",     description: "Audio · MIDI · Sync · Library",
+    icon: Settings,primaryTab: "SETUP",   color: "hsl(38 100% 58%)",
   },
 ];
 

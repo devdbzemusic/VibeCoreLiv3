@@ -1,11 +1,17 @@
-// VibeCore — Module Navigation (MASTERPROMPT spec).
+// VibeCore — Module Navigation (MASTERPROMPT v5.0 — Workflow Consolidation).
 //
-// 12-module linear navigation:
-//   HOME → GROOVE → ARP → 3D SYNTH → 3D BASS → SAMPLE FORGE →
-//   FX MIX LAB → VOICE → REMIX → AI → bRAINWAVEz → SETTINGS
+// 10-module linear navigation (down from 12):
+//   HOME → GROOVE → 3D SYNTH → 3D BASS → SAMPLE FORGE →
+//   FX MIX LAB → VOICE → REMIX → AI → WAVE → SETTINGS
+//
+// Key changes vs. prior version:
+//   · ARP  — moved from standalone module into GROOVE sub-tabs (One-Touch principle)
+//   · SEQ  — removed; ROLL is the universal Piano Roll per MASTERPROMPT v5.0
+//   · WAVE — replaces BRAINWAVEZ with cleaner sub-tab labels (BNARL · SPTL)
+//   · DBG  — removed from visible nav; accessible via TopBar diagnostics button only
 //
 // Layout:
-//   - Primary strip  (bottom): all 12 modules, thumb-scrollable
+//   - Primary strip  (bottom): 10 modules, thumb-scrollable
 //   - Secondary strip (above): sub-tabs of the active module when > 1 tab
 //
 // Architecture: preserves the existing TabKey enum via a mapping layer.
@@ -17,8 +23,8 @@ import { useRef } from "react";
 import { useGroove, type TabKey } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
-  Home, Layers, Repeat, Orbit, Zap, Disc, Sliders,
-  Mic, Shuffle, Bot, Brain, Settings,
+  Home, Layers, Orbit, Zap, Disc, Sliders,
+  Mic, Shuffle, Bot, Waves, Settings,
 } from "lucide-react";
 
 type Icon = React.ComponentType<{ className?: string }>;
@@ -32,53 +38,52 @@ interface ModuleDef {
   subTabs?: SubTab[];
 }
 
-// ── Module definitions (canonical order per MASTERPROMPT) ─────────────────
+// ── Module definitions (canonical order per MASTERPROMPT v5.0) ────────────
 const MODULES: ModuleDef[] = [
-  { id: "HOME",      shortLabel: "HOME",  icon: Home,     primaryTab: "HOME" },
+  { id: "HOME",    shortLabel: "HOME", icon: Home,    primaryTab: "HOME" },
   {
-    id: "GROOVE",    shortLabel: "GRV",   icon: Layers,   primaryTab: "ROLL",
+    id: "GROOVE",  shortLabel: "GRV",  icon: Layers,  primaryTab: "ROLL",
     subTabs: [
-      { key: "ROLL",  label: "ROLL" },
-      { key: "SEQ",   label: "SEQ"  },
-      { key: "PTN",   label: "PTN"  },
-      { key: "SND",   label: "SND"  },
+      { key: "ROLL",  label: "ROLL" },   // Universal Piano Roll (drum + instrument)
+      { key: "PTN",   label: "PTN"  },   // Pattern / modulation
+      { key: "SND",   label: "SND"  },   // Sound design per part
+      { key: "ARP",   label: "ARP"  },   // Arpeggiator (moved from standalone)
     ],
   },
-  { id: "ARP",       shortLabel: "ARP",   icon: Repeat,   primaryTab: "ARP"   },
-  { id: "SYNTH3D",   shortLabel: "SYN",   icon: Orbit,    primaryTab: "SYNTH3D" },
-  { id: "BASS3D",    shortLabel: "BAS",   icon: Zap,      primaryTab: "BASS3D"  },
-  { id: "FORGE",     shortLabel: "FRG",   icon: Disc,     primaryTab: "SMPL"    },
+  { id: "SYNTH3D", shortLabel: "SYN",  icon: Orbit,   primaryTab: "SYNTH3D" },
+  { id: "BASS3D",  shortLabel: "BAS",  icon: Zap,     primaryTab: "BASS3D"  },
+  { id: "FORGE",   shortLabel: "FRG",  icon: Disc,    primaryTab: "SMPL"    },
   {
-    id: "FXLAB",     shortLabel: "FX",    icon: Sliders,  primaryTab: "FX",
+    id: "FXLAB",   shortLabel: "FX",   icon: Sliders, primaryTab: "FX",
     subTabs: [
       { key: "FX",   label: "FX"   },
       { key: "MIX",  label: "MIX"  },
       { key: "PROD", label: "PROD" },
     ],
   },
-  { id: "VOICE",     shortLabel: "VOC",   icon: Mic,      primaryTab: "VOICE"   },
+  { id: "VOICE",   shortLabel: "VOC",  icon: Mic,     primaryTab: "VOICE"   },
   {
-    id: "REMIX",     shortLabel: "RMX",   icon: Shuffle,  primaryTab: "REMIX",
+    id: "REMIX",   shortLabel: "RMX",  icon: Shuffle, primaryTab: "REMIX",
     subTabs: [
-      { key: "REMIX", label: "REMIX" },
+      { key: "REMIX", label: "SCENE" },
       { key: "PERF",  label: "PERF"  },
     ],
   },
-  { id: "AI",        shortLabel: "AI",    icon: Bot,      primaryTab: "AI"      },
+  { id: "AI",      shortLabel: "AI",   icon: Bot,     primaryTab: "AI"      },
   {
-    id: "BRAINWAVEZ",shortLabel: "BRN",   icon: Brain,    primaryTab: "BRN",
+    id: "WAVE",    shortLabel: "WAVE", icon: Waves,   primaryTab: "BRN",
     subTabs: [
-      { key: "BRN", label: "BRN" },
-      { key: "SPC", label: "SPC" },
+      { key: "BRN", label: "BNARL" },   // Binaural / isochronic
+      { key: "SPC", label: "SPTL"  },   // Psychoacoustic spatial matrix
     ],
   },
   {
-    id: "SETTINGS",  shortLabel: "⚙",     icon: Settings, primaryTab: "SETUP",
+    id: "SETTINGS",shortLabel: "⚙",   icon: Settings, primaryTab: "SETUP",
     subTabs: [
       { key: "SETUP", label: "SETUP" },
       { key: "SYNC",  label: "SYNC"  },
-      { key: "DBG",   label: "DIAG"  },
       { key: "LIB",   label: "LIB"   },
+      // DBG intentionally omitted — accessible via TopBar diagnostics button
     ],
   },
 ];

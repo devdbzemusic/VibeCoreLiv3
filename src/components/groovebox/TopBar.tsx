@@ -20,8 +20,9 @@ export function TopBar() {
     showDiag, toggleDiag,
     qualityProfile, currentQuality, fps, setQualityProfile,
     resetTransport,
-    arp, setArp,
   } = useGroove();
+  // ARP controls (mode/complexity) have been moved to the ARP module tab (GROOVE → ARP).
+  // They are intentionally not rendered in the TopBar per MASTERPROMPT v5.0 One-Touch principle.
   const playheads = useGroove((s) => s.playheads);
   const selectedPart = useGroove((s) => s.selectedPart);
   // Meters subscribe to the non-React meter bus → no rerender of TopBar
@@ -136,42 +137,6 @@ export function TopBar() {
           <div className="font-display text-sm">{pat.name}</div>
           <div className="font-mono text-[10px] text-primary">{String(currentStep + 1).padStart(2, "0")}/{patternLen}</div>
           {queued && <div className="font-mono text-[9px] text-neon-amber">→ {queued.name}</div>}
-        </div>
-
-        {/* VibeCore-Sync · direct Arp mode switch (Spiral / Orbit / DNA) */}
-        <div className="panel-inset flex px-1.5 sm:px-2 py-1.5 items-center gap-1">
-          <span className="font-mono text-[9px] text-muted-foreground hidden sm:inline">ARP</span>
-          {(["SPIRAL", "ORBIT", "DNA"] as const).map((m) => {
-            const on = arp.enabled && arp.mode === m;
-            return (
-              <button
-                key={m}
-                onClick={() => setArp({ enabled: true, mode: m })}
-                className={cn(
-                  "tab-pill px-1.5 py-0.5 rounded font-mono text-[9px] border border-border",
-                  on ? "text-primary neon-border" : "text-muted-foreground",
-                )}
-                aria-label={`Arp ${m}`}
-                aria-pressed={on}
-              >
-                {m === "SPIRAL" ? "SPR" : m === "ORBIT" ? "ORB" : "DNA"}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* VibeCore-Sync · Arp complexity → central E_ARP_NOTE event system.
-            Writes arp.complexity; the scheduler reads it live in spawnArpNotes
-            (notesPerStep + arpCoupling) every SceneStep → immediate effect. */}
-        <div className="panel-inset flex items-center gap-1.5 px-2 py-1.5">
-          <span className="font-mono text-[9px] text-muted-foreground hidden sm:inline">CPX</span>
-          <input
-            type="range" min={0} max={100} value={arp.complexity}
-            onChange={(e) => setArp({ complexity: Number(e.target.value) })}
-            className="w-12 sm:w-16 accent-primary h-1"
-            aria-label="Arp complexity"
-          />
-          <span className="font-mono text-[9px] text-primary tabular-nums w-6 text-right">{arp.complexity}</span>
         </div>
 
         <div className="flex-1" />

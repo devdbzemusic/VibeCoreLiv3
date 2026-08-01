@@ -31,13 +31,13 @@ import { bindParamUpdates }      from "@/lib/audio/engine";
 import { bindInternalSource }    from "@/lib/clock/sources/internalSource";
 import { startQualityManager }   from "@/lib/audio/quality";
 
-// ── Module-name mapping ──────────────────────────────────────────────────────
+// ── Module-name mapping (MASTERPROMPT v5.0 — Workflow Consolidation) ─────────
 // Maps every TabKey to its display module name shown in the ModuleHeader.
-// This drives the unified header without touching individual module components.
+// ARP is now a GROOVE sub-tab → header reads "GROOVE" for consistency.
+// SEQ is deprecated in nav (redirected to ROLL) but still maps for safety.
 const MODULE_NAMES: Partial<Record<TabKey, string>> = {
   HOME:    "HOME",
-  SEQ:     "GROOVE",  ROLL:  "GROOVE",  PTN:  "GROOVE",  SND: "GROOVE",
-  ARP:     "ARP",
+  SEQ:     "GROOVE",  ROLL:  "GROOVE",  PTN:  "GROOVE",  SND: "GROOVE",  ARP: "GROOVE",
   SYNTH3D: "3D SYNTH",
   BASS3D:  "3D BASS",
   SMPL:    "SAMPLE FORGE",
@@ -45,7 +45,7 @@ const MODULE_NAMES: Partial<Record<TabKey, string>> = {
   VOICE:   "VOICE",
   REMIX:   "REMIX",   PERF:  "REMIX",
   AI:      "AI",
-  BRN:     "bRAINWAVEz", SPC: "bRAINWAVEz",
+  BRN:     "WAVE",    SPC:   "WAVE",
   SETUP:   "SETTINGS", SYNC: "SETTINGS", DBG: "SETTINGS", LIB: "SETTINGS",
 };
 
@@ -61,7 +61,7 @@ function ModulePage({ tab, children }: { tab: TabKey; children: React.ReactNode 
 }
 
 const Index = () => {
-  const { tab } = useGroove();
+  const { tab, setTab } = useGroove();
 
   useEffect(() => {
     // Wire the three core engine/clock bindings in dependency order:
@@ -76,6 +76,12 @@ const Index = () => {
     startQualityManager();
   }, []);
 
+  // SEQ → ROLL redirect: SEQ tab is deprecated (Universal Piano Roll consolidation).
+  // Persisted state or deep-links that land on SEQ are silently promoted to ROLL.
+  useEffect(() => {
+    if (tab === "SEQ") setTab("ROLL");
+  }, [tab, setTab]);
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <TopBar />
@@ -86,9 +92,8 @@ const Index = () => {
         {/* HOME — no ModuleHeader; HomeTab has its own hero layout */}
         {tab === "HOME" && <HomeTab />}
 
-        {/* GROOVE */}
-        {tab === "SEQ"  && <ModulePage tab="SEQ"><SeqTab /></ModulePage>}
-        {tab === "ROLL" && <ModulePage tab="ROLL"><GrooveModule /></ModulePage>}
+        {/* GROOVE — SEQ is deprecated; both SEQ and ROLL render the Universal Piano Roll */}
+        {(tab === "ROLL" || tab === "SEQ") && <ModulePage tab="ROLL"><GrooveModule /></ModulePage>}
         {tab === "ARP"  && <ModulePage tab="ARP"><ArpPanel /></ModulePage>}
         {tab === "PTN"  && <ModulePage tab="PTN"><PtnTab /></ModulePage>}
         {tab === "SND"  && <ModulePage tab="SND"><SoundTab /></ModulePage>}
