@@ -1,5 +1,6 @@
 - [SonicArchitect architecture](sonic-architect-arch.md) — key engine/clock/store invariants that must be preserved across all edits
-- [VibeCoreLiv3 MASTERPROMPT](masterprompt.md) — supreme governing rules: 5-second rule, One Touch, Workflow First gate, AI-as-partner, DSP priority order, 15-specialist decision panel
-- [Native Audio Platform](native-audio-platform.md) — Oboe-first architecture: ONE engine for all modules, 10-MASTERPROMPT build order, realtime safety rules, acceptance criteria
-- [FX MIX LAB SUPREMÉ](fx-mixlab-supreme.md) — REMIX absorbed into FX MIX LAB; 5 sub-tabs: MIX·FX·PERFORM·REMIX·3D MTX; TabKey mapping; DSP signal flow; no own engine
-- [AI Arpeggiator Intelligence](ai-arp-intelligence.md) — ONE global ARP engine; 24 genre profiles; Energy Engine 0-100; module API control; Executive Decision Gate; nav: GROOVE→ARP
+- [VibeCore Univers SUPREMÉ](vibecore-univers-supreme.md) — TOP-LEVEL CONSTITUTION: 7 bands, the One Rule, SUPREMÉ APPROVED gate, all invariants. Supersedes all other docs on conflict.
+- [VibeCoreLiv3 MASTERPROMPT](masterprompt.md) — v5.0 workflow rules: DoR/DoD 10 criteria, 6 gates, One Touch, 5-sec rule — still valid under the Constitution
+- [Native Audio Platform](native-audio-platform.md) — Oboe-first: ONE engine, 10-MASTERPROMPT build order, realtime safety, acceptance criteria
+- [FX MIX LAB SUPREMÉ](fx-mixlab-supreme.md) — REMIX absorbed into FX MIX LAB; 5 sub-tabs: MIX·FX·PERFORM·REMIX·3D MTX; signal flow; no own engine
+- [AI Arpeggiator Intelligence](ai-arp-intelligence.md) — ONE global ARP engine; 24 genres; Energy Engine 0-100; module APIs; nav: GROOVE→ARP
