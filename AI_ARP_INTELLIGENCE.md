@@ -2,7 +2,8 @@
 
 **Edition:** Executive Architecture Board 1.0  
 **Status:** SUPREMÉ APPROVED — Verbindlich für alle ARP-Implementierungsentscheidungen  
-**Nav-Position:** GROOVE → ARP (Sub-Tab 4)
+**Übergeordnete Autorität:** [Creative Workflow Constitution](VibeCoreUnivers/CREATIVE_WORKFLOW_CONSTITUTION.md) — SUPREMÉ DIRECTIVE 001: Workflow is Law  
+**Nav-Position:** GROOVE → ARP (Sub-Tab 4) · FX MIX LAB Control Center (LIVE-Phase)
 
 ---
 
@@ -194,6 +195,29 @@ Width · Depth · Height · Front/Back · Rotation · Focus · Motion · Diffusi
 
 ---
 
+## Creative Workflow Phase-Integration
+
+Der AI Arpeggiator ist kein Modul — er ist eine **phasenübergreifende Performance-Engine**.  
+Er passt sein Verhalten und seine sichtbaren Controls dem aktuellen kreativen Kontext an.
+
+| Workflow-Phase | ARP-Rolle | Sichtbare ARP-Controls | KI-Kontext |
+|---------------|-----------|----------------------|-----------|
+| BEAT | Rhythmus-ARP | Step-Trigger · Roll · Flam · Ratchets · Probability | Groove-Variationen · Fill-Ideen · Rhythmus-Patterns |
+| BASS | Bass-ARP | Bassline-Pattern · Slides · Octave · Accent · Legato | Bassline-Pfade · harmonische Bass-Bewegungen |
+| MELODIE | Melodie-ARP | Noten-Sequenz · Chord-Strum · Gate · Oktaven · Velocity | Melodie-Phrasen · Chord-Progressionen · Arpeggios |
+| SOUND | (passiv) | Keine ARP-Controls im Vordergrund | — |
+| LIVE | Performance-ARP (Control Center) | Alle ARP-Parameter · Szenen · Makros · Morph | Performance Chains · Szenenabfolgen · FX-Kombinationen |
+| REMIX | Rhythmischer Remixer | Ratchets · Stutter · Roll · Probability | Remix-Patterns · Slice-Rhythmen |
+
+**Regel:** In jeder Phase sind ausschließlich die für sie relevanten ARP-Controls sichtbar.  
+Alles andere tritt in den Hintergrund — gemäß Workflow-Regel 2: Immer genau ein kreativer Fokus.
+
+**LIVE-Phase als Zentrum:**  
+Im FX MIX LAB Control Center hat der ARP Zugriff auf alle Module gleichzeitig.  
+Hier wird der ARP vom Werkzeug zur **Performance-Engine**.
+
+---
+
 ## Workflow-Prinzipien
 
 | Prinzip | Anforderung |
@@ -248,6 +272,25 @@ Der AI Arpeggiator gilt nur dann als erfolgreich, wenn:
 
 ## Executive Decision Gate
 
+Vor jeder Freigabe — **in dieser Reihenfolge**:
+
+### Stufe 1 — Workflow Gate (SUPREMÉ DIRECTIVE 001)
+
+| # | Frage | Anforderung |
+|---|-------|-------------|
+| 1 | Ist die Funktion in maximal 5 Sekunden erreichbar? | Ja |
+| 2 | Ist sie mit einer Hand bedienbar? | Ja |
+| 3 | Ist sie im Livebetrieb ohne Nachdenken nutzbar? | Ja |
+| 4 | Ist sie auf Smartphone und Tablet gleichermaßen ergonomisch? | Ja |
+| 5 | Kann sie während einer Performance sofort gefunden werden? | Ja |
+| 6 | Benötigt sie maximal einen Touch oder eine klare Geste? | Ja |
+| 7 | Vermeidet sie unnötige Navigation? | Ja |
+
+→ Eine Frage mit Nein: **UI neu entwerfen. Kein Code vorher.**  
+→ Alle Ja: **WORKFLOW APPROVED** → weiter zu Stufe 2.
+
+### Stufe 2 — Executive Engineering Board
+
 Vor jeder Freigabe beantwortet das Executive Engineering Board:
 
 | Frage | Anforderung |
@@ -259,10 +302,11 @@ Vor jeder Freigabe beantwortet das Executive Engineering Board:
 | Ist sie langfristig wartbar und modular erweiterbar? | Ja |
 | Unterstützt sie die Vision einer professionellen mobilen Live-Performance-Groovebox? | Ja |
 
-> Nur wenn alle Fragen mit **Ja** beantwortet werden können:  
+> Nur wenn **beide Stufen** vollständig bestanden sind:  
 > **SUPREMÉ APPROVED – GO FOR IMPLEMENTATION.**
 
 ---
 
 *Executive Architecture Board Edition 1.0*  
+*Übergeordnete Autorität: Creative Workflow Constitution — SUPREMÉ DIRECTIVE 001*  
 *Verbindlich für alle AI Arpeggiator Implementierungs-, Architektur- und Qualitätsentscheidungen.*
