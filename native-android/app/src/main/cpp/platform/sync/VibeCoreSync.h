@@ -36,8 +36,6 @@
  *   NO malloc/free · NO mutex · NO logging · NO file I/O · NO JNI
  */
 
-#pragma once
-
 #include "MusicalPosition.h"
 #include "TickEvent.h"
 #include "SyncCommand.h"

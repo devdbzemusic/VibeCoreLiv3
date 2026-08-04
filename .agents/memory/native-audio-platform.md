@@ -1,6 +1,6 @@
 ---
 name: Native Audio Platform
-description: Phase build order, architecture invariants, Oboe engine, Sync, Groove — what must be preserved across all edits
+description: Phase build order, architecture invariants, all phases complete through Phase 4 — Architecture Freeze in effect
 ---
 
 ## Phase Status
@@ -10,105 +10,99 @@ description: Phase build order, architecture invariants, Oboe engine, Sync, Groo
 | Phase 1 | Oboe Native Audio Foundation | ✅ COMPLETE |
 | Phase 2 | VibeCore Sync (PPQ 1920) | ✅ COMPLETE |
 | Phase 3 | VibeCore Groove Engine | ✅ COMPLETE |
-| Phase 4 | 3D Bass Module | NEXT |
+| Phase 4 | Architecture Hardening | ✅ COMPLETE — ARCHITECTURE FROZEN |
+| Phase 5 | 3D Bass Node | NEXT |
 
 ---
 
-## Architecture Invariants (enforce across all edits)
+## Architecture Invariants (enforce across ALL edits — FROZEN)
 
 1. **ONE Oboe engine** — `VibeCoreAudioEngine` singleton. Never create a second stream.
 2. **ONE global clock** — `VibeCoreSync`. No module has its own clock/scheduler/timer.
 3. **Zero heap allocation on Audio Thread** — All arrays fixed-size; all commands via queues.
 4. **Zero locks on Audio Thread** — All cross-thread state via `AudioThreadSafeQueue<T, N>`.
-5. **MusicalPosition is derived from absoluteSamplePos** — never from system time.
+5. **MusicalPosition derived from absoluteSamplePos** — never from system time.
 6. **All AudioNode timing events carry `sampleOffset`** — sample-accurate, not buffer-late.
+7. **No legacy files** — `vibecore_engine.cpp/h` and root `jni_bridge.cpp` deleted in Phase 4.
+8. **UI mirror pattern** — UI thread owns UITrack mirror; Audio Thread owns mTracks. Never cross.
+
+---
+
+## New Module Pattern (Phase 5+)
+
+```cpp
+class BassNode : public AudioNode {
+public:
+    BassNode(NodeId id);
+    void prepare(int sampleRate, int maxFrames) override;
+    void reset()                                 override;
+    void process(const float*, float*, int, int) noexcept override;
+    void onTick(int64_t, const MusicalPosition&, int32_t) noexcept override;
+    void onTempoChanged(double, int32_t) noexcept override;
+};
+auto id = engine.graph().addNode(std::make_unique<BassNode>(2));
+engine.graph().connect(id, mixerId);
+```
+
+No own clock. No own scheduler. No new queue types needed.
+
+---
+
+## Queue System
+
+| Queue | Type | Capacity | Producer | Consumer |
+|-------|------|----------|---------|---------|
+| SyncCommand | SPSC | 128 | UI/MIDI Thread | Audio Thread (VibeCoreSync) |
+| GrooveCommand | SPSC | 256 | UI Thread (GrooveEngine) | Audio Thread (GrooveNode) |
+| AudioCommand | SPSC | 128 | UI Thread | Audio Thread (VibeCoreAudioEngine) |
+| TriggerQueue | Sequential | 256 | Audio Thread onTick() | Audio Thread process() |
+
+---
+
+## Groove Engine — Key Invariants (Phase 4 hardened)
+
+- `GrooveEngine::snapshotBefore(t)` reads `mUITracks[t].activePattern()` — real data
+- `copyPattern(t)` copies from `mUITracks[t]` — always consistent
+- `pastePattern(t)` is undo-able (calls snapshotBefore before paste)
+- `UITrack[16]` updated on every GrooveEngine mutation — UI Thread only
+- Undo depth: 64 PatternSnapshots in ring buffer
 
 ---
 
 ## Key Files
 
-### Phase 1 — Foundation
+### All phases
 - `platform/VibeCoreAudioEngine.h/.cpp` — owns Sync + Graph, Oboe callbacks
-- `platform/AudioDeviceManager.h/.cpp` — device capability query + hotplug
-- `platform/AudioSessionManager.h/.cpp` — AudioFocus state machine
-- `platform/PerformanceMonitor.h/.cpp` — latency + CPU tracking
-- `platform/Diagnostics.h/.cpp` — structured DiagnosticReport
+- `platform/sync/VibeCoreSync.h/.cpp` — ONE global clock, PPQ 1920
 - `graph/AudioNode.h` — abstract base + 7 timing callbacks
-- `graph/AudioBus.h` — fixed-size float32 bus
-- `graph/AudioGraphManager.h/.cpp` — DAG topology + dispatchSyncEvents
-- `graph/MixerNode.h/.cpp` — N-input summing mixer
-- `threads/ThreadModel.h/.cpp` — 5-thread contract
-- `threads/AudioThreadSafeQueue.h` — lock-free SPSC, must be power-of-2 capacity, T must be trivially copyable
+- `graph/AudioGraphManager.h/.cpp` — DAG + dispatchSyncEvents
+- `groove/GrooveNode.h/.cpp` — AudioNode, 16 tracks, all Groove
+- `groove/GrooveEngine.h/.cpp` — UI API, UI mirror, Undo/Redo, Copy/Paste
+- `bridge/jni_bridge.cpp` — JNI marshalling only (50+ functions)
+- `NativeAudioBridge.kt` — @JavascriptInterface bridge
 
-### Phase 2 — Sync
-- `platform/sync/MusicalPosition.h` — PPQ=1920, `fromTick()` calculator
-- `platform/sync/TickEvent.h` — TickEvent + TickEventBuffer (stack, 64 slots)
-- `platform/sync/SyncCommand.h` — trivially copyable commands to sync engine
-- `platform/sync/VibeCoreSync.h/.cpp` — Transport, Tempo, Timeline, Loop, Scheduler
-- `docs/adr/ADR-006-timing-architecture.md`
-
-### Phase 3 — Groove
-- `groove/GrooveTypes.h` — Step, Pattern, Track, Scene, Chain, Voice, SampleBuffer, Trigger
-- `groove/GrooveCommands.h` — 35 command types, 40 bytes, trivially copyable
-- `groove/TriggerQueue.h` — 256-slot callback-internal trigger ring
-- `groove/VoicePool.h/.cpp` — 64 voices, Q16.16 pitch, choke groups, deterministic stealing
-- `groove/StepSequencer.h/.cpp` — Swing, Humanize, Probability, Roll, Flam, Micro Timing
-- `groove/PianoRoll.h/.cpp` — sorted scan, loop-safe, all 4 track modes
-- `groove/SceneEngine.h/.cpp` — 32 scenes, chain, bar-synced switch
-- `groove/GrooveNode.h/.cpp` — AudioNode subclass, 16 tracks
-- `groove/GrooveEngine.h/.cpp` — UI API, UndoStack (64 depth), Copy/Paste
-
-### Bridge
-- `bridge/jni_bridge.cpp` — JNI marshalling only (Phase 1+2+3)
-- `NativeAudioBridge.kt` — Kotlin @JavascriptInterface, Phase 1+2+3
+### Architecture documents
+- `docs/ARCHITECTURE_FREEZE.md` — frozen architecture, all 9 gate questions
+- `docs/adr/ADR-001..006` — all accepted decisions
 
 ---
 
-## ADRs
-- ADR-001: Oboe as single engine (ACCEPTED)
-- ADR-002: Five-thread model + lock-free SPSC (ACCEPTED)
-- ADR-003: DAG audio graph (ACCEPTED)
-- ADR-004: Pre-allocate everything, zero allocs on Audio Thread (ACCEPTED)
-- ADR-005: Module boundaries + WebView bridge (ACCEPTED/OPEN)
-- ADR-006: Single global clock, PPQ 1920, sample-accurate (ACCEPTED)
-
----
-
-## Phase 3 — Groove Timing Formula
-
-```
-1/16-Step = 480 ticks (PPQ 1920 / 4)
-16 steps  = 7680 ticks = 1 bar
-
-onTick():  if absoluteTick >= nextStepTick → fire step, nextStepTick += stepSize
-Swing:     odd steps: nextStepTick += swing * stepSize / 100
-Humanize:  ±humanize * stepSize / 200 ticks (xorshift32)
-Roll:      mRoll.active, hitsLeft, nextRollTick += spacingTicks
-```
-
----
-
-## Open Risks (post-Phase 3)
+## Open Risks (post-Phase 4)
 
 | # | Risk | Severity |
 |---|------|----------|
 | R-S1 | Double-precision drift >24h session | LOW |
-| R-G1 | UI-Thread mirror for Undo/Redo not yet implemented | MEDIUM |
-| R-G2 | Copy/Paste clipboard reads from UI mirror (stub only) | MEDIUM |
-| R-G3 | Per-track volume scaling in VoicePool::trigger() missing | LOW |
-| R-G5 | Legacy vibecore_engine.cpp must be deleted before first build | HIGH |
+| R-G3 | Per-track volume scaling in VoicePool::trigger() | LOW |
+| R-5-1 | ADR-005 JSI/TurboModule path undefined | MEDIUM |
 
 ---
 
-## Phase 4 — 3D Bass (NEXT)
+## Phase 5 — 3D Bass (NEXT)
 
-**Why:**
-- Phase 3 proves the AudioNode + Sync + PianoRoll pipeline
-- 3D Bass is a second AudioNode (Oscillator + Waveshaper instead of SampleBuffer playback)
-- Needs note events from PianoRoll (already implemented in Phase 3)
-
-**Build:**
-1. `bass/BassOscillator.h/.cpp` — wavetable oscillator, no malloc
-2. `bass/BassNode.h/.cpp` — AudioNode, receives onTick/onBeat from Sync
-3. `bass/BassCommands.h` — waveform, filter cutoff, resonance, envelope
-4. Connect `BassNode → MixerNode` in AudioGraphManager
+**Files to create:**
+1. `bass/BassTypes.h` — waveform, envelope, filter types
+2. `bass/BassCommands.h` — waveform, cutoff, resonance, ADSR commands
+3. `bass/BassOscillator.h/.cpp` — wavetable oscillator, no malloc
+4. `bass/BassNode.h/.cpp` — AudioNode, receives onTick from Sync, reads PianoRoll events
+5. `bass/BassEngine.h/.cpp` — UI API + UIBassState mirror (same pattern as GrooveEngine)
+6. Connect: `BassNode → MixerNode` in AudioGraphManager

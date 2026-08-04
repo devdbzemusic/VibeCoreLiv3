@@ -26,8 +26,6 @@
  * AUDIO THREAD ONLY. Zero allocation. Zero locking.
  */
 
-#pragma once
-
 #include "GrooveTypes.h"
 #include <array>
 #include <cstdint>

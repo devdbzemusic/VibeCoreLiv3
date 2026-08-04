@@ -1,6 +1,5 @@
 #include "PianoRoll.h"
 #include <algorithm>
-#include <cstring>
 
 namespace vibecore {
 
