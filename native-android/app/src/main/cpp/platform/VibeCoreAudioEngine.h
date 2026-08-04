@@ -2,27 +2,24 @@
 /**
  * VibeCoreAudioEngine.h — The single Oboe audio engine for VibeCore Univers.
  *
- * This is the ONE audio engine. Every module (Groove, Bass, Synth, Voice,
- * FX MIX LAB) connects through the AudioGraphManager, not through a
- * separate engine instance.
- *
- * Architecture:
+ * Architecture (Phase 2 — Sync integrated):
  *   VibeCoreAudioEngine
- *     ├── AudioDeviceManager   (device query + hotplug)
- *     ├── AudioSessionManager  (focus + lifecycle state machine)
- *     ├── PerformanceMonitor   (latency + CPU tracking)
- *     ├── Diagnostics          (UI-readable status)
- *     └── AudioGraphManager    (node topology + render dispatch)
- *           └── [nodes added by modules — none in Phase 1]
+ *     ├── AudioDeviceManager    (device query + hotplug)
+ *     ├── AudioSessionManager   (focus + lifecycle state machine)
+ *     ├── PerformanceMonitor    (latency + CPU tracking)
+ *     ├── Diagnostics           (UI-readable status)
+ *     ├── VibeCoreSync          (ONE global clock — PPQ 1920)
+ *     └── AudioGraphManager     (node topology + render dispatch)
  *
- * Thread model:
- *   start()/stop()               → UI Thread
- *   onAudioReady() callback      → Audio Thread (Oboe-managed)
- *   onErrorAfterClose() callback → Oboe error thread → posts restart flag
- *   parameter changes            → AudioThreadSafeQueue (UI→Audio)
+ * Audio callback order (Audio Thread):
+ *   1. drainCommandQueue()        — apply parameter changes
+ *   2. sync.processCallback()     — generate TickEventBuffer
+ *   3. graph.dispatchSyncEvents() — route events to all AudioNodes
+ *   4. graph.process()            — render audio
+ *   5. perfMon.onCallbackEnd()    — measure duration
  *
- * Phase 1 constraint: No instruments, no DSP effects, no module nodes.
- * The graph renders silence. This validates the platform before Phase 2.
+ * Thread model unchanged from Phase 1 (see ADR-002).
+ * SyncCommand queue: UI → VibeCoreSync → Audio Thread.
  */
 
 #include <oboe/Oboe.h>
@@ -33,21 +30,23 @@
 #include "AudioSessionManager.h"
 #include "PerformanceMonitor.h"
 #include "Diagnostics.h"
+#include "sync/VibeCoreSync.h"
 #include "../graph/AudioGraphManager.h"
 #include "../threads/AudioThreadSafeQueue.h"
 
 namespace vibecore {
 
-// Commands routed from UI/Worker/MIDI threads to Audio Thread
+// Engine-level commands (master gain, etc.)
+// Sync commands go directly to VibeCoreSync via its own queue.
 struct AudioCommand {
     enum class Type : uint8_t {
         SetMasterGain = 0,
-        SetTempo      = 1,
-        // Phase 2+: AddNode, RemoveNode, RouteSignal, SetNodeParam, ...
+        // Phase 3+: SetNodeParam, ...
     };
     Type  type;
     float value;
 };
+static_assert(std::is_trivially_copyable<AudioCommand>::value, "");
 
 class VibeCoreAudioEngine : public oboe::AudioStreamDataCallback,
                             public oboe::AudioStreamErrorCallback {
@@ -55,7 +54,6 @@ public:
     VibeCoreAudioEngine();
     ~VibeCoreAudioEngine() override;
 
-    // Non-copyable, non-movable — singleton within the process
     VibeCoreAudioEngine(const VibeCoreAudioEngine&)            = delete;
     VibeCoreAudioEngine& operator=(const VibeCoreAudioEngine&) = delete;
 
@@ -64,11 +62,29 @@ public:
     void stop();
     bool isRunning() const noexcept;
 
-    // ── Parameter control (UI Thread → AudioThreadSafeQueue) ─────────────
-    void setMasterGain(float gain);    // 0.0 – 1.0
-    void setTempo(float bpm);          // 20.0 – 300.0
+    // ── Transport (UI Thread → VibeCoreSync command queue) ────────────────
+    void transportPlay();
+    void transportStop();
+    bool transportIsPlaying() const noexcept;
 
-    // ── Device / Session events (UI Thread) ──────────────────────────────
+    // ── Tempo / Time Signature (UI Thread) ────────────────────────────────
+    void setTempo(double bpm);
+    void setTimeSignature(int32_t numerator, int32_t denominator);
+
+    // ── Loop (UI Thread) ──────────────────────────────────────────────────
+    void setLoopEnabled(bool enabled);
+    void setLoopPoints(int64_t startTick, int64_t endTick);
+
+    // ── Playhead (UI Thread) ──────────────────────────────────────────────
+    void setPosition(int64_t absoluteTick);
+    int64_t currentTick() const noexcept;
+    MusicalPosition currentPosition() const noexcept;
+    double currentBpm() const noexcept;
+
+    // ── Engine parameters (UI Thread → engine command queue) ──────────────
+    void setMasterGain(float gain);
+
+    // ── Device / Session events (UI Thread) ───────────────────────────────
     void onDeviceChange();
     void onAudioFocusGained();
     void onAudioFocusLost(bool transient);
@@ -80,6 +96,7 @@ public:
 
     // ── Graph access (UI Thread, before stream start) ─────────────────────
     AudioGraphManager& graph() { return *mGraph; }
+    VibeCoreSync&      sync()  { return *mSync;  }
 
     // ── Oboe callbacks (Audio Thread) ─────────────────────────────────────
     oboe::DataCallbackResult onAudioReady(
@@ -94,26 +111,28 @@ public:
 private:
     bool openStream();
     void closeStream();
-    void restartIfNeeded();  // called from UI thread via poll
-    void drainCommandQueue() noexcept;  // Audio Thread — processes pending commands
+    void drainCommandQueue() noexcept;
 
     // Platform subsystems
-    AudioDeviceManager              mDeviceMgr;
-    AudioSessionManager             mSessionMgr;
-    PerformanceMonitor              mPerfMon;
-    std::unique_ptr<Diagnostics>    mDiagnostics;
+    AudioDeviceManager               mDeviceMgr;
+    AudioSessionManager              mSessionMgr;
+    PerformanceMonitor               mPerfMon;
+    std::unique_ptr<Diagnostics>     mDiagnostics;
+    std::unique_ptr<VibeCoreSync>    mSync;
     std::unique_ptr<AudioGraphManager> mGraph;
 
     // Oboe stream
     std::shared_ptr<oboe::AudioStream> mStream;
 
-    // Audio-thread state (atomics only)
+    // Engine-level audio-thread state
     std::atomic<float>   mMasterGain{1.0f};
-    std::atomic<float>   mTempo{120.0f};
     std::atomic<bool>    mRestartRequested{false};
 
-    // Lock-free command queue: UI/Worker → Audio Thread
-    AudioThreadSafeQueue<AudioCommand, 256> mCommandQueue;
+    // Engine command queue (UI → Audio Thread)
+    AudioThreadSafeQueue<AudioCommand, 128> mCommandQueue;
+
+    // Absolute sample counter (Audio Thread only — no atomic needed)
+    int64_t mAbsoluteSamplePos{0};
 
     // Stream config (set at open, read-only during callback)
     int32_t mSampleRate{48000};

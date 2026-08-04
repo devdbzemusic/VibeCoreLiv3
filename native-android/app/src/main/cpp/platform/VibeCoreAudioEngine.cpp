@@ -5,30 +5,27 @@
 
 namespace vibecore {
 
-// ─── Construction ────────────────────────────────────────────────────────────
+// ─── Construction ─────────────────────────────────────────────────────────────
 
 VibeCoreAudioEngine::VibeCoreAudioEngine() {
+    // Subsystems constructed with default sample rate; real value set in start()
+    mSync        = std::make_unique<VibeCoreSync>(48000);
     mDiagnostics = std::make_unique<Diagnostics>(mPerfMon, mDeviceMgr, mSessionMgr);
     mGraph       = std::make_unique<AudioGraphManager>();
 
-    // Register device change callback
     mDeviceMgr.setDeviceChangeCallback([this](const DeviceCapabilities&) {
-        // Device changed while running → request restart
         if (isRunning()) {
-            VLOG_W("Device changed while running — requesting stream restart");
             mRestartRequested.store(true, std::memory_order_release);
         }
     });
 
-    // Register session state callback
-    mSessionMgr.setStateCallback([this](SessionState prev, SessionState next) {
+    mSessionMgr.setStateCallback([this](SessionState, SessionState next) {
         if (next == SessionState::Error) {
-            VLOG_E("Session entered Error state — requesting restart");
             mRestartRequested.store(true, std::memory_order_release);
         }
     });
 
-    VLOG_PHASE("INIT", "VibeCoreAudioEngine constructed");
+    VLOG_PHASE("INIT", "VibeCoreAudioEngine constructed (Phase 2 — Sync)");
 }
 
 VibeCoreAudioEngine::~VibeCoreAudioEngine() {
@@ -40,27 +37,22 @@ VibeCoreAudioEngine::~VibeCoreAudioEngine() {
 
 bool VibeCoreAudioEngine::start() {
     VIBECORE_ASSERT_NOT_AUDIO_THREAD();
-
-    if (isRunning()) {
-        VLOG_W("start() called while already running — ignoring");
-        return true;
-    }
+    if (isRunning()) return true;
 
     VLOG_PHASE("START", "Starting VibeCoreAudioEngine");
 
-    // 1. Query device capabilities
-    const auto caps = mDeviceMgr.queryCapabilities();
-    mSampleRate         = caps.sampleRate;
-    mFramesPerCallback  = caps.burstFrames;
-    mChannelCount       = 2;
+    const auto caps    = mDeviceMgr.queryCapabilities();
+    mSampleRate        = caps.sampleRate;
+    mFramesPerCallback = caps.burstFrames;
+    mChannelCount      = 2;
+    mAbsoluteSamplePos = 0;
 
-    // 2. Prepare performance monitor
+    // Re-create sync with the real sample rate
+    mSync = std::make_unique<VibeCoreSync>(mSampleRate);
+
     mPerfMon.prepare(mSampleRate, mFramesPerCallback);
-
-    // 3. Prepare graph (Phase 1: empty graph, outputs silence)
     mGraph->prepare(mSampleRate, mFramesPerCallback);
 
-    // 4. Open and start the Oboe stream
     if (!openStream()) {
         mSessionMgr.onStreamError("Failed to open audio stream");
         return false;
@@ -78,6 +70,7 @@ void VibeCoreAudioEngine::stop() {
     if (!isRunning()) return;
 
     VLOG_PHASE("STOP", "Stopping VibeCoreAudioEngine");
+    mSync->stop();
     closeStream();
     mGraph->reset();
     mPerfMon.reset();
@@ -88,44 +81,48 @@ bool VibeCoreAudioEngine::isRunning() const noexcept {
     return mSessionMgr.isRunning();
 }
 
-// ─── Parameter control ────────────────────────────────────────────────────────
+// ─── Transport ────────────────────────────────────────────────────────────────
+
+void VibeCoreAudioEngine::transportPlay()  { mSync->play(); }
+void VibeCoreAudioEngine::transportStop()  { mSync->stop(); }
+bool VibeCoreAudioEngine::transportIsPlaying() const noexcept { return mSync->isPlaying(); }
+
+// ─── Tempo / Time Signature ───────────────────────────────────────────────────
+
+void VibeCoreAudioEngine::setTempo(double bpm) { mSync->setTempo(bpm); }
+void VibeCoreAudioEngine::setTimeSignature(int32_t n, int32_t d) { mSync->setTimeSignature(n, d); }
+
+// ─── Loop ─────────────────────────────────────────────────────────────────────
+
+void VibeCoreAudioEngine::setLoopEnabled(bool e) { mSync->setLoopEnabled(e); }
+void VibeCoreAudioEngine::setLoopPoints(int64_t s, int64_t e) { mSync->setLoopPoints(s, e); }
+
+// ─── Playhead ─────────────────────────────────────────────────────────────────
+
+void VibeCoreAudioEngine::setPosition(int64_t t)      { mSync->setPosition(t); }
+int64_t VibeCoreAudioEngine::currentTick() const noexcept { return mSync->currentTick(); }
+MusicalPosition VibeCoreAudioEngine::currentPosition() const noexcept { return mSync->currentPosition(); }
+double VibeCoreAudioEngine::currentBpm() const noexcept { return mSync->currentBpm(); }
+
+// ─── Parameters ───────────────────────────────────────────────────────────────
 
 void VibeCoreAudioEngine::setMasterGain(float gain) {
-    mCommandQueue.push({AudioCommand::Type::SetMasterGain, gain});
+    mCommandQueue.push({ AudioCommand::Type::SetMasterGain, gain });
 }
 
-void VibeCoreAudioEngine::setTempo(float bpm) {
-    mCommandQueue.push({AudioCommand::Type::SetTempo, bpm});
-}
+// ─── Device / Session ─────────────────────────────────────────────────────────
 
-// ─── Device / session events ─────────────────────────────────────────────────
-
-void VibeCoreAudioEngine::onDeviceChange() {
-    mDeviceMgr.onDeviceChange();
-    // Device manager's callback will set mRestartRequested if needed
-}
-
-void VibeCoreAudioEngine::onAudioFocusGained() {
-    mSessionMgr.onAudioFocusGained();
-}
-
-void VibeCoreAudioEngine::onAudioFocusLost(bool transient) {
-    mSessionMgr.onAudioFocusLost(transient);
-}
+void VibeCoreAudioEngine::onDeviceChange()                { mDeviceMgr.onDeviceChange(); }
+void VibeCoreAudioEngine::onAudioFocusGained()            { mSessionMgr.onAudioFocusGained(); }
+void VibeCoreAudioEngine::onAudioFocusLost(bool t)        { mSessionMgr.onAudioFocusLost(t); }
 
 // ─── Diagnostics ─────────────────────────────────────────────────────────────
 
 double VibeCoreAudioEngine::estimatedLatencyMs() const noexcept {
     return mPerfMon.getStats().estimatedLatencyMs;
 }
-
-std::string VibeCoreAudioEngine::diagnosticStatusLine() {
-    return mDiagnostics->statusLine();
-}
-
-DiagnosticReport VibeCoreAudioEngine::collectDiagnostics() {
-    return mDiagnostics->collect();
-}
+std::string VibeCoreAudioEngine::diagnosticStatusLine() { return mDiagnostics->statusLine(); }
+DiagnosticReport VibeCoreAudioEngine::collectDiagnostics() { return mDiagnostics->collect(); }
 
 // ─── Oboe callback — AUDIO THREAD ────────────────────────────────────────────
 
@@ -136,47 +133,53 @@ oboe::DataCallbackResult VibeCoreAudioEngine::onAudioReady(
 
     mPerfMon.onCallbackStart();
 
-    // 1. Drain command queue (UI → Audio parameter changes)
+    // ── Step 1: Engine parameter changes ─────────────────────────────────
     drainCommandQueue();
 
-    // 2. Dispatch graph (Phase 1: outputs silence)
-    mGraph->process(
-        static_cast<float*>(audioData),
-        numFrames,
-        mChannelCount);
+    // ── Step 2: Advance sync clock → get this callback's timing events ───
+    const TickEventBuffer& events =
+        mSync->processCallback(mAbsoluteSamplePos, numFrames);
 
-    // 3. Update latency estimate
-    if (mStream) {
-        auto timestampResult = mStream->calculateLatencyMillis();
-        if (timestampResult.isOk()) {
-            mPerfMon.setEstimatedLatencyMs(timestampResult.value());
-        }
+    // ── Step 3: Dispatch sync events to all AudioNodes ────────────────────
+    mGraph->dispatchSyncEvents(events);
+
+    // ── Step 4: Render audio graph ────────────────────────────────────────
+    float* outputBuffer = static_cast<float*>(audioData);
+    mGraph->process(outputBuffer, numFrames, mChannelCount);
+
+    // ── Step 5: Apply master gain ─────────────────────────────────────────
+    const float gain    = mMasterGain.load(std::memory_order_relaxed);
+    const int   samples = numFrames * mChannelCount;
+    if (gain != 1.0f) {
+        for (int i = 0; i < samples; ++i) outputBuffer[i] *= gain;
     }
 
+    // ── Step 6: Update latency estimate ───────────────────────────────────
+    if (mStream) {
+        auto ts = mStream->calculateLatencyMillis();
+        if (ts.isOk()) mPerfMon.setEstimatedLatencyMs(ts.value());
+    }
+
+    mAbsoluteSamplePos += numFrames;
     mPerfMon.onCallbackEnd();
 
     return oboe::DataCallbackResult::Continue;
 }
 
-void VibeCoreAudioEngine::onErrorAfterClose(oboe::AudioStream* /*stream*/,
-                                             oboe::Result result) {
-    VLOG_AUDIO_E("Stream error after close: %s", oboe::convertToText(result));
+void VibeCoreAudioEngine::onErrorAfterClose(oboe::AudioStream*, oboe::Result result) {
+    VLOG_AUDIO_E("Stream error: %s", oboe::convertToText(result));
     mRestartRequested.store(true, std::memory_order_release);
-    // NOTE: Do not call mSessionMgr here (audio thread / error thread)
-    // UI thread polls mRestartRequested and calls restartIfNeeded()
 }
 
-// ─── Private helpers ─────────────────────────────────────────────────────────
+// ─── Private ─────────────────────────────────────────────────────────────────
 
 bool VibeCoreAudioEngine::openStream() {
     const auto& caps = mDeviceMgr.capabilities();
-
     oboe::AudioStreamBuilder builder;
     builder.setDirection(oboe::Direction::Output)
            .setPerformanceMode(oboe::PerformanceMode::LowLatency)
            .setSharingMode(caps.supportsExclusive
-               ? oboe::SharingMode::Exclusive
-               : oboe::SharingMode::Shared)
+               ? oboe::SharingMode::Exclusive : oboe::SharingMode::Shared)
            .setFormat(oboe::AudioFormat::Float)
            .setChannelCount(oboe::ChannelCount::Stereo)
            .setSampleRate(mSampleRate)
@@ -184,45 +187,26 @@ bool VibeCoreAudioEngine::openStream() {
            .setDataCallback(this)
            .setErrorCallback(this);
 
-    oboe::Result result = builder.openStream(mStream);
-
-    if (result != oboe::Result::OK) {
-        VLOG_E("Failed to open stream: %s", oboe::convertToText(result));
+    oboe::Result r = builder.openStream(mStream);
+    if (r != oboe::Result::OK) {
+        VLOG_E("openStream failed: %s", oboe::convertToText(r));
         return false;
     }
-
-    // Log actual stream properties (may differ from requested)
-    VLOG_I("Stream opened: %d Hz | %d frames | %s | %s",
-           mStream->getSampleRate(),
-           mStream->getFramesPerBurst(),
-           mStream->getAudioApi() == oboe::AudioApi::AAudio ? "AAudio" : "OpenSL ES",
-           mStream->getSharingMode() == oboe::SharingMode::Exclusive ? "Exclusive" : "Shared");
-
-    result = mStream->requestStart();
-    if (result != oboe::Result::OK) {
-        VLOG_E("Failed to start stream: %s", oboe::convertToText(result));
-        mStream->close();
-        mStream.reset();
+    r = mStream->requestStart();
+    if (r != oboe::Result::OK) {
+        VLOG_E("requestStart failed: %s", oboe::convertToText(r));
+        mStream->close(); mStream.reset();
         return false;
     }
-
+    VLOG_I("Stream: %d Hz | %d fr | %s | %s",
+           mStream->getSampleRate(), mStream->getFramesPerBurst(),
+           mStream->getAudioApi() == oboe::AudioApi::AAudio ? "AAudio" : "OpenSL",
+           mStream->getSharingMode() == oboe::SharingMode::Exclusive ? "Excl" : "Shared");
     return true;
 }
 
 void VibeCoreAudioEngine::closeStream() {
-    if (mStream) {
-        mStream->requestStop();
-        mStream->close();
-        mStream.reset();
-    }
-}
-
-void VibeCoreAudioEngine::restartIfNeeded() {
-    VIBECORE_ASSERT_NOT_AUDIO_THREAD();
-    if (!mRestartRequested.load(std::memory_order_acquire)) return;
-    VLOG_I("Restarting stream after error/device change");
-    stop();
-    start();
+    if (mStream) { mStream->requestStop(); mStream->close(); mStream.reset(); }
 }
 
 void VibeCoreAudioEngine::drainCommandQueue() noexcept {
@@ -231,9 +215,6 @@ void VibeCoreAudioEngine::drainCommandQueue() noexcept {
         switch (cmd.type) {
             case AudioCommand::Type::SetMasterGain:
                 mMasterGain.store(cmd.value, std::memory_order_relaxed);
-                break;
-            case AudioCommand::Type::SetTempo:
-                mTempo.store(cmd.value, std::memory_order_relaxed);
                 break;
         }
     }

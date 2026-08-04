@@ -10,16 +10,28 @@
  *   process(...)                    — called exclusively on Audio Thread
  *   reset()                         — called on UI thread (stream stopped)
  *
+ * Timing events (Phase 2 — VibeCore Sync):
+ *   All onSync* methods are called on the Audio Thread, BEFORE process().
+ *   sampleOffset indicates the exact sample within the current callback
+ *   at which the event occurs. Nodes use this for sample-accurate scheduling.
+ *
+ *   Default implementations are empty — nodes override only what they need.
+ *
  * Thread-safety contract:
- *   process() is called ONLY on the Audio Thread.
+ *   process() and all onSync*() are called ONLY on the Audio Thread.
  *   All other methods MUST NOT be called while process() is running.
  *   Parameter changes use AudioThreadSafeQueue, not direct mutation.
+ *
+ * Audio Thread constraints in ALL virtual methods:
+ *   NO malloc · NO free · NO mutex · NO file I/O · NO JNI · NO exceptions
  */
 
 #include <cstdint>
-#include <string>
 
 namespace vibecore {
+
+// Forward declarations (avoid circular includes)
+struct MusicalPosition;
 
 using NodeId = uint32_t;
 static constexpr NodeId kInvalidNodeId = 0;
@@ -31,37 +43,94 @@ public:
 
     virtual ~AudioNode() = default;
 
-    // Non-copyable, non-movable (nodes are owned by AudioGraphManager)
     AudioNode(const AudioNode&)            = delete;
     AudioNode& operator=(const AudioNode&) = delete;
 
+    // ── Lifecycle (UI Thread) ─────────────────────────────────────────────
+
     /**
      * Called on UI thread before the audio stream starts.
-     * Allocate scratch buffers here (one-time allocation is allowed).
-     * sampleRate: e.g. 48000
-     * maxFramesPerCallback: e.g. 96
+     * Allocate all scratch buffers here. This is the ONLY place where
+     * heap allocation for audio processing is permitted.
      */
     virtual void prepare(int sampleRate, int maxFramesPerCallback) = 0;
 
     /**
-     * Called on Audio Thread every callback.
+     * Called on UI thread when the stream stops.
+     * Reset all internal state. Clear buffers.
+     */
+    virtual void reset() = 0;
+
+    // ── Audio Rendering (Audio Thread) ────────────────────────────────────
+
+    /**
+     * Called on Audio Thread every callback, AFTER all sync events.
      * outputBuffer: interleaved float32, numFrames * numChannels samples
      * inputBuffer:  may be nullptr for source nodes
      * numFrames:    actual frames this callback (≤ maxFramesPerCallback)
-     * numChannels:  always 2 (stereo) in current platform
+     * numChannels:  2 (stereo) in current platform
      *
-     * FORBIDDEN in this function: malloc, free, mutex, file I/O, JNI, exceptions.
+     * FORBIDDEN: malloc · free · mutex · file I/O · JNI · exceptions
      */
     virtual void process(const float* inputBuffer,
                          float*       outputBuffer,
                          int          numFrames,
                          int          numChannels) noexcept = 0;
 
+    // ── Sync Events (Audio Thread — called BEFORE process()) ─────────────
+    //
+    // sampleOffset: sample index within current callback [0..numFrames-1]
+    //               at which this event occurs.
+    //
+    // Nodes use sampleOffset to schedule note-on/off at the exact sample,
+    // not at the start of the callback (sample-accurate scheduling).
+
+    /** Transport started. */
+    virtual void onTransportStart(int32_t sampleOffset) noexcept {}
+
+    /** Transport stopped. */
+    virtual void onTransportStop(int32_t sampleOffset) noexcept {}
+
     /**
-     * Called on UI thread when stream stops.
-     * Reset internal state, clear buffers.
+     * Every PPQ pulse (1920 per quarter note).
+     * Called for EVERY tick — Groove, Synth, Bass receive note schedules here.
      */
-    virtual void reset() = 0;
+    virtual void onTick(int64_t          absoluteTick,
+                        const MusicalPosition& pos,
+                        int32_t          sampleOffset) noexcept {}
+
+    /**
+     * Beat boundary (every PPQ ticks — one quarter note).
+     * Called in addition to onTick when the tick falls on a beat.
+     */
+    virtual void onBeat(int64_t          absoluteTick,
+                        const MusicalPosition& pos,
+                        int32_t          sampleOffset) noexcept {}
+
+    /**
+     * Bar boundary (beat 0, tick 0 of a new measure).
+     * Called in addition to onTick and onBeat at bar boundaries.
+     */
+    virtual void onBar(int64_t          absoluteTick,
+                        const MusicalPosition& pos,
+                        int32_t          sampleOffset) noexcept {}
+
+    /**
+     * Loop restart. Called when the playhead wraps to the loop start point.
+     * loopCount: how many times the loop has wrapped (1-based after first wrap).
+     */
+    virtual void onLoop(int64_t loopCount,
+                        int32_t sampleOffset) noexcept {}
+
+    /**
+     * Tempo changed mid-playback.
+     * Nodes that pre-compute timing (pattern steps, LFO sync) must
+     * recalculate from this point.
+     */
+    virtual void onTempoChanged(double  newBpm,
+                                int32_t sampleOffset) noexcept {}
+
+    // ── Accessors ─────────────────────────────────────────────────────────
 
     NodeId      id()      const noexcept { return mId; }
     const char* name()    const noexcept { return mName; }

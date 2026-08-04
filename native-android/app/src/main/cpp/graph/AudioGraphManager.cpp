@@ -1,5 +1,6 @@
 #include "AudioGraphManager.h"
 #include "../platform/VibeCoreLog.h"
+#include "../platform/sync/MusicalPosition.h"
 #include <algorithm>
 #include <unordered_set>
 #include <cstring>
@@ -27,12 +28,10 @@ void AudioGraphManager::removeNode(NodeId id) {
         mEdges.end());
     mOutputBuses.erase(id);
     rebuildRenderOrder();
-    VLOG_D("AudioGraph: removeNode id=%u", id);
 }
 
 bool AudioGraphManager::connect(NodeId sourceId, NodeId sinkId) {
     VIBECORE_ASSERT_NOT_AUDIO_THREAD();
-    // Prevent duplicate edges
     for (const auto& e : mEdges) {
         if (e.sourceId == sourceId && e.sinkId == sinkId) return false;
     }
@@ -47,8 +46,7 @@ void AudioGraphManager::disconnect(NodeId sourceId, NodeId sinkId) {
     mEdges.erase(std::remove_if(mEdges.begin(), mEdges.end(),
         [&](const GraphEdge& e) {
             return e.sourceId == sourceId && e.sinkId == sinkId;
-        }),
-        mEdges.end());
+        }), mEdges.end());
     rebuildRenderOrder();
 }
 
@@ -56,9 +54,8 @@ void AudioGraphManager::prepare(int sampleRate, int maxFramesPerCallback) {
     VIBECORE_ASSERT_NOT_AUDIO_THREAD();
     mSampleRate   = sampleRate;
     mMaxFrames    = maxFramesPerCallback;
-    mChannelCount = 2; // stereo, constant in Phase 1
+    mChannelCount = 2;
 
-    // Allocate one output bus per node
     for (const auto& node : mNodes) {
         mOutputBuses[node->id()].prepare(mChannelCount, mMaxFrames);
         node->prepare(sampleRate, maxFramesPerCallback);
@@ -70,69 +67,94 @@ void AudioGraphManager::prepare(int sampleRate, int maxFramesPerCallback) {
 
 void AudioGraphManager::reset() {
     VIBECORE_ASSERT_NOT_AUDIO_THREAD();
-    for (const auto& node : mNodes) {
-        node->reset();
-    }
+    for (const auto& node : mNodes) node->reset();
     mPrepared = false;
 }
+
+// ── Sync event dispatch — Audio Thread ───────────────────────────────────────
+
+void AudioGraphManager::dispatchSyncEvents(const TickEventBuffer& events) noexcept {
+    if (mRenderOrder.empty()) return;
+
+    for (const TickEvent& ev : events) {
+        for (AudioNode* node : mRenderOrder) {
+            if (!node->enabled()) continue;
+
+            switch (ev.type) {
+                case TickEvent::Type::TransportStart:
+                    node->onTransportStart(ev.sampleOffset);
+                    break;
+
+                case TickEvent::Type::TransportStop:
+                    node->onTransportStop(ev.sampleOffset);
+                    break;
+
+                case TickEvent::Type::TempoChanged:
+                    node->onTempoChanged(ev.bpm, ev.sampleOffset);
+                    break;
+
+                case TickEvent::Type::Tick:
+                    node->onTick(ev.absoluteTick, ev.position, ev.sampleOffset);
+                    break;
+
+                case TickEvent::Type::Beat:
+                    node->onTick(ev.absoluteTick, ev.position, ev.sampleOffset);
+                    node->onBeat(ev.absoluteTick, ev.position, ev.sampleOffset);
+                    break;
+
+                case TickEvent::Type::Bar:
+                    node->onTick(ev.absoluteTick, ev.position, ev.sampleOffset);
+                    node->onBeat(ev.absoluteTick, ev.position, ev.sampleOffset);
+                    node->onBar(ev.absoluteTick,  ev.position, ev.sampleOffset);
+                    break;
+
+                case TickEvent::Type::Loop:
+                    node->onLoop(ev.loopCount, ev.sampleOffset);
+                    break;
+            }
+        }
+    }
+}
+
+// ── Render — Audio Thread ─────────────────────────────────────────────────────
 
 void AudioGraphManager::process(float* outputBuffer,
                                  int numFrames,
                                  int numChannels) noexcept {
-    // Clear final output
     clearOutputBuffer(outputBuffer, numFrames, numChannels);
 
-    if (mRenderOrder.empty()) {
-        // Phase 1: no nodes — outputs silence (already cleared above)
-        return;
-    }
+    if (mRenderOrder.empty()) return;
 
-    // Process nodes in topological order
     for (AudioNode* node : mRenderOrder) {
         if (!node->enabled()) continue;
-
-        // Find input bus: sum all source buses connected to this node
-        AudioBus* outBus = nullptr;
         auto busIt = mOutputBuses.find(node->id());
-        if (busIt != mOutputBuses.end()) {
-            outBus = &busIt->second;
-            outBus->clear(numFrames);
-        }
+        AudioBus* outBus = (busIt != mOutputBuses.end()) ? &busIt->second : nullptr;
+        if (outBus) outBus->clear(numFrames);
 
-        // Find any source connected to this node and mix into a scratch input
-        // For Phase 1 with no connections: inputBuffer = nullptr
-        const float* inputBuffer = nullptr;
-
-        node->process(inputBuffer,
+        node->process(nullptr,
                       outBus ? outBus->data() : outputBuffer,
-                      numFrames,
-                      numChannels);
+                      numFrames, numChannels);
     }
 
-    // Mix all leaf-node outputs into the final output buffer
-    // (In Phase 1 there are no nodes, so this is a no-op)
+    // Mix leaf-node outputs into final buffer
     for (AudioNode* node : mRenderOrder) {
-        // A leaf has no outgoing edges
         bool isLeaf = true;
         for (const auto& edge : mEdges) {
             if (edge.sourceId == node->id()) { isLeaf = false; break; }
         }
         if (!isLeaf) continue;
-
         auto busIt = mOutputBuses.find(node->id());
         if (busIt == mOutputBuses.end()) continue;
         const float* src = busIt->second.data();
         const int samples = numFrames * numChannels;
-        for (int i = 0; i < samples; ++i) {
-            outputBuffer[i] += src[i];
-        }
+        for (int i = 0; i < samples; ++i) outputBuffer[i] += src[i];
     }
 }
 
-void AudioGraphManager::rebuildRenderOrder() {
-    // Kahn's algorithm for topological sort
-    mRenderOrder.clear();
+// ── Private ───────────────────────────────────────────────────────────────────
 
+void AudioGraphManager::rebuildRenderOrder() {
+    mRenderOrder.clear();
     std::unordered_map<NodeId, int> inDegree;
     for (const auto& node : mNodes) inDegree[node->id()] = 0;
     for (const auto& edge : mEdges) inDegree[edge.sinkId]++;
@@ -141,7 +163,6 @@ void AudioGraphManager::rebuildRenderOrder() {
     for (const auto& node : mNodes) {
         if (inDegree[node->id()] == 0) queue.push_back(node.get());
     }
-
     while (!queue.empty()) {
         AudioNode* n = queue.back(); queue.pop_back();
         mRenderOrder.push_back(n);
