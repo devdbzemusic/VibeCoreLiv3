@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22.1)
-project(vibecore_native VERSION 2.0.0 LANGUAGES CXX)
+project(vibecore_native VERSION 3.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -7,7 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(oboe REQUIRED CONFIG)
 
-# ─── Source files ─────────────────────────────────────────────────────────────
+# ─── Platform sources (Phase 1) ───────────────────────────────────────────────
 
 set(VIBECORE_PLATFORM_SOURCES
     platform/VibeCoreAudioEngine.cpp
@@ -17,18 +17,37 @@ set(VIBECORE_PLATFORM_SOURCES
     platform/Diagnostics.cpp
 )
 
-set(VIBECORE_SYNC_SOURCES       # Phase 2 — VibeCore Sync
+# ─── Sync sources (Phase 2) ───────────────────────────────────────────────────
+
+set(VIBECORE_SYNC_SOURCES
     platform/sync/VibeCoreSync.cpp
 )
+
+# ─── Graph sources (Phase 1+2) ────────────────────────────────────────────────
 
 set(VIBECORE_GRAPH_SOURCES
     graph/AudioGraphManager.cpp
     graph/MixerNode.cpp
 )
 
+# ─── Thread sources (Phase 1) ─────────────────────────────────────────────────
+
 set(VIBECORE_THREAD_SOURCES
     threads/ThreadModel.cpp
 )
+
+# ─── Groove sources (Phase 3) ─────────────────────────────────────────────────
+
+set(VIBECORE_GROOVE_SOURCES
+    groove/VoicePool.cpp
+    groove/StepSequencer.cpp
+    groove/PianoRoll.cpp
+    groove/SceneEngine.cpp
+    groove/GrooveNode.cpp
+    groove/GrooveEngine.cpp
+)
+
+# ─── Bridge ───────────────────────────────────────────────────────────────────
 
 set(VIBECORE_BRIDGE_SOURCES
     bridge/jni_bridge.cpp
@@ -43,6 +62,7 @@ add_library(
     ${VIBECORE_SYNC_SOURCES}
     ${VIBECORE_GRAPH_SOURCES}
     ${VIBECORE_THREAD_SOURCES}
+    ${VIBECORE_GROOVE_SOURCES}
     ${VIBECORE_BRIDGE_SOURCES}
 )
 
@@ -54,6 +74,7 @@ target_include_directories(vibecore-native PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/platform/sync
     ${CMAKE_CURRENT_SOURCE_DIR}/graph
     ${CMAKE_CURRENT_SOURCE_DIR}/threads
+    ${CMAKE_CURRENT_SOURCE_DIR}/groove
     ${CMAKE_CURRENT_SOURCE_DIR}/bridge
 )
 
@@ -89,8 +110,9 @@ set_target_properties(vibecore-native PROPERTIES
     VISIBILITY_INLINES_HIDDEN ON
 )
 
-message(STATUS "VibeCore Native Platform — Phase 2 build (Sync)")
+message(STATUS "VibeCore Native Platform — Phase 3 build (Groove Engine)")
 message(STATUS "  Platform: ${VIBECORE_PLATFORM_SOURCES}")
 message(STATUS "  Sync:     ${VIBECORE_SYNC_SOURCES}")
 message(STATUS "  Graph:    ${VIBECORE_GRAPH_SOURCES}")
+message(STATUS "  Groove:   ${VIBECORE_GROOVE_SOURCES}")
 message(STATUS "  Oboe:     ${oboe_VERSION}")
