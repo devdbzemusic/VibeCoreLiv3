@@ -1,11 +1,12 @@
 /**
- * jni_bridge.cpp — JNI marshalling for VibeCore Native Platform (Phase 3).
+ * jni_bridge.cpp — JNI marshalling for VibeCore Native Platform (Phase 5).
  *
  * Bridge contract (ADR-005): NO business logic. Marshalling only.
  *
  * Phase 1: engine lifecycle, master gain, diagnostics
  * Phase 2: transport, tempo, time signature, loop, playhead
  * Phase 3: groove — steps, patterns, tracks, scenes, piano roll
+ * Phase 5: bass — wavetable, voice, filter, envelope, LFO, mod matrix, 3D stereo
  */
 
 #include <jni.h>
@@ -15,12 +16,16 @@
 #include "../platform/VibeCoreLog.h"
 #include "../threads/ThreadModel.h"
 #include "../groove/GrooveEngine.h"
+#include "../bass/BassEngine.h"
+#include "../bass/BassNode.h"
 
-// ─── Engine + GrooveEngine singletons ─────────────────────────────────────────
+// ─── Engine + GrooveEngine + BassEngine singletons ───────────────────────────
 
 static std::unique_ptr<vibecore::VibeCoreAudioEngine> gEngine;
 static std::unique_ptr<vibecore::GrooveEngine>        gGroove;
+static std::unique_ptr<vibecore::BassEngine>          gBass;
 static vibecore::NodeId                                gGrooveNodeId = vibecore::kInvalidNodeId;
+static vibecore::NodeId                                gBassNodeId   = vibecore::kInvalidNodeId;
 
 static vibecore::VibeCoreAudioEngine& engine() {
     if (!gEngine) gEngine = std::make_unique<vibecore::VibeCoreAudioEngine>();
@@ -38,6 +43,19 @@ static void ensureGroove() {
 static vibecore::GrooveEngine& groove() {
     ensureGroove();
     return *gGroove;
+}
+
+static void ensureBass() {
+    if (gBass) return;
+    auto node = std::make_unique<vibecore::BassNode>(2);
+    vibecore::BassNode* nodePtr = node.get();
+    gBassNodeId = engine().graph().addNode(std::move(node));
+    gBass = std::make_unique<vibecore::BassEngine>(*nodePtr);
+}
+
+static vibecore::BassEngine& bass() {
+    ensureBass();
+    return *gBass;
 }
 
 static void markUIThread() {
@@ -314,5 +332,8 @@ JNIEXPORT jboolean JNICALL
 Java_com_vibecore_audio_NativeAudioBridge_grooveIsPlaying(JNIEnv*, jobject) {
     markUIThread(); return static_cast<jboolean>(groove().isPlaying());
 }
+
+// ─── Phase 5: Bass (included here to share bass() helper) ─────────────────────
+#include "jni_bass_bridge.cpp"
 
 } // extern "C"

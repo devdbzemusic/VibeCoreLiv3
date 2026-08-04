@@ -173,6 +173,93 @@ class NativeAudioBridge(private val context: Context) {
     @JavascriptInterface fun grooveIsPlaying(): Boolean    { if (!isLoaded) return false; return try { nativeGrooveIsPlaying() }    catch (e: Exception) { false } }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 5 — BASS
+    // Waveform: 0=Sine 1=Triangle 2=Saw 3=ReverseSaw 4=Square 5=Pulse25
+    // VoiceMode: 0=Mono 1=Legato 2=Poly4 3=Poly8
+    // FilterType: 0=LP 1=HP 2=BP 3=Notch
+    // LFOShape: 0=Sine 1=Tri 2=Saw 3=Square 4=S&H
+    // LFOSync: 0=Free 1=Beat 2=Bar
+    // ModSource: 0=Env1 1=Env2 2=LFO1 3=LFO2 4=Vel 5=Key 255=None
+    // ModDest: 0=Pitch 1=Cutoff 2=Res 3=Morph 4=Vol 5=Width 6=Glide 7=Drive 255=None
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // ── Oscillator ────────────────────────────────────────────────────────────
+    @JavascriptInterface fun bassSetWaveform(w: Int)      { if (!isLoaded) return; try { nativeBassSetWaveform(w) }    catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetMorphPos(pos: Float)  { if (!isLoaded) return; try { nativeBassSetMorphPos(pos) } catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetDetune(cents: Float)  { if (!isLoaded) return; try { nativeBassSetDetune(cents) } catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetOctave(oct: Float)    { if (!isLoaded) return; try { nativeBassSetOctave(oct) }  catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetSemi(semi: Float)     { if (!isLoaded) return; try { nativeBassSetSemi(semi) }   catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetFine(cents: Float)    { if (!isLoaded) return; try { nativeBassSetFine(cents) }  catch (e: Exception) {} }
+
+    // ── Voice ─────────────────────────────────────────────────────────────────
+    @JavascriptInterface fun bassSetVoiceMode(mode: Int)  { if (!isLoaded) return; try { nativeBassSetVoiceMode(mode) } catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetGlideMs(ms: Float)    { if (!isLoaded) return; try { nativeBassSetGlideMs(ms) }    catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetVolume(vol: Float)    { if (!isLoaded) return; try { nativeBassSetVolume(vol) }    catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetPan(pan: Float)       { if (!isLoaded) return; try { nativeBassSetPan(pan) }       catch (e: Exception) {} }
+
+    // ── Filter ────────────────────────────────────────────────────────────────
+    @JavascriptInterface fun bassSetFilterType(t: Int)    { if (!isLoaded) return; try { nativeBassSetFilterType(t) }   catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetCutoff(hz: Float)     { if (!isLoaded) return; try { nativeBassSetCutoff(hz) }      catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetResonance(q: Float)   { if (!isLoaded) return; try { nativeBassSetResonance(q) }    catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetFilterDrive(d: Float) { if (!isLoaded) return; try { nativeBassSetFilterDrive(d) }  catch (e: Exception) {} }
+
+    // ── Envelope 0 (Amp) ──────────────────────────────────────────────────────
+    @JavascriptInterface fun bassSetEnv0Attack (ms: Float) { if (!isLoaded) return; try { nativeBassSetEnv0Attack(ms) }  catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetEnv0Decay  (ms: Float) { if (!isLoaded) return; try { nativeBassSetEnv0Decay(ms) }   catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetEnv0Sustain(s:  Float) { if (!isLoaded) return; try { nativeBassSetEnv0Sustain(s) }  catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetEnv0Release(ms: Float) { if (!isLoaded) return; try { nativeBassSetEnv0Release(ms) } catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetEnv0VelAmt (a:  Float) { if (!isLoaded) return; try { nativeBassSetEnv0VelAmt(a) }   catch (e: Exception) {} }
+
+    // ── Envelope 1 (Mod) ──────────────────────────────────────────────────────
+    @JavascriptInterface fun bassSetEnv1Attack (ms: Float) { if (!isLoaded) return; try { nativeBassSetEnv1Attack(ms) }  catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetEnv1Decay  (ms: Float) { if (!isLoaded) return; try { nativeBassSetEnv1Decay(ms) }   catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetEnv1Sustain(s:  Float) { if (!isLoaded) return; try { nativeBassSetEnv1Sustain(s) }  catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetEnv1Release(ms: Float) { if (!isLoaded) return; try { nativeBassSetEnv1Release(ms) } catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetEnv1VelAmt (a:  Float) { if (!isLoaded) return; try { nativeBassSetEnv1VelAmt(a) }   catch (e: Exception) {} }
+
+    // ── LFO 0 ─────────────────────────────────────────────────────────────────
+    @JavascriptInterface fun bassSetLFO0Shape (s: Int)     { if (!isLoaded) return; try { nativeBassSetLFO0Shape(s) }  catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetLFO0Rate  (hz: Float)  { if (!isLoaded) return; try { nativeBassSetLFO0Rate(hz) }  catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetLFO0Depth (d: Float)   { if (!isLoaded) return; try { nativeBassSetLFO0Depth(d) }  catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetLFO0Sync  (s: Int)     { if (!isLoaded) return; try { nativeBassSetLFO0Sync(s) }   catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetLFO0Retrig(r: Boolean) { if (!isLoaded) return; try { nativeBassSetLFO0Retrig(r) } catch (e: Exception) {} }
+
+    // ── LFO 1 ─────────────────────────────────────────────────────────────────
+    @JavascriptInterface fun bassSetLFO1Shape (s: Int)     { if (!isLoaded) return; try { nativeBassSetLFO1Shape(s) }  catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetLFO1Rate  (hz: Float)  { if (!isLoaded) return; try { nativeBassSetLFO1Rate(hz) }  catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetLFO1Depth (d: Float)   { if (!isLoaded) return; try { nativeBassSetLFO1Depth(d) }  catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetLFO1Sync  (s: Int)     { if (!isLoaded) return; try { nativeBassSetLFO1Sync(s) }   catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetLFO1Retrig(r: Boolean) { if (!isLoaded) return; try { nativeBassSetLFO1Retrig(r) } catch (e: Exception) {} }
+
+    // ── Modulation matrix ─────────────────────────────────────────────────────
+    @JavascriptInterface fun bassSetModRoute(idx: Int, src: Int, dst: Int, amt: Float, active: Boolean) {
+        if (!isLoaded) return; try { nativeBassSetModRoute(idx, src, dst, amt, active) } catch (e: Exception) {}
+    }
+    @JavascriptInterface fun bassClearModRoutes() { if (!isLoaded) return; try { nativeBassClearModRoutes() } catch (e: Exception) {} }
+
+    // ── 3D Stereo ─────────────────────────────────────────────────────────────
+    @JavascriptInterface fun bassSetStereoWidth   (w: Float)    { if (!isLoaded) return; try { nativeBassSetStereoWidth(w) }    catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetStereoMidGain (g: Float)    { if (!isLoaded) return; try { nativeBassSetStereoMidGain(g) }  catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetStereoSideGain(g: Float)    { if (!isLoaded) return; try { nativeBassSetStereoSideGain(g) } catch (e: Exception) {} }
+    @JavascriptInterface fun bassSetStereoEnabled (en: Boolean) { if (!isLoaded) return; try { nativeBassSetStereoEnabled(en) } catch (e: Exception) {} }
+
+    // ── Triggers ──────────────────────────────────────────────────────────────
+    @JavascriptInterface fun bassNoteOn(note: Int, vel: Int) { if (!isLoaded) return; try { nativeBassNoteOn(note, vel) } catch (e: Exception) {} }
+    @JavascriptInterface fun bassNoteOff(note: Int)          { if (!isLoaded) return; try { nativeBassNoteOff(note) }     catch (e: Exception) {} }
+    @JavascriptInterface fun bassAllNotesOff()               { if (!isLoaded) return; try { nativeBassAllNotesOff() }     catch (e: Exception) {} }
+
+    // ── Undo / Redo ───────────────────────────────────────────────────────────
+    @JavascriptInterface fun bassUndo():    Boolean { if (!isLoaded) return false; return try { nativeBassUndo() }    catch (e: Exception) { false } }
+    @JavascriptInterface fun bassRedo():    Boolean { if (!isLoaded) return false; return try { nativeBassRedo() }    catch (e: Exception) { false } }
+    @JavascriptInterface fun bassCanUndo(): Boolean { if (!isLoaded) return false; return try { nativeBassCanUndo() } catch (e: Exception) { false } }
+    @JavascriptInterface fun bassCanRedo(): Boolean { if (!isLoaded) return false; return try { nativeBassCanRedo() } catch (e: Exception) { false } }
+
+    // ── Query ─────────────────────────────────────────────────────────────────
+    @JavascriptInterface fun bassActiveVoices(): Int   { if (!isLoaded) return 0;     return try { nativeBassActiveVoices() } catch (e: Exception) { 0 } }
+    @JavascriptInterface fun bassOutputLevel():  Float { if (!isLoaded) return 0f;    return try { nativeBassOutputLevel() }  catch (e: Exception) { 0f } }
+    @JavascriptInterface fun bassIsPlaying():  Boolean { if (!isLoaded) return false; return try { nativeBassIsPlaying() }    catch (e: Exception) { false } }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // JNI declarations — Phase 1 + 2
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -233,4 +320,59 @@ class NativeAudioBridge(private val context: Context) {
     private external fun nativeGrooveCurrentStep(t: Int): Int
     private external fun nativeGrooveActiveScene(): Int
     private external fun nativeGrooveIsPlaying(): Boolean
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // JNI declarations — Phase 5: Bass
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private external fun nativeBassSetWaveform(w: Int)
+    private external fun nativeBassSetMorphPos(pos: Float)
+    private external fun nativeBassSetDetune(cents: Float)
+    private external fun nativeBassSetOctave(oct: Float)
+    private external fun nativeBassSetSemi(semi: Float)
+    private external fun nativeBassSetFine(cents: Float)
+    private external fun nativeBassSetVoiceMode(mode: Int)
+    private external fun nativeBassSetGlideMs(ms: Float)
+    private external fun nativeBassSetVolume(vol: Float)
+    private external fun nativeBassSetPan(pan: Float)
+    private external fun nativeBassSetFilterType(type: Int)
+    private external fun nativeBassSetCutoff(hz: Float)
+    private external fun nativeBassSetResonance(q: Float)
+    private external fun nativeBassSetFilterDrive(d: Float)
+    private external fun nativeBassSetEnv0Attack(ms: Float)
+    private external fun nativeBassSetEnv0Decay(ms: Float)
+    private external fun nativeBassSetEnv0Sustain(s: Float)
+    private external fun nativeBassSetEnv0Release(ms: Float)
+    private external fun nativeBassSetEnv0VelAmt(a: Float)
+    private external fun nativeBassSetEnv1Attack(ms: Float)
+    private external fun nativeBassSetEnv1Decay(ms: Float)
+    private external fun nativeBassSetEnv1Sustain(s: Float)
+    private external fun nativeBassSetEnv1Release(ms: Float)
+    private external fun nativeBassSetEnv1VelAmt(a: Float)
+    private external fun nativeBassSetLFO0Shape(s: Int)
+    private external fun nativeBassSetLFO0Rate(hz: Float)
+    private external fun nativeBassSetLFO0Depth(d: Float)
+    private external fun nativeBassSetLFO0Sync(sync: Int)
+    private external fun nativeBassSetLFO0Retrig(r: Boolean)
+    private external fun nativeBassSetLFO1Shape(s: Int)
+    private external fun nativeBassSetLFO1Rate(hz: Float)
+    private external fun nativeBassSetLFO1Depth(d: Float)
+    private external fun nativeBassSetLFO1Sync(sync: Int)
+    private external fun nativeBassSetLFO1Retrig(r: Boolean)
+    private external fun nativeBassSetModRoute(idx: Int, src: Int, dst: Int, amt: Float, active: Boolean)
+    private external fun nativeBassClearModRoutes()
+    private external fun nativeBassSetStereoWidth(w: Float)
+    private external fun nativeBassSetStereoMidGain(g: Float)
+    private external fun nativeBassSetStereoSideGain(g: Float)
+    private external fun nativeBassSetStereoEnabled(en: Boolean)
+    private external fun nativeBassNoteOn(note: Int, velocity: Int)
+    private external fun nativeBassNoteOff(note: Int)
+    private external fun nativeBassAllNotesOff()
+    private external fun nativeBassUndo(): Boolean
+    private external fun nativeBassRedo(): Boolean
+    private external fun nativeBassCanUndo(): Boolean
+    private external fun nativeBassCanRedo(): Boolean
+    private external fun nativeBassActiveVoices(): Int
+    private external fun nativeBassOutputLevel(): Float
+    private external fun nativeBassIsPlaying(): Boolean
 }
