@@ -52,6 +52,9 @@
 
 namespace vibecore {
 
+class BassNode;    // Phase 5 instrument target (zero-latency trigger path)
+class VoiceNode;   // Phase 6 instrument target (zero-latency trigger path)
+
 class GrooveNode : public AudioNode {
 public:
     explicit GrooveNode(NodeId id);
@@ -111,6 +114,12 @@ public:
     // Sample registration (before stream starts)
     void registerSample(int32_t sampleId, const SampleBuffer& buf) noexcept;
 
+    // Instrument targets (UI Thread, before stream starts).
+    // Triggers for tracks in Bass/Voice mode are dispatched DIRECTLY on the
+    // Audio Thread to these nodes — zero latency, no queue hop.
+    void setBassTarget (BassNode*  node) noexcept { mBassTarget  = node; }
+    void setVoiceTarget(VoiceNode* node) noexcept { mVoiceTarget = node; }
+
     // ── Query (approximate, any thread) ───────────────────────────────────
     int32_t activeVoiceCount()  const noexcept;
     int32_t currentStep(int track) const noexcept;
@@ -125,6 +134,10 @@ private:
     VoicePool                               mVoicePool;
     TriggerQueue                            mTriggerQueue;
     SceneEngine                             mSceneEngine;
+
+    // Instrument targets — set on UI Thread before stream, read on Audio Thread
+    BassNode*                               mBassTarget  = nullptr;
+    VoiceNode*                              mVoiceTarget = nullptr;
 
     bool    mTransportRunning = false;
     int32_t mSampleRate       = 48000;

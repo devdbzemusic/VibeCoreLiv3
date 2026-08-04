@@ -375,4 +375,149 @@ class NativeAudioBridge(private val context: Context) {
     private external fun nativeBassActiveVoices(): Int
     private external fun nativeBassOutputLevel(): Float
     private external fun nativeBassIsPlaying(): Boolean
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Phase 6 — Voice
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // ── Mode ──────────────────────────────────────────────────────────────────
+    @JavascriptInterface fun voiceSetGlobalMode(m: Int) { if (isLoaded) try { nativeVoiceSetGlobalMode(m) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetPolyMode(m: Int) { if (isLoaded) try { nativeVoiceSetPolyMode(m) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetPlayMode(m: Int) { if (isLoaded) try { nativeVoiceSetPlayMode(m) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+
+    // ── Master ────────────────────────────────────────────────────────────────
+    @JavascriptInterface fun voiceSetVolume(v: Float) { if (isLoaded) try { nativeVoiceSetVolume(v) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetDryWet(v: Float) { if (isLoaded) try { nativeVoiceSetDryWet(v) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetMonitor(v: Float) { if (isLoaded) try { nativeVoiceSetMonitor(v) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetGlideMs(ms: Float) { if (isLoaded) try { nativeVoiceSetGlideMs(ms) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetActiveSlot(slot: Int) { if (isLoaded) try { nativeVoiceSetActiveSlot(slot) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetRootNote(note: Int) { if (isLoaded) try { nativeVoiceSetRootNote(note) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+
+    // ── Pitch / Formant ───────────────────────────────────────────────────────
+    @JavascriptInterface fun voiceSetPitchSemitones(st: Float) { if (isLoaded) try { nativeVoiceSetPitchSemitones(st) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetPitchEnabled(e2: Boolean) { if (isLoaded) try { nativeVoiceSetPitchEnabled(e2) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetFormantSemitones(st: Float) { if (isLoaded) try { nativeVoiceSetFormantSemitones(st) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetFormantEnabled(e2: Boolean) { if (isLoaded) try { nativeVoiceSetFormantEnabled(e2) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+
+    // ── Harmonizer / Doubler ──────────────────────────────────────────────────
+    @JavascriptInterface fun voiceSetHarmonyVoice(index: Int, semitones: Float, level: Float, pan: Float) { if (isLoaded) try { nativeVoiceSetHarmonyVoice(index, semitones, level, pan) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetHarmonyMaster(level: Float) { if (isLoaded) try { nativeVoiceSetHarmonyMaster(level) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetHarmonyEnabled(e2: Boolean) { if (isLoaded) try { nativeVoiceSetHarmonyEnabled(e2) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetDoubler(detuneCents: Float, level: Float, width: Float, e2: Boolean) { if (isLoaded) try { nativeVoiceSetDoubler(detuneCents, level, width, e2) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+
+    // ── Dynamics ──────────────────────────────────────────────────────────────
+    @JavascriptInterface fun voiceSetGate(thDb: Float, atkMs: Float, relMs: Float, e2: Boolean) { if (isLoaded) try { nativeVoiceSetGate(thDb, atkMs, relMs, e2) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetDeEsser(freqHz: Float, thDb: Float, amount: Float, e2: Boolean) { if (isLoaded) try { nativeVoiceSetDeEsser(freqHz, thDb, amount, e2) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetCompressor(thDb: Float, ratio: Float, atkMs: Float, relMs: Float, makeupDb: Float, e2: Boolean) { if (isLoaded) try { nativeVoiceSetCompressor(thDb, ratio, atkMs, relMs, makeupDb, e2) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetEQ(lowHz: Float, lowDb: Float, midHz: Float, midDb: Float, midQ: Float, highHz: Float, highDb: Float, e2: Boolean) { if (isLoaded) try { nativeVoiceSetEQ(lowHz, lowDb, midHz, midDb, midQ, highHz, highDb, e2) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+
+    // ── Breath ────────────────────────────────────────────────────────────────
+    @JavascriptInterface fun voiceSetBreath(level: Float, colorHz: Float, widthQ: Float, followEnv: Boolean, e2: Boolean) { if (isLoaded) try { nativeVoiceSetBreath(level, colorHz, widthQ, followEnv, e2) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+
+    // ── Texture ───────────────────────────────────────────────────────────────
+    @JavascriptInterface fun voiceSetTextureCutoff(hz: Float) { if (isLoaded) try { nativeVoiceSetTextureCutoff(hz) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetTextureResonance(q: Float) { if (isLoaded) try { nativeVoiceSetTextureResonance(q) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+
+    // ── Envelopes / LFOs ──────────────────────────────────────────────────────
+    @JavascriptInterface fun voiceSetEnv0(atk: Float, dec: Float, sus: Float, rel: Float, vel: Float) { if (isLoaded) try { nativeVoiceSetEnv0(atk, dec, sus, rel, vel) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetEnv1(atk: Float, dec: Float, sus: Float, rel: Float, vel: Float) { if (isLoaded) try { nativeVoiceSetEnv1(atk, dec, sus, rel, vel) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetLFO0(shape: Int, sync: Int, rateHz: Float, depth: Float, phase: Float, retrig: Boolean) { if (isLoaded) try { nativeVoiceSetLFO0(shape, sync, rateHz, depth, phase, retrig) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetLFO1(shape: Int, sync: Int, rateHz: Float, depth: Float, phase: Float, retrig: Boolean) { if (isLoaded) try { nativeVoiceSetLFO1(shape, sync, rateHz, depth, phase, retrig) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+
+    // ── Macros / Mod matrix ───────────────────────────────────────────────────
+    @JavascriptInterface fun voiceSetMacro1(v: Float) { if (isLoaded) try { nativeVoiceSetMacro1(v) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetMacro2(v: Float) { if (isLoaded) try { nativeVoiceSetMacro2(v) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetModRoute(route: Int, src: Int, dest: Int, amount: Float, active: Boolean) { if (isLoaded) try { nativeVoiceSetModRoute(route, src, dest, amount, active) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceClearModRoutes() { if (isLoaded) try { nativeVoiceClearModRoutes() } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+
+    // ── 3D Stereo ─────────────────────────────────────────────────────────────
+    @JavascriptInterface fun voiceSetStereoWidth(w: Float) { if (isLoaded) try { nativeVoiceSetStereoWidth(w) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetStereoMidGain(g: Float) { if (isLoaded) try { nativeVoiceSetStereoMidGain(g) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetStereoSideGain(g: Float) { if (isLoaded) try { nativeVoiceSetStereoSideGain(g) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetStereoPan(p: Float) { if (isLoaded) try { nativeVoiceSetStereoPan(p) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetStereoEnabled(e2: Boolean) { if (isLoaded) try { nativeVoiceSetStereoEnabled(e2) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+
+    // ── Triggers ──────────────────────────────────────────────────────────────
+    @JavascriptInterface fun voiceNoteOn(note: Int, velocity: Int, slot: Int, slice: Int) { if (isLoaded) try { nativeVoiceNoteOn(note, velocity, slot, slice) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceNoteOff(note: Int) { if (isLoaded) try { nativeVoiceNoteOff(note) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceAllNotesOff() { if (isLoaded) try { nativeVoiceAllNotesOff() } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+
+    // ── Sample management ─────────────────────────────────────────────────────
+    @JavascriptInterface fun voiceLoadSample(slot: Int, data: FloatArray, sampleRate: Int, rootNote: Int): Boolean { if (!isLoaded) return false; return try { nativeVoiceLoadSample(slot, data, sampleRate, rootNote) } catch (e: Exception) { Log.e(tag, e.message ?: ""); false } }
+    @JavascriptInterface fun voiceClearSample(slot: Int) { if (isLoaded) try { nativeVoiceClearSample(slot) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun voiceSetSliceMarkers(slot: Int, starts: IntArray) { if (isLoaded) try { nativeVoiceSetSliceMarkers(slot, starts) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+
+    // ── Live input ────────────────────────────────────────────────────────────
+    @JavascriptInterface fun voiceSetLiveInputEnabled(enabled: Boolean): Boolean { if (!isLoaded) return false; return try { nativeVoiceSetLiveInputEnabled(enabled) } catch (e: Exception) { false } }
+    @JavascriptInterface fun voiceLiveInputEnabled(): Boolean { if (!isLoaded) return false; return try { nativeVoiceLiveInputEnabled() } catch (e: Exception) { false } }
+
+    // ── Undo / Redo ───────────────────────────────────────────────────────────
+    @JavascriptInterface fun voiceUndo(): Boolean { if (!isLoaded) return false; return try { nativeVoiceUndo() } catch (e: Exception) { false } }
+    @JavascriptInterface fun voiceRedo(): Boolean { if (!isLoaded) return false; return try { nativeVoiceRedo() } catch (e: Exception) { false } }
+    @JavascriptInterface fun voiceCanUndo(): Boolean { if (!isLoaded) return false; return try { nativeVoiceCanUndo() } catch (e: Exception) { false } }
+    @JavascriptInterface fun voiceCanRedo(): Boolean { if (!isLoaded) return false; return try { nativeVoiceCanRedo() } catch (e: Exception) { false } }
+
+    // ── Query ─────────────────────────────────────────────────────────────────
+    @JavascriptInterface fun voiceActiveUnits(): Int { if (!isLoaded) return 0; return try { nativeVoiceActiveUnits() } catch (e: Exception) { 0 } }
+    @JavascriptInterface fun voiceOutputLevel(): Float { if (!isLoaded) return 0f; return try { nativeVoiceOutputLevel() } catch (e: Exception) { 0f } }
+    @JavascriptInterface fun voiceInputLevel(): Float { if (!isLoaded) return 0f; return try { nativeVoiceInputLevel() } catch (e: Exception) { 0f } }
+    @JavascriptInterface fun voiceIsPlaying(): Boolean { if (!isLoaded) return false; return try { nativeVoiceIsPlaying() } catch (e: Exception) { false } }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // JNI declarations — Phase 6 Voice
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private external fun nativeVoiceSetGlobalMode(m: Int)
+    private external fun nativeVoiceSetPolyMode(m: Int)
+    private external fun nativeVoiceSetPlayMode(m: Int)
+    private external fun nativeVoiceSetVolume(v: Float)
+    private external fun nativeVoiceSetDryWet(v: Float)
+    private external fun nativeVoiceSetMonitor(v: Float)
+    private external fun nativeVoiceSetGlideMs(ms: Float)
+    private external fun nativeVoiceSetActiveSlot(slot: Int)
+    private external fun nativeVoiceSetRootNote(note: Int)
+    private external fun nativeVoiceSetPitchSemitones(st: Float)
+    private external fun nativeVoiceSetPitchEnabled(e: Boolean)
+    private external fun nativeVoiceSetFormantSemitones(st: Float)
+    private external fun nativeVoiceSetFormantEnabled(e: Boolean)
+    private external fun nativeVoiceSetHarmonyVoice(index: Int, semitones: Float, level: Float, pan: Float)
+    private external fun nativeVoiceSetHarmonyMaster(level: Float)
+    private external fun nativeVoiceSetHarmonyEnabled(e: Boolean)
+    private external fun nativeVoiceSetDoubler(detuneCents: Float, level: Float, width: Float, e: Boolean)
+    private external fun nativeVoiceSetGate(thDb: Float, atkMs: Float, relMs: Float, e: Boolean)
+    private external fun nativeVoiceSetDeEsser(freqHz: Float, thDb: Float, amount: Float, e: Boolean)
+    private external fun nativeVoiceSetCompressor(thDb: Float, ratio: Float, atkMs: Float, relMs: Float, makeupDb: Float, e: Boolean)
+    private external fun nativeVoiceSetEQ(lowHz: Float, lowDb: Float, midHz: Float, midDb: Float, midQ: Float, highHz: Float, highDb: Float, e: Boolean)
+    private external fun nativeVoiceSetBreath(level: Float, colorHz: Float, widthQ: Float, followEnv: Boolean, e: Boolean)
+    private external fun nativeVoiceSetTextureCutoff(hz: Float)
+    private external fun nativeVoiceSetTextureResonance(q: Float)
+    private external fun nativeVoiceSetEnv0(atk: Float, dec: Float, sus: Float, rel: Float, vel: Float)
+    private external fun nativeVoiceSetEnv1(atk: Float, dec: Float, sus: Float, rel: Float, vel: Float)
+    private external fun nativeVoiceSetLFO0(shape: Int, sync: Int, rateHz: Float, depth: Float, phase: Float, retrig: Boolean)
+    private external fun nativeVoiceSetLFO1(shape: Int, sync: Int, rateHz: Float, depth: Float, phase: Float, retrig: Boolean)
+    private external fun nativeVoiceSetMacro1(v: Float)
+    private external fun nativeVoiceSetMacro2(v: Float)
+    private external fun nativeVoiceSetModRoute(route: Int, src: Int, dest: Int, amount: Float, active: Boolean)
+    private external fun nativeVoiceClearModRoutes()
+    private external fun nativeVoiceSetStereoWidth(w: Float)
+    private external fun nativeVoiceSetStereoMidGain(g: Float)
+    private external fun nativeVoiceSetStereoSideGain(g: Float)
+    private external fun nativeVoiceSetStereoPan(p: Float)
+    private external fun nativeVoiceSetStereoEnabled(e: Boolean)
+    private external fun nativeVoiceNoteOn(note: Int, velocity: Int, slot: Int, slice: Int)
+    private external fun nativeVoiceNoteOff(note: Int)
+    private external fun nativeVoiceAllNotesOff()
+    private external fun nativeVoiceLoadSample(slot: Int, data: FloatArray, sampleRate: Int, rootNote: Int): Boolean
+    private external fun nativeVoiceClearSample(slot: Int)
+    private external fun nativeVoiceSetSliceMarkers(slot: Int, starts: IntArray)
+    private external fun nativeVoiceSetLiveInputEnabled(enabled: Boolean): Boolean
+    private external fun nativeVoiceLiveInputEnabled(): Boolean
+    private external fun nativeVoiceUndo(): Boolean
+    private external fun nativeVoiceRedo(): Boolean
+    private external fun nativeVoiceCanUndo(): Boolean
+    private external fun nativeVoiceCanRedo(): Boolean
+    private external fun nativeVoiceActiveUnits(): Int
+    private external fun nativeVoiceOutputLevel(): Float
+    private external fun nativeVoiceInputLevel(): Float
+    private external fun nativeVoiceIsPlaying(): Boolean
 }

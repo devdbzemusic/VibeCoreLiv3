@@ -45,6 +45,7 @@ enum class TrackMode : uint8_t {
     Bass   = 1,
     Synth  = 2,
     Sample = 3,
+    Voice  = 4,   // Phase 6 — routed to VoiceNode
 };
 
 // ─── Step ─────────────────────────────────────────────────────────────────────
@@ -62,7 +63,7 @@ struct Step {
     int16_t flamOffset    = 40;     // ticks before main hit (positive = earlier)
     int16_t rollSpacingTicks = 240; // ticks between roll hits
     uint8_t accentVelocity = 127;   // velocity when accent is on
-    uint8_t unused_[2]    = {};
+    uint8_t unused_       = 0;
 };
 static_assert(sizeof(Step) == 16, "Step must be 16 bytes");
 

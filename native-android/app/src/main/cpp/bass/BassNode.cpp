@@ -245,14 +245,14 @@ void BassNode::onTick(int64_t /*tick*/, const MusicalPosition& /*pos*/,
     // (via notifyGrooveTrigger). onTick itself does not trigger directly.
 }
 
-void BassNode::onBeat(int64_t /*beat*/, const MusicalPosition& pos,
+void BassNode::onBeat(int64_t /*beat*/, const MusicalPosition& /*pos*/,
                       int32_t /*sampleOffset*/) noexcept {
-    mVoicePool.onBeat(pos.bpm);
+    mVoicePool.onBeat(mCurrentBpm);
 }
 
-void BassNode::onBar(int64_t /*bar*/, const MusicalPosition& pos,
+void BassNode::onBar(int64_t /*bar*/, const MusicalPosition& /*pos*/,
                      int32_t /*sampleOffset*/) noexcept {
-    mVoicePool.onBar(pos.bpm, pos.beatsPerBar);
+    mVoicePool.onBar(mCurrentBpm, mBeatsPerBar);
 }
 
 void BassNode::onLoop(int64_t /*loopCount*/, int32_t /*sampleOffset*/) noexcept {

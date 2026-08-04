@@ -1,5 +1,6 @@
 #include "AudioGraphManager.h"
 #include "../platform/VibeCoreLog.h"
+#include "../threads/ThreadModel.h"
 #include "../platform/sync/MusicalPosition.h"
 #include <algorithm>
 #include <unordered_set>
@@ -164,7 +165,10 @@ void AudioGraphManager::rebuildRenderOrder() {
         if (inDegree[node->id()] == 0) queue.push_back(node.get());
     }
     while (!queue.empty()) {
-        AudioNode* n = queue.back(); queue.pop_back();
+        // FIFO pop → nodes with equal precedence render in INSERTION order.
+        // (Groove is created first and must render before instrument nodes so
+        // its Audio-Thread trigger dispatch lands in the same callback.)
+        AudioNode* n = queue.front(); queue.erase(queue.begin());
         mRenderOrder.push_back(n);
         for (const auto& edge : mEdges) {
             if (edge.sourceId == n->id()) {

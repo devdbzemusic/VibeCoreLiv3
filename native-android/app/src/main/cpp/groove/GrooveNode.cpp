@@ -1,5 +1,8 @@
 #include "GrooveNode.h"
+#include "../bass/BassNode.h"
+#include "../voice/VoiceNode.h"
 #include "../platform/VibeCoreLog.h"
+#include "../threads/ThreadModel.h"
 #include <cstring>
 
 namespace vibecore {
@@ -131,10 +134,25 @@ void GrooveNode::onTempoChanged(double newBpm, int32_t sampleOffset) noexcept {
 
 void GrooveNode::process(const float* /*input*/, float* output,
                           int numFrames, int numChannels) noexcept {
-    // 1. Drain trigger queue → allocate and start voices
+    // 1. Drain trigger queue → route by track mode (Audio Thread, zero latency)
     Trigger t;
     while (mTriggerQueue.pop(t)) {
-        mVoicePool.trigger(t);
+        const TrackMode mode = (t.trackIndex < kMaxTracks)
+                             ? mTracks[t.trackIndex].mode : TrackMode::Drum;
+        if (mode == TrackMode::Bass && mBassTarget != nullptr) {
+            BassTrigger bt;
+            bt.note = t.note; bt.velocity = t.velocity;
+            bt.noteOn = !t.choke; bt.sampleOffset = t.sampleOffset;
+            mBassTarget->notifyGrooveTrigger(bt);
+        } else if (mode == TrackMode::Voice && mVoiceTarget != nullptr) {
+            VoiceTrigger vt;
+            vt.note = t.note; vt.velocity = t.velocity;
+            vt.noteOn = !t.choke; vt.sampleOffset = t.sampleOffset;
+            vt.sampleSlot = -1; vt.sliceIndex = -1;
+            mVoiceTarget->notifyGrooveTrigger(vt);
+        } else {
+            mVoicePool.trigger(t);
+        }
     }
 
     // 2. Mix all active voices into output

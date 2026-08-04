@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22.1)
-project(vibecore_native VERSION 5.0.0 LANGUAGES CXX)
+project(vibecore_native VERSION 6.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -61,6 +61,19 @@ set(VIBECORE_BASS_SOURCES
     bass/BassEngine.cpp
 )
 
+# ─── Voice sources (Phase 6) ──────────────────────────────────────────────────
+
+set(VIBECORE_VOICE_SOURCES
+    voice/VoicePitchShifter.cpp
+    voice/VoiceFormant.cpp
+    voice/VoiceDynamics.cpp
+    voice/VoiceEQ.cpp
+    voice/VoiceUnit.cpp
+    voice/VoiceInput.cpp
+    voice/VoiceNode.cpp
+    voice/VoiceEngine.cpp
+)
+
 # ─── Bridge ───────────────────────────────────────────────────────────────────
 
 set(VIBECORE_BRIDGE_SOURCES
@@ -78,6 +91,7 @@ add_library(
     ${VIBECORE_THREAD_SOURCES}
     ${VIBECORE_GROOVE_SOURCES}
     ${VIBECORE_BASS_SOURCES}
+    ${VIBECORE_VOICE_SOURCES}
     ${VIBECORE_BRIDGE_SOURCES}
 )
 
@@ -91,6 +105,7 @@ target_include_directories(vibecore-native PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/threads
     ${CMAKE_CURRENT_SOURCE_DIR}/groove
     ${CMAKE_CURRENT_SOURCE_DIR}/bass
+    ${CMAKE_CURRENT_SOURCE_DIR}/voice
     ${CMAKE_CURRENT_SOURCE_DIR}/bridge
 )
 
@@ -126,10 +141,11 @@ set_target_properties(vibecore-native PROPERTIES
     VISIBILITY_INLINES_HIDDEN ON
 )
 
-message(STATUS "VibeCore Native Platform — Phase 5 build (3D Bass + Groove Engine)")
+message(STATUS "VibeCore Native Platform — Phase 6 build (Voice + 3D Bass + Groove Engine)")
 message(STATUS "  Platform: ${VIBECORE_PLATFORM_SOURCES}")
 message(STATUS "  Sync:     ${VIBECORE_SYNC_SOURCES}")
 message(STATUS "  Graph:    ${VIBECORE_GRAPH_SOURCES}")
 message(STATUS "  Groove:   ${VIBECORE_GROOVE_SOURCES}")
 message(STATUS "  Bass:     ${VIBECORE_BASS_SOURCES}")
+message(STATUS "  Voice:    ${VIBECORE_VOICE_SOURCES}")
 message(STATUS "  Oboe:     ${oboe_VERSION}")
