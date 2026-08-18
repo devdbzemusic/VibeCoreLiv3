@@ -401,8 +401,21 @@ function armTimer() {
   timer = window.setInterval(tick, currentTickMs);
 }
 
+// Cold-start guard: a freshly created or previously-suspended AudioContext
+// can take well over the usual ~50ms lookahead before its hardware callback
+// is actually flowing (observed up to ~100ms on Android WebView / mobile
+// Chrome). Anchoring the first tick at `currentTime + 0.05` in that case
+// schedules audio for a moment the context clock hasn't reached yet by the
+// time the callback fires, producing a late tick + xrun on bar 1. Anchoring
+// further out only for a genuine cold start keeps normal start/stop (context
+// already running) at the original tight 50ms latency.
+const COLD_START_ANCHOR_SEC = 0.15;
+const WARM_START_ANCHOR_SEC = 0.05;
+
 async function startScheduler() {
+  const wasCold = getCtx()?.state !== "running";
   const ctx = await ensureAudio();
+  const startAnchor = wasCold ? COLD_START_ANCHOR_SEC : WARM_START_ANCHOR_SEC;
   resetArpCursors();
   const st0 = useGroove.getState();
   const held = st0.transport.held ?? null;
@@ -413,14 +426,14 @@ async function startScheduler() {
     sceneIdx = held.sceneIdx;
     sceneLoopCount = 0;
     globalTick = 0;
-    nextTickTime = ctx.currentTime + 0.05;
+    nextTickTime = ctx.currentTime + startAnchor;
     if (masterClock.getState().source === "internal") masterClock.startTransportPhase(nextTickTime, held.beat);
     useGroove.setState({ transport: { ...st0.transport, held: null } });
   } else {
     // Start from 0 — align MasterClock beat 0 with transport start so all
     // clock consumers share the sequencer's bar grid. External sources keep phase.
     globalTick = 0; stepInScene = 0; sceneIdx = 0; sceneLoopCount = 0; songTicks = 0;
-    nextTickTime = ctx.currentTime + 0.05;
+    nextTickTime = ctx.currentTime + startAnchor;
     if (masterClock.getState().source === "internal") masterClock.startTransportPhase(nextTickTime, 0);
     // B-2 fix: initialize chainRepeatLeft so the FIRST chain step's repeat
     // count is honored. Without this, chainRepeatLeft starts at 0 and the
