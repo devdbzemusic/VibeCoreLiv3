@@ -60,10 +60,13 @@ struct GrooveCommand {
         SetTrackMode         = 54,  // trackIdx, int32Val=TrackMode
 
         // Piano Roll
-        AddPianoRollNote     = 60,  // trackIdx + note data in int64Val/int32Val
+        AddPianoRollNote     = 60,  // trackIdx, int64Val=startTick, int64Val2=endTick,
+                                    // int32Val=note, int32Val2=velocity
         RemovePianoRollNote  = 61,  // trackIdx, int32Val=noteIndex
         ClearPianoRoll       = 62,  // trackIdx
-        UpdatePianoRollNote  = 63,  // trackIdx + note data
+        UpdatePianoRollNote  = 63,  // trackIdx, int32Val=noteIndex,
+                                    // int64Val=startTick, int64Val2=endTick,
+                                    // int32Val2=(velocity<<8)|note  — see makePianoRollUpdate
 
         // Sample assignment
         LoadSample           = 70,  // int32Val=sampleId, ptr in int64Val
@@ -90,6 +93,26 @@ struct GrooveCommand {
         c.int64Val2 = endTick;
         c.int32Val = note;
         c.int32Val2 = vel;
+        return c;
+    }
+
+    /**
+     * Canonical packing for UpdatePianoRollNote. The command struct has no
+     * free 8-bit payload slot for velocity, so note and velocity share
+     * int32Val2: bits 0-7 = note, bits 8-15 = velocity.
+     * GrooveNode::handleCommand() MUST unpack with exactly this layout.
+     */
+    static GrooveCommand makePianoRollUpdate(uint8_t track, int32_t noteIndex,
+                                             int64_t startTick, int64_t endTick,
+                                             uint8_t note, uint8_t vel) {
+        GrooveCommand c;
+        c.type      = Type::UpdatePianoRollNote;
+        c.trackIdx  = track;
+        c.int32Val  = noteIndex;
+        c.int64Val  = startTick;
+        c.int64Val2 = endTick;
+        c.int32Val2 = (static_cast<int32_t>(vel) << 8) |
+                       static_cast<int32_t>(note);
         return c;
     }
 

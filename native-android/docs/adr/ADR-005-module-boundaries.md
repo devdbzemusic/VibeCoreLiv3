@@ -1,7 +1,7 @@
 # ADR-005 — Module Boundaries and Bridge Architecture
 
-**Status:** ACCEPTED (bridge: current) / OPEN (JSI path: future)  
-**Date:** 2026-08-01  
+**Status:** DECIDED (bridge: WebView JavascriptInterface — final) / JSI: REJECTED for current architecture, re-evaluation only via Review trigger  
+**Date:** 2026-08-01 · **Finalized:** 2026-08-18  
 **Decider:** Executive Platform Engineering Board
 
 ---
@@ -45,9 +45,39 @@ This is the production bridge for Phase 1–2. It is:
 
 **The bridge exposes NO business logic.** It is a thin marshalling layer only.
 
-## Open Question — JSI / TurboModule Path
+## Decision C (2026-08-18) — Bridge finalized, JSI rejected
 
-**Status: OPEN — not implemented, blocked pending architectural decision**
+**The WebView `@JavascriptInterface` bridge is the final external bridge for
+VibeCore Univers.** Rationale (evidence-based):
+1. The project is React/Vite in a WebView; there is no React Native dependency.
+   A JSI path would require either a full RN migration or a non-standard
+   in-WebView JSI host — both disproportionate to any measured benefit.
+2. The Kotlin bridge is complete and consistent: 155 JNI exports, matching
+   `external fun` declarations, full `@JavascriptInterface` coverage.
+3. The web app already contains the matching adapter seam
+   (`src/lib/audio/AudioBackend.ts` — backend factory switching on the injected
+   bridge object), designed for exactly this mechanism.
+
+**Binding interface-name contract:** the host Activity MUST register the bridge as
+
+```kotlin
+webView.addJavascriptInterface(NativeAudioBridge(), "VibeCoreNative")
+```
+
+`window.VibeCoreNative` is the name the web adapter probes
+(`AudioBackend.ts` — `isNativeOboeAvailable()`). Any other name (e.g.
+"AudioBridge", used in earlier drafts) breaks native detection silently.
+
+**Known open follow-up (chain step "Web ↔ Native verbinden", NOT part of this
+ADR):** the TS-side `VibeCoreNativeBridge` interface (9 methods: isAvailable,
+start, stop, setTempo, setMasterGain, loadSample, trigger, getLatencyMs,
+configure) is a minimal subset and its method names do not yet match the
+Kotlin bridge's method names. An adapter/mapping layer must be defined before
+integration; tracked by `docs/INTEGRATION_GATE_ONE_ENGINE.md` gate condition 2.
+
+## Superseded Question — JSI / TurboModule Path
+
+**Status: REJECTED (2026-08-18) — re-evaluation only via Review trigger below**
 
 The constitutional documents reference JSI/TurboModule. This requires:
 1. Migrating from React/Vite to React Native — a major architectural change

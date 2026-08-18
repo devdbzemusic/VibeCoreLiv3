@@ -50,3 +50,8 @@ Must be: bindInternalSource → initSchedulerBindings → bindParamUpdates → s
 
 ## Pre-existing TS errors (not regressions)
 `src/components/ui/*.jsx` and several groovebox dialogs have pre-existing TypeScript errors that predate this project. They do not block the Vite build (Vite does not type-check). Do not treat them as regressions.
+
+## ADR-005 final (2026-08-18)
+- External bridge: WebView `@JavascriptInterface` is FINAL; JSI rejected (re-eval only via ADR review trigger).
+- **Binding JS interface name: `window.VibeCoreNative`** (probed by `src/lib/audio/AudioBackend.ts`). Never register the Kotlin bridge under another name ("AudioBridge" in old drafts breaks detection silently).
+- UpdatePianoRollNote command packing contract: int32Val=index, int64Val=start, int64Val2=end, int32Val2=(vel<<8)|note — defined by `GrooveCommand::makePianoRollUpdate`; handler must unpack exactly this layout.

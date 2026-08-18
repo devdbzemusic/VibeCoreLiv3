@@ -35,8 +35,11 @@ Ein aufnehmendes Android-Projekt muss mindestens bereitstellen:
    Runtime-Permission VOR `voiceSetLiveInputEnabled(true)` anfragen) und
    `INTERNET` für die WebView.
 3. Eine Host-Activity mit WebView, die
-   `webView.addJavascriptInterface(NativeAudioBridge(), "AudioBridge")`
+   `webView.addJavascriptInterface(NativeAudioBridge(), "VibeCoreNative")`
    registriert und `NativeAudioBridge.load()`/Engine-Start aufruft.
+   **Der Interface-Name `VibeCoreNative` ist verbindlich** (ADR-005 Decision C):
+   `src/lib/audio/AudioBackend.ts` erkennt den nativen Pfad ausschließlich über
+   `window.VibeCoreNative`.
 4. Oboe als Prefab-Abhängigkeit (`com.google.oboe:oboe`), passend zu
    `buildFeatures { prefab = true }` im Modul.
 

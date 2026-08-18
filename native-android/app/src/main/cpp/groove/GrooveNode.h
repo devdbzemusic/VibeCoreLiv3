@@ -108,6 +108,9 @@ public:
     // Piano Roll
     void addPianoRollNote   (int track, int64_t start, int64_t end,
                              uint8_t note, uint8_t vel) noexcept;
+    void updatePianoRollNote(int track, int32_t noteIndex,
+                             int64_t start, int64_t end,
+                             uint8_t note, uint8_t vel) noexcept;
     void removePianoRollNote(int track, int32_t noteIndex) noexcept;
     void clearPianoRoll     (int track) noexcept;
 

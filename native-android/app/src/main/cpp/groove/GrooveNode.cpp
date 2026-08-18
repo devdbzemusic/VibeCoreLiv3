@@ -282,9 +282,11 @@ void GrooveNode::handleCommand(const GrooveCommand& c) noexcept {
         mPianoRolls[t].clear();
         break;
     case GrooveCommand::Type::UpdatePianoRollNote:
+        // Packing contract: see GrooveCommand::makePianoRollUpdate().
+        // int32Val2 bits 0-7 = note, bits 8-15 = velocity.
         mPianoRolls[t].updateNote(c.int32Val, c.int64Val, c.int64Val2,
-                                   static_cast<uint8_t>(c.int32Val2),
-                                   static_cast<uint8_t>(c.int64Val >> 32));
+                                   static_cast<uint8_t>(c.int32Val2 & 0x7F),
+                                   static_cast<uint8_t>((c.int32Val2 >> 8) & 0x7F));
         break;
 
     default:
@@ -379,6 +381,12 @@ void GrooveNode::addPianoRollNote(int t, int64_t start, int64_t end,
                                    uint8_t note, uint8_t vel) noexcept {
     sendCommand(GrooveCommand::makePianoRollAdd(
         static_cast<uint8_t>(t), start, end, note, vel));
+}
+void GrooveNode::updatePianoRollNote(int t, int32_t noteIndex,
+                                     int64_t start, int64_t end,
+                                     uint8_t note, uint8_t vel) noexcept {
+    sendCommand(GrooveCommand::makePianoRollUpdate(
+        static_cast<uint8_t>(t), noteIndex, start, end, note, vel));
 }
 void GrooveNode::removePianoRollNote(int t, int32_t idx) noexcept {
     GrooveCommand c; c.type=GrooveCommand::Type::RemovePianoRollNote;
