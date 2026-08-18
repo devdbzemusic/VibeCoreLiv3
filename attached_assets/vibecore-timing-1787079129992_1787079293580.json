@@ -1,0 +1,341 @@
+{
+  "bpm": 120,
+  "durationSec": 10,
+  "sampleCount": 81,
+  "expectedStepMs": 125,
+  "gridError": {
+    "meanMs": 0.15,
+    "p95Ms": 0,
+    "maxMs": 6,
+    "stdDevMs": 0.937
+  },
+  "audioJitter": {
+    "meanMs": 3.687,
+    "p95Ms": 8,
+    "maxMs": 104,
+    "stdDevMs": 11.502
+  },
+  "audioJitterP95": 8,
+  "audioJitterMax": 104,
+  "observedJitter": {
+    "meanMs": 2.428,
+    "p95Ms": 2.333,
+    "maxMs": 104
+  },
+  "schedulerLateEvents": 1,
+  "xruns": 1,
+  "sampleLog": [
+    {
+      "i": 0,
+      "expectedAudioTime": 0.336,
+      "actualAudioTime": 0.44,
+      "deltaMs": 104
+    },
+    {
+      "i": 1,
+      "expectedAudioTime": 0.461,
+      "actualAudioTime": 0.461,
+      "deltaMs": 0.333
+    },
+    {
+      "i": 2,
+      "expectedAudioTime": 0.586,
+      "actualAudioTime": 0.587,
+      "deltaMs": 0.667
+    },
+    {
+      "i": 3,
+      "expectedAudioTime": 0.711,
+      "actualAudioTime": 0.712,
+      "deltaMs": 1
+    },
+    {
+      "i": 4,
+      "expectedAudioTime": 0.836,
+      "actualAudioTime": 0.837,
+      "deltaMs": 1.333
+    },
+    {
+      "i": 5,
+      "expectedAudioTime": 0.961,
+      "actualAudioTime": 0.963,
+      "deltaMs": 1.667
+    },
+    {
+      "i": 6,
+      "expectedAudioTime": 1.086,
+      "actualAudioTime": 1.088,
+      "deltaMs": 2
+    },
+    {
+      "i": 7,
+      "expectedAudioTime": 1.211,
+      "actualAudioTime": 1.213,
+      "deltaMs": 2.333
+    },
+    {
+      "i": 8,
+      "expectedAudioTime": 1.336,
+      "actualAudioTime": 1.336,
+      "deltaMs": 0
+    },
+    {
+      "i": 9,
+      "expectedAudioTime": 1.461,
+      "actualAudioTime": 1.461,
+      "deltaMs": 0.333
+    },
+    {
+      "i": 10,
+      "expectedAudioTime": 1.586,
+      "actualAudioTime": 1.587,
+      "deltaMs": 0.667
+    },
+    {
+      "i": 11,
+      "expectedAudioTime": 1.711,
+      "actualAudioTime": 1.712,
+      "deltaMs": 1
+    },
+    {
+      "i": 12,
+      "expectedAudioTime": 1.836,
+      "actualAudioTime": 1.837,
+      "deltaMs": 1.333
+    },
+    {
+      "i": 13,
+      "expectedAudioTime": 1.961,
+      "actualAudioTime": 1.963,
+      "deltaMs": 1.667
+    },
+    {
+      "i": 14,
+      "expectedAudioTime": 2.086,
+      "actualAudioTime": 2.088,
+      "deltaMs": 2
+    },
+    {
+      "i": 15,
+      "expectedAudioTime": 2.211,
+      "actualAudioTime": 2.213,
+      "deltaMs": 2.333
+    },
+    {
+      "i": 16,
+      "expectedAudioTime": 2.336,
+      "actualAudioTime": 2.336,
+      "deltaMs": 0
+    },
+    {
+      "i": 17,
+      "expectedAudioTime": 2.461,
+      "actualAudioTime": 2.461,
+      "deltaMs": 0.333
+    },
+    {
+      "i": 18,
+      "expectedAudioTime": 2.586,
+      "actualAudioTime": 2.587,
+      "deltaMs": 0.667
+    },
+    {
+      "i": 19,
+      "expectedAudioTime": 2.711,
+      "actualAudioTime": 2.712,
+      "deltaMs": 1
+    },
+    {
+      "i": 20,
+      "expectedAudioTime": 2.836,
+      "actualAudioTime": 2.837,
+      "deltaMs": 1.333
+    },
+    {
+      "i": 21,
+      "expectedAudioTime": 2.961,
+      "actualAudioTime": 2.968,
+      "deltaMs": 7
+    },
+    {
+      "i": 22,
+      "expectedAudioTime": 3.086,
+      "actualAudioTime": 3.093,
+      "deltaMs": 7.333
+    },
+    {
+      "i": 23,
+      "expectedAudioTime": 3.211,
+      "actualAudioTime": 3.219,
+      "deltaMs": 7.667
+    },
+    {
+      "i": 24,
+      "expectedAudioTime": 3.336,
+      "actualAudioTime": 3.344,
+      "deltaMs": 8
+    },
+    {
+      "i": 25,
+      "expectedAudioTime": 3.461,
+      "actualAudioTime": 3.469,
+      "deltaMs": 8.333
+    },
+    {
+      "i": 26,
+      "expectedAudioTime": 3.586,
+      "actualAudioTime": 3.592,
+      "deltaMs": 6
+    },
+    {
+      "i": 27,
+      "expectedAudioTime": 3.711,
+      "actualAudioTime": 3.717,
+      "deltaMs": 6.333
+    },
+    {
+      "i": 28,
+      "expectedAudioTime": 3.836,
+      "actualAudioTime": 3.843,
+      "deltaMs": 6.667
+    },
+    {
+      "i": 29,
+      "expectedAudioTime": 3.961,
+      "actualAudioTime": 3.968,
+      "deltaMs": 7
+    },
+    {
+      "i": 30,
+      "expectedAudioTime": 4.086,
+      "actualAudioTime": 4.093,
+      "deltaMs": 7.333
+    },
+    {
+      "i": 31,
+      "expectedAudioTime": 4.211,
+      "actualAudioTime": 4.219,
+      "deltaMs": 7.667
+    },
+    {
+      "i": 32,
+      "expectedAudioTime": 4.336,
+      "actualAudioTime": 4.344,
+      "deltaMs": 8
+    },
+    {
+      "i": 33,
+      "expectedAudioTime": 4.461,
+      "actualAudioTime": 4.469,
+      "deltaMs": 8.333
+    },
+    {
+      "i": 34,
+      "expectedAudioTime": 4.586,
+      "actualAudioTime": 4.592,
+      "deltaMs": 6
+    },
+    {
+      "i": 35,
+      "expectedAudioTime": 4.711,
+      "actualAudioTime": 4.717,
+      "deltaMs": 6.333
+    },
+    {
+      "i": 36,
+      "expectedAudioTime": 4.836,
+      "actualAudioTime": 4.843,
+      "deltaMs": 6.667
+    },
+    {
+      "i": 37,
+      "expectedAudioTime": 4.961,
+      "actualAudioTime": 4.968,
+      "deltaMs": 7
+    },
+    {
+      "i": 38,
+      "expectedAudioTime": 5.086,
+      "actualAudioTime": 5.088,
+      "deltaMs": 2
+    },
+    {
+      "i": 39,
+      "expectedAudioTime": 5.211,
+      "actualAudioTime": 5.213,
+      "deltaMs": 2.333
+    },
+    {
+      "i": 40,
+      "expectedAudioTime": 5.336,
+      "actualAudioTime": 5.336,
+      "deltaMs": 0
+    },
+    {
+      "i": 41,
+      "expectedAudioTime": 5.461,
+      "actualAudioTime": 5.461,
+      "deltaMs": 0.333
+    },
+    {
+      "i": 42,
+      "expectedAudioTime": 5.586,
+      "actualAudioTime": 5.587,
+      "deltaMs": 0.667
+    },
+    {
+      "i": 43,
+      "expectedAudioTime": 5.711,
+      "actualAudioTime": 5.712,
+      "deltaMs": 1
+    },
+    {
+      "i": 44,
+      "expectedAudioTime": 5.836,
+      "actualAudioTime": 5.837,
+      "deltaMs": 1.333
+    },
+    {
+      "i": 45,
+      "expectedAudioTime": 5.961,
+      "actualAudioTime": 5.963,
+      "deltaMs": 1.667
+    },
+    {
+      "i": 46,
+      "expectedAudioTime": 6.086,
+      "actualAudioTime": 6.088,
+      "deltaMs": 2
+    },
+    {
+      "i": 47,
+      "expectedAudioTime": 6.211,
+      "actualAudioTime": 6.213,
+      "deltaMs": 2.333
+    },
+    {
+      "i": 48,
+      "expectedAudioTime": 6.336,
+      "actualAudioTime": 6.336,
+      "deltaMs": 0
+    },
+    {
+      "i": 49,
+      "expectedAudioTime": 6.461,
+      "actualAudioTime": 6.461,
+      "deltaMs": 0.333
+    }
+  ],
+  "pass": false,
+  "thresholds": {
+    "gridP95Ms": 1.5,
+    "gridMaxMs": 5,
+    "jitterP95Ms": 5
+  },
+  "classification": "WARN",
+  "notes": [
+    "grid p95 0ms > 1.5ms or max 6ms > 5ms",
+    "audio jitter p95 8ms > 5ms",
+    "scheduler late events: 1 (lookahead too small for current load)"
+  ]
+}

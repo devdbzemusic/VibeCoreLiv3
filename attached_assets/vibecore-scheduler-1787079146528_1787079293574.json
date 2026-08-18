@@ -1,0 +1,507 @@
+{
+  "summary": {
+    "totalEvents": 82,
+    "avgDeltaMs": 2.4,
+    "medianDeltaMs": 1,
+    "p95DeltaMs": 2.33,
+    "maxDeltaMs": 104,
+    "stdDevMs": 11.31,
+    "lateTicks": 1,
+    "xruns": 1,
+    "classification": "WARNING"
+  },
+  "events": [
+    {
+      "scheduledAt": 0.44,
+      "scheduledFor": 0.336,
+      "observedAt": 0.44,
+      "deltaMs": 103.99999999999999
+    },
+    {
+      "scheduledAt": 0.44,
+      "scheduledFor": 0.461,
+      "observedAt": 0.4613333333333333,
+      "deltaMs": 0.3333333333332966
+    },
+    {
+      "scheduledAt": 0.44,
+      "scheduledFor": 0.5860000000000001,
+      "observedAt": 0.5866666666666667,
+      "deltaMs": 0.6666666666665932
+    },
+    {
+      "scheduledAt": 0.52,
+      "scheduledFor": 0.7110000000000001,
+      "observedAt": 0.712,
+      "deltaMs": 0.9999999999998899
+    },
+    {
+      "scheduledAt": 0.6186666666666667,
+      "scheduledFor": 0.8360000000000001,
+      "observedAt": 0.8373333333333334,
+      "deltaMs": 1.3333333333332975
+    },
+    {
+      "scheduledAt": 0.7786666666666666,
+      "scheduledFor": 0.9610000000000001,
+      "observedAt": 0.9626666666666667,
+      "deltaMs": 1.6666666666665941
+    },
+    {
+      "scheduledAt": 0.8906666666666667,
+      "scheduledFor": 1.086,
+      "observedAt": 1.088,
+      "deltaMs": 2.0000000000000018
+    },
+    {
+      "scheduledAt": 1.0213333333333334,
+      "scheduledFor": 1.211,
+      "observedAt": 1.2133333333333334,
+      "deltaMs": 2.3333333333332984
+    },
+    {
+      "scheduledAt": 1.1413333333333333,
+      "scheduledFor": 1.336,
+      "observedAt": 1.336,
+      "deltaMs": 0
+    },
+    {
+      "scheduledAt": 1.24,
+      "scheduledFor": 1.461,
+      "observedAt": 1.4613333333333334,
+      "deltaMs": 0.3333333333332966
+    },
+    {
+      "scheduledAt": 1.3706666666666667,
+      "scheduledFor": 1.586,
+      "observedAt": 1.5866666666666667,
+      "deltaMs": 0.6666666666665932
+    },
+    {
+      "scheduledAt": 1.52,
+      "scheduledFor": 1.711,
+      "observedAt": 1.712,
+      "deltaMs": 0.9999999999998899
+    },
+    {
+      "scheduledAt": 1.6266666666666667,
+      "scheduledFor": 1.836,
+      "observedAt": 1.8373333333333333,
+      "deltaMs": 1.3333333333331865
+    },
+    {
+      "scheduledAt": 1.7413333333333334,
+      "scheduledFor": 1.961,
+      "observedAt": 1.9626666666666666,
+      "deltaMs": 1.666666666666483
+    },
+    {
+      "scheduledAt": 1.88,
+      "scheduledFor": 2.086,
+      "observedAt": 2.088,
+      "deltaMs": 2.000000000000224
+    },
+    {
+      "scheduledAt": 2,
+      "scheduledFor": 2.211,
+      "observedAt": 2.2133333333333334,
+      "deltaMs": 2.3333333333335204
+    },
+    {
+      "scheduledAt": 2.1413333333333333,
+      "scheduledFor": 2.336,
+      "observedAt": 2.336,
+      "deltaMs": 0
+    },
+    {
+      "scheduledAt": 2.2506666666666666,
+      "scheduledFor": 2.461,
+      "observedAt": 2.461333333333333,
+      "deltaMs": 0.3333333333332966
+    },
+    {
+      "scheduledAt": 2.3813333333333335,
+      "scheduledFor": 2.586,
+      "observedAt": 2.5866666666666664,
+      "deltaMs": 0.6666666666665932
+    },
+    {
+      "scheduledAt": 2.490666666666667,
+      "scheduledFor": 2.711,
+      "observedAt": 2.712,
+      "deltaMs": 1.000000000000334
+    },
+    {
+      "scheduledAt": 2.64,
+      "scheduledFor": 2.836,
+      "observedAt": 2.8373333333333335,
+      "deltaMs": 1.3333333333336306
+    },
+    {
+      "scheduledAt": 2.7786666666666666,
+      "scheduledFor": 2.967,
+      "observedAt": 2.968,
+      "deltaMs": 0.9999999999998899
+    },
+    {
+      "scheduledAt": 2.84,
+      "scheduledFor": 3.092,
+      "observedAt": 3.0933333333333333,
+      "deltaMs": 1.3333333333331865
+    },
+    {
+      "scheduledAt": 2.96,
+      "scheduledFor": 3.217,
+      "observedAt": 3.2186666666666666,
+      "deltaMs": 1.666666666666483
+    },
+    {
+      "scheduledAt": 3.066666666666667,
+      "scheduledFor": 3.342,
+      "observedAt": 3.344,
+      "deltaMs": 1.9999999999997797
+    },
+    {
+      "scheduledAt": 3.1786666666666665,
+      "scheduledFor": 3.467,
+      "observedAt": 3.469333333333333,
+      "deltaMs": 2.3333333333330764
+    },
+    {
+      "scheduledAt": 3.32,
+      "scheduledFor": 3.592,
+      "observedAt": 3.592,
+      "deltaMs": 0
+    },
+    {
+      "scheduledAt": 3.421333333333333,
+      "scheduledFor": 3.717,
+      "observedAt": 3.7173333333333334,
+      "deltaMs": 0.3333333333332966
+    },
+    {
+      "scheduledAt": 3.5813333333333333,
+      "scheduledFor": 3.842,
+      "observedAt": 3.8426666666666667,
+      "deltaMs": 0.6666666666665932
+    },
+    {
+      "scheduledAt": 3.7066666666666666,
+      "scheduledFor": 3.967,
+      "observedAt": 3.968,
+      "deltaMs": 0.9999999999998899
+    },
+    {
+      "scheduledAt": 3.8186666666666667,
+      "scheduledFor": 4.092,
+      "observedAt": 4.093333333333334,
+      "deltaMs": 1.3333333333340747
+    },
+    {
+      "scheduledAt": 3.92,
+      "scheduledFor": 4.217,
+      "observedAt": 4.218666666666667,
+      "deltaMs": 1.6666666666669272
+    },
+    {
+      "scheduledAt": 4.04,
+      "scheduledFor": 4.342,
+      "observedAt": 4.344,
+      "deltaMs": 2.000000000000668
+    },
+    {
+      "scheduledAt": 4.16,
+      "scheduledFor": 4.467,
+      "observedAt": 4.469333333333333,
+      "deltaMs": 2.3333333333335204
+    },
+    {
+      "scheduledAt": 4.330666666666667,
+      "scheduledFor": 4.592,
+      "observedAt": 4.592,
+      "deltaMs": 0
+    },
+    {
+      "scheduledAt": 4.44,
+      "scheduledFor": 4.717,
+      "observedAt": 4.717333333333333,
+      "deltaMs": 0.3333333333337407
+    },
+    {
+      "scheduledAt": 4.538666666666667,
+      "scheduledFor": 4.842,
+      "observedAt": 4.842666666666666,
+      "deltaMs": 0.6666666666665932
+    },
+    {
+      "scheduledAt": 4.661333333333333,
+      "scheduledFor": 4.967,
+      "observedAt": 4.968,
+      "deltaMs": 1.000000000000334
+    },
+    {
+      "scheduledAt": 4.874666666666666,
+      "scheduledFor": 5.086,
+      "observedAt": 5.088,
+      "deltaMs": 1.9999999999997797
+    },
+    {
+      "scheduledAt": 4.994666666666666,
+      "scheduledFor": 5.211,
+      "observedAt": 5.213333333333333,
+      "deltaMs": 2.3333333333326323
+    },
+    {
+      "scheduledAt": 5.141333333333334,
+      "scheduledFor": 5.336,
+      "observedAt": 5.336,
+      "deltaMs": 0
+    },
+    {
+      "scheduledAt": 5.24,
+      "scheduledFor": 5.461,
+      "observedAt": 5.461333333333333,
+      "deltaMs": 0.33333333333285253
+    },
+    {
+      "scheduledAt": 5.4,
+      "scheduledFor": 5.586,
+      "observedAt": 5.586666666666667,
+      "deltaMs": 0.6666666666665932
+    },
+    {
+      "scheduledAt": 5.530666666666667,
+      "scheduledFor": 5.711,
+      "observedAt": 5.712,
+      "deltaMs": 0.9999999999994458
+    },
+    {
+      "scheduledAt": 5.64,
+      "scheduledFor": 5.836,
+      "observedAt": 5.8373333333333335,
+      "deltaMs": 1.3333333333331865
+    },
+    {
+      "scheduledAt": 5.741333333333333,
+      "scheduledFor": 5.961,
+      "observedAt": 5.962666666666666,
+      "deltaMs": 1.666666666666039
+    },
+    {
+      "scheduledAt": 5.88,
+      "scheduledFor": 6.086,
+      "observedAt": 6.088,
+      "deltaMs": 1.9999999999997797
+    },
+    {
+      "scheduledAt": 6,
+      "scheduledFor": 6.211,
+      "observedAt": 6.213333333333333,
+      "deltaMs": 2.3333333333326323
+    },
+    {
+      "scheduledAt": 6.1386666666666665,
+      "scheduledFor": 6.336,
+      "observedAt": 6.336,
+      "deltaMs": 0
+    },
+    {
+      "scheduledAt": 6.24,
+      "scheduledFor": 6.461,
+      "observedAt": 6.461333333333333,
+      "deltaMs": 0.33333333333285253
+    },
+    {
+      "scheduledAt": 6.378666666666667,
+      "scheduledFor": 6.586,
+      "observedAt": 6.586666666666667,
+      "deltaMs": 0.6666666666665932
+    },
+    {
+      "scheduledAt": 6.490666666666667,
+      "scheduledFor": 6.711,
+      "observedAt": 6.712,
+      "deltaMs": 0.9999999999994458
+    },
+    {
+      "scheduledAt": 6.618666666666667,
+      "scheduledFor": 6.836,
+      "observedAt": 6.8373333333333335,
+      "deltaMs": 1.3333333333331865
+    },
+    {
+      "scheduledAt": 6.778666666666667,
+      "scheduledFor": 6.961,
+      "observedAt": 6.962666666666666,
+      "deltaMs": 1.666666666666039
+    },
+    {
+      "scheduledAt": 6.88,
+      "scheduledFor": 7.086,
+      "observedAt": 7.088,
+      "deltaMs": 1.9999999999997797
+    },
+    {
+      "scheduledAt": 7,
+      "scheduledFor": 7.211,
+      "observedAt": 7.213333333333333,
+      "deltaMs": 2.3333333333326323
+    },
+    {
+      "scheduledAt": 7.141333333333334,
+      "scheduledFor": 7.336,
+      "observedAt": 7.336,
+      "deltaMs": 0
+    },
+    {
+      "scheduledAt": 7.24,
+      "scheduledFor": 7.461,
+      "observedAt": 7.461333333333333,
+      "deltaMs": 0.33333333333285253
+    },
+    {
+      "scheduledAt": 7.381333333333333,
+      "scheduledFor": 7.586,
+      "observedAt": 7.586666666666667,
+      "deltaMs": 0.6666666666665932
+    },
+    {
+      "scheduledAt": 7.52,
+      "scheduledFor": 7.711,
+      "observedAt": 7.712,
+      "deltaMs": 0.9999999999994458
+    },
+    {
+      "scheduledAt": 7.626666666666667,
+      "scheduledFor": 7.836,
+      "observedAt": 7.8373333333333335,
+      "deltaMs": 1.3333333333331865
+    },
+    {
+      "scheduledAt": 7.770666666666667,
+      "scheduledFor": 7.961,
+      "observedAt": 7.962666666666666,
+      "deltaMs": 1.666666666666039
+    },
+    {
+      "scheduledAt": 7.88,
+      "scheduledFor": 8.086,
+      "observedAt": 8.088,
+      "deltaMs": 1.9999999999988916
+    },
+    {
+      "scheduledAt": 8.010666666666667,
+      "scheduledFor": 8.211,
+      "observedAt": 8.213333333333333,
+      "deltaMs": 2.3333333333326323
+    },
+    {
+      "scheduledAt": 8.12,
+      "scheduledFor": 8.336,
+      "observedAt": 8.336,
+      "deltaMs": 0
+    },
+    {
+      "scheduledAt": 8.28,
+      "scheduledFor": 8.461,
+      "observedAt": 8.461333333333334,
+      "deltaMs": 0.3333333333337407
+    },
+    {
+      "scheduledAt": 8.378666666666666,
+      "scheduledFor": 8.586,
+      "observedAt": 8.586666666666666,
+      "deltaMs": 0.6666666666657051
+    },
+    {
+      "scheduledAt": 8.52,
+      "scheduledFor": 8.711,
+      "observedAt": 8.712,
+      "deltaMs": 0.9999999999994458
+    },
+    {
+      "scheduledAt": 8.634666666666666,
+      "scheduledFor": 8.836,
+      "observedAt": 8.837333333333333,
+      "deltaMs": 1.3333333333331865
+    },
+    {
+      "scheduledAt": 8.741333333333333,
+      "scheduledFor": 8.961,
+      "observedAt": 8.962666666666667,
+      "deltaMs": 1.6666666666669272
+    },
+    {
+      "scheduledAt": 8.890666666666666,
+      "scheduledFor": 9.086,
+      "observedAt": 9.088,
+      "deltaMs": 1.9999999999988916
+    },
+    {
+      "scheduledAt": 9,
+      "scheduledFor": 9.211,
+      "observedAt": 9.213333333333333,
+      "deltaMs": 2.3333333333326323
+    },
+    {
+      "scheduledAt": 9.130666666666666,
+      "scheduledFor": 9.336,
+      "observedAt": 9.336,
+      "deltaMs": 0
+    },
+    {
+      "scheduledAt": 9.24,
+      "scheduledFor": 9.461,
+      "observedAt": 9.461333333333334,
+      "deltaMs": 0.3333333333337407
+    },
+    {
+      "scheduledAt": 9.370666666666667,
+      "scheduledFor": 9.586,
+      "observedAt": 9.586666666666666,
+      "deltaMs": 0.6666666666657051
+    },
+    {
+      "scheduledAt": 9.530666666666667,
+      "scheduledFor": 9.711,
+      "observedAt": 9.712,
+      "deltaMs": 0.9999999999994458
+    },
+    {
+      "scheduledAt": 9.64,
+      "scheduledFor": 9.836,
+      "observedAt": 9.837333333333333,
+      "deltaMs": 1.3333333333331865
+    },
+    {
+      "scheduledAt": 9.770666666666667,
+      "scheduledFor": 9.961,
+      "observedAt": 9.962666666666667,
+      "deltaMs": 1.6666666666669272
+    },
+    {
+      "scheduledAt": 9.88,
+      "scheduledFor": 10.086,
+      "observedAt": 10.088,
+      "deltaMs": 1.9999999999988916
+    },
+    {
+      "scheduledAt": 10.029333333333334,
+      "scheduledFor": 10.211,
+      "observedAt": 10.213333333333333,
+      "deltaMs": 2.3333333333326323
+    },
+    {
+      "scheduledAt": 10.138666666666667,
+      "scheduledFor": 10.336,
+      "observedAt": 10.336,
+      "deltaMs": 0
+    },
+    {
+      "scheduledAt": 10.24,
+      "scheduledFor": 10.461,
+      "observedAt": 10.461333333333334,
+      "deltaMs": 0.3333333333337407
+    }
+  ]
+}

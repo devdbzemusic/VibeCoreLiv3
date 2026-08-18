@@ -1,0 +1,110 @@
+[
+  {
+    "scheduledAt": 83.60533333333333,
+    "scheduledFor": 83.65533333333333,
+    "observedAt": 83.66133333333333,
+    "deltaMs": 6.000000000000227
+  },
+  {
+    "scheduledAt": 83.68533333333333,
+    "scheduledFor": 83.77533333333334,
+    "observedAt": 83.776,
+    "deltaMs": 0.666666666660376
+  },
+  {
+    "scheduledAt": 83.80533333333334,
+    "scheduledFor": 83.89533333333334,
+    "observedAt": 83.896,
+    "deltaMs": 0.666666666660376
+  },
+  {
+    "scheduledAt": 83.92533333333333,
+    "scheduledFor": 84.01533333333334,
+    "observedAt": 84.016,
+    "deltaMs": 0.666666666660376
+  },
+  {
+    "scheduledAt": 84.06133333333334,
+    "scheduledFor": 84.13533333333335,
+    "observedAt": 84.136,
+    "deltaMs": 0.6666666666461651
+  },
+  {
+    "scheduledAt": 84.184,
+    "scheduledFor": 84.25533333333335,
+    "observedAt": 84.256,
+    "deltaMs": 0.6666666666461651
+  },
+  {
+    "scheduledAt": 84.28533333333333,
+    "scheduledFor": 84.37533333333336,
+    "observedAt": 84.376,
+    "deltaMs": 0.6666666666461651
+  },
+  {
+    "scheduledAt": 84.424,
+    "scheduledFor": 84.49533333333336,
+    "observedAt": 84.496,
+    "deltaMs": 0.6666666666319543
+  },
+  {
+    "scheduledAt": 84.52533333333334,
+    "scheduledFor": 84.61533333333337,
+    "observedAt": 84.616,
+    "deltaMs": 0.6666666666319543
+  },
+  {
+    "scheduledAt": 84.63733333333333,
+    "scheduledFor": 84.73533333333337,
+    "observedAt": 84.736,
+    "deltaMs": 0.6666666666319543
+  },
+  {
+    "scheduledAt": 84.76533333333333,
+    "scheduledFor": 84.85533333333338,
+    "observedAt": 84.856,
+    "deltaMs": 0.6666666666177434
+  },
+  {
+    "scheduledAt": 84.88533333333334,
+    "scheduledFor": 84.97533333333338,
+    "observedAt": 84.976,
+    "deltaMs": 0.6666666666177434
+  },
+  {
+    "scheduledAt": 85.01866666666666,
+    "scheduledFor": 85.09533333333339,
+    "observedAt": 85.096,
+    "deltaMs": 0.6666666666177434
+  },
+  {
+    "scheduledAt": 85.12533333333333,
+    "scheduledFor": 85.21533333333339,
+    "observedAt": 85.216,
+    "deltaMs": 0.6666666666035326
+  },
+  {
+    "scheduledAt": 85.24533333333333,
+    "scheduledFor": 85.3353333333334,
+    "observedAt": 85.336,
+    "deltaMs": 0.6666666666035326
+  },
+  {
+    "scheduledAt": 85.384,
+    "scheduledFor": 85.4553333333334,
+    "observedAt": 85.456,
+    "deltaMs": 0.6666666666035326
+  },
+  {
+    "scheduledAt": 85.48533333333333,
+    "scheduledFor": 85.5753333333334,
+    "observedAt": 85.576,
+    "deltaMs": 0.6666666665893217
+  },
+  {
+    "scheduledAt": 85.624,
+    "scheduledFor": 85.69533333333341,
+    "observedAt": 85.696,
+    "deltaMs": 0.6666666665893217
+  }
+]

@@ -1,0 +1,808 @@
+[
+  {
+    "type": "Gain",
+    "createdAt": 344,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 344,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 344,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Analyser",
+    "createdAt": 344,
+    "alive": true,
+    "targets": []
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode",
+      "WaveShaperNode"
+    ]
+  },
+  {
+    "type": "WaveShaper",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "StereoPannerNode"
+    ]
+  },
+  {
+    "type": "StereoPanner",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode",
+      "GainNode",
+      "GainNode",
+      "GainNode",
+      "GainNode",
+      "GainNode",
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode",
+      "AnalyserNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Analyser",
+    "createdAt": 345,
+    "alive": true,
+    "targets": []
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode",
+      "WaveShaperNode"
+    ]
+  },
+  {
+    "type": "WaveShaper",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "StereoPannerNode"
+    ]
+  },
+  {
+    "type": "StereoPanner",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode",
+      "GainNode",
+      "GainNode",
+      "GainNode",
+      "GainNode",
+      "GainNode",
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode",
+      "AnalyserNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 345,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Analyser",
+    "createdAt": 345,
+    "alive": true,
+    "targets": []
+  },
+  {
+    "type": "Delay",
+    "createdAt": 354,
+    "alive": true,
+    "targets": [
+      "GainNode",
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Oscillator",
+    "createdAt": 354,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 354,
+    "alive": true,
+    "targets": []
+  },
+  {
+    "type": "Gain",
+    "createdAt": 354,
+    "alive": true,
+    "targets": [
+      "DelayNode"
+    ]
+  },
+  {
+    "type": "Delay",
+    "createdAt": 355,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 355,
+    "alive": true,
+    "targets": [
+      "DynamicsCompressorNode"
+    ]
+  },
+  {
+    "type": "DynamicsCompressor",
+    "createdAt": 355,
+    "alive": true,
+    "targets": [
+      "DelayNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 355,
+    "alive": true,
+    "targets": [
+      "StereoPannerNode",
+      "GainNode"
+    ]
+  },
+  {
+    "type": "StereoPanner",
+    "createdAt": 355,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Delay",
+    "createdAt": 355,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 355,
+    "alive": true,
+    "targets": [
+      "ConvolverNode"
+    ]
+  },
+  {
+    "type": "Convolver",
+    "createdAt": 355,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 435,
+    "alive": true,
+    "targets": [
+      "DelayNode",
+      "DelayNode"
+    ]
+  },
+  {
+    "type": "Delay",
+    "createdAt": 435,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Delay",
+    "createdAt": 435,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 435,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 435,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode"
+    ]
+  },
+  {
+    "type": "Oscillator",
+    "createdAt": 435,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Oscillator",
+    "createdAt": 435,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 435,
+    "alive": true,
+    "targets": []
+  },
+  {
+    "type": "Gain",
+    "createdAt": 435,
+    "alive": true,
+    "targets": []
+  },
+  {
+    "type": "Oscillator",
+    "createdAt": 435,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Oscillator",
+    "createdAt": 435,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 435,
+    "alive": true,
+    "targets": []
+  },
+  {
+    "type": "Gain",
+    "createdAt": 436,
+    "alive": true,
+    "targets": []
+  },
+  {
+    "type": "Gain",
+    "createdAt": 436,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 436,
+    "alive": true,
+    "targets": [
+      "GainNode",
+      "GainNode"
+    ]
+  },
+  {
+    "type": "WaveShaper",
+    "createdAt": 437,
+    "alive": true,
+    "targets": [
+      "BiquadFilterNode"
+    ]
+  },
+  {
+    "type": "BiquadFilter",
+    "createdAt": 437,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "ConstantSource",
+    "createdAt": 437,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 438,
+    "alive": true,
+    "targets": [
+      "WaveShaperNode"
+    ]
+  },
+  {
+    "type": "ChannelSplitter",
+    "createdAt": 439,
+    "alive": true,
+    "targets": [
+      "GainNode",
+      "GainNode",
+      "GainNode",
+      "GainNode"
+    ]
+  },
+  {
+    "type": "ChannelMerger",
+    "createdAt": 439,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Delay",
+    "createdAt": 439,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Delay",
+    "createdAt": 439,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 439,
+    "alive": true,
+    "targets": [
+      "GainNode",
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 439,
+    "alive": true,
+    "targets": [
+      "GainNode",
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 439,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 439,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 439,
+    "alive": true,
+    "targets": [
+      "ChannelMergerNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 439,
+    "alive": true,
+    "targets": [
+      "ChannelMergerNode"
+    ]
+  },
+  {
+    "type": "Oscillator",
+    "createdAt": 439,
+    "alive": true,
+    "targets": [
+      "GainNode",
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 440,
+    "alive": true,
+    "targets": []
+  },
+  {
+    "type": "Gain",
+    "createdAt": 440,
+    "alive": true,
+    "targets": []
+  },
+  {
+    "type": "Gain",
+    "createdAt": 440,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 440,
+    "alive": true,
+    "targets": [
+      "DelayNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 440,
+    "alive": true,
+    "targets": [
+      "DelayNode"
+    ]
+  },
+  {
+    "type": "AudioWorkletNode:vibe-granular",
+    "createdAt": 694,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "AudioWorkletNode:vibe-timing-probe",
+    "createdAt": 154963,
+    "alive": true,
+    "targets": [
+      "GainNode"
+    ]
+  },
+  {
+    "type": "Gain",
+    "createdAt": 154964,
+    "alive": true,
+    "targets": [
+      "AudioDestinationNode"
+    ]
+  }
+]

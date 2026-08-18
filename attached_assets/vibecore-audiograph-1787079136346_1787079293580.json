@@ -1,0 +1,52 @@
+{
+  "audioNodes": {
+    "oscillators": 12,
+    "gains": 300,
+    "filters": 87,
+    "analyzers": 24,
+    "worklets": 2,
+    "sources": 2,
+    "others": 50
+  },
+  "activeVoices": 0,
+  "activeGrains": 0,
+  "totalLive": 477,
+  "totalCreated": 517,
+  "byType": {
+    "live": {
+      "Gain": 300,
+      "BiquadFilter": 87,
+      "ChannelSplitter": 3,
+      "ChannelMerger": 2,
+      "WaveShaper": 18,
+      "DynamicsCompressor": 2,
+      "Analyser": 24,
+      "Oscillator": 12,
+      "ConstantSource": 2,
+      "StereoPanner": 17,
+      "Delay": 7,
+      "Convolver": 1,
+      "AudioWorkletNode:vibe-granular": 1,
+      "AudioWorkletNode:vibe-timing-probe": 1
+    },
+    "created": {
+      "Gain": 323,
+      "BiquadFilter": 91,
+      "ChannelSplitter": 4,
+      "ChannelMerger": 3,
+      "WaveShaper": 19,
+      "DynamicsCompressor": 3,
+      "Analyser": 24,
+      "Delay": 14,
+      "Oscillator": 12,
+      "StereoPanner": 18,
+      "Convolver": 2,
+      "ConstantSource": 2,
+      "AudioWorkletNode:vibe-granular": 1,
+      "AudioWorkletNode:vibe-timing-probe": 1
+    }
+  },
+  "contextState": "running",
+  "contextTimeSec": 20.741333333333333,
+  "suspectedLeaks": []
+}
