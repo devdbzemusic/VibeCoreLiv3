@@ -14,7 +14,7 @@
 | Registriert im AudioGraphManager | ✅ NodeId 2 |
 | Verbunden mit MixerNode | ✅ |
 | JNI Bridge aktualisiert | ✅ 48 neue JNI-Funktionen |
-| Kotlin Bridge aktualisiert | ✅ NativeAudioBridgeBass.kt |
+| Kotlin Bridge aktualisiert | ✅ NativeAudioBridge.kt (Bass-Methoden integriert; das separate NativeAudioBridgeBass.kt war nicht kompilierfähig — private Externals aus fremder Datei, @JavascriptInterface wirkungslos auf Extensions — und wurde entfernt) |
 | CMakeLists.txt v5.0.0 | ✅ 9 neue .cpp Quelldateien |
 
 ---
