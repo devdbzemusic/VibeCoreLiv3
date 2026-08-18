@@ -7,3 +7,10 @@ uri = "file://VibeCoreLiv3_DevExport_2026-08-01.zip"
 type = "unspecified"
 title = "VibeCoreLiv3 — Developer Export 2026-08-01"
 description = "Vollständiges Projektpaket: Quellcode (src/), Docs, Konfiguration, Production Build (dist/), detaillierter Testbericht (TEST_RESULTS_DETAILED.md), Projektstruktur-Übersicht. 1,3 MB ZIP."
+
+[[outputs]]
+id = "JFES5KrkuepscPsFTq25C"
+uri = "file://exports/VibeCoreLiv3_CO_export.zip"
+type = "unspecified"
+title = "VibeCoreLiv3_CO — Komplettes Projekt-ZIP"
+description = "Vollständiger Projektexport (580 Dateien, ~1,3 MB gepackt): Web-App (src/, base44), native-android/ (C++/Oboe-Engine Phase 1–6), vibecore-platform/, Docs & Reports. Ohne node_modules, dist, .git und Alt-ZIPs."
