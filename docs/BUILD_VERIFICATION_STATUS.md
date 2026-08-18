@@ -1,4 +1,18 @@
-# BUILD VERIFICATION STATUS — native-android (Stand: 2026-08-18)
+# BUILD VERIFICATION STATUS — native-android (Stand: 2026-08-18, Gate „Android Build Host" ausgeführt)
+
+> **STATUS: BUILD-READY / RUNTIME UNVERIFIED.** Der minimale Build-Host ist
+> jetzt im Repo (settings/build/gradle.properties, Wrapper-Properties,
+> Manifest, VibeCoreApplication, MainActivity mit
+> `addJavascriptInterface(bridge, "VibeCoreNative")`). Ein realer Gradle-/
+> NDK-Build ist in dieser Umgebung unmöglich (kein Java, kein Gradle, kein
+> Android SDK/NDK — per `which` verifiziert); kein Build-/Testresultat wurde
+> simuliert. Gradle-Wrapper ist KOMPLETT eingecheckt (gradlew, gradlew.bat,
+> gradle-wrapper.jar — offizielle Gradle-v8.7.0-Artefakte). Erforderlich
+> extern: JDK 17, Android SDK (Platform 34), NDK, CMake 3.22.1; dann
+> `./gradlew :app:assembleDebug`. Versionsannahmen (AGP 8.5.2,
+> Kotlin 1.9.24, Gradle 8.7) sind in settings-/build.gradle.kts als
+> ANNAHME dokumentiert. Zweites Host-Interface: `window.VibeCoreHost`
+> (Mikrofon-Permission-Flow) neben `window.VibeCoreNative` (Audio).
 
 > Evidenzbasierte Feststellung. Keine Architekturänderung vorgenommen —
 > das Repl enthält das Android-Native-Modul absichtlich als **einzubettendes

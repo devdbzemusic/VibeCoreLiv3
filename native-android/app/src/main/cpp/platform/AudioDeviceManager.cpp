@@ -1,5 +1,6 @@
 #include "AudioDeviceManager.h"
 #include "VibeCoreLog.h"
+#include "../threads/ThreadModel.h"
 #include <oboe/Oboe.h>
 
 namespace vibecore {
@@ -22,12 +23,13 @@ DeviceCapabilities AudioDeviceManager::queryCapabilities() {
 
     // Probe exclusive mode by attempting to open a test stream
     oboe::AudioStreamBuilder builder;
+    // Oboe-Builder-Setter geben AudioStreamBuilder* zurück → Pointer-Chaining.
     builder.setDirection(oboe::Direction::Output)
-           .setPerformanceMode(oboe::PerformanceMode::LowLatency)
-           .setSharingMode(oboe::SharingMode::Exclusive)
-           .setFormat(oboe::AudioFormat::Float)
-           .setChannelCount(oboe::ChannelCount::Stereo)
-           .setSampleRate(mCapabilities.sampleRate);
+           ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
+           ->setSharingMode(oboe::SharingMode::Exclusive)
+           ->setFormat(oboe::AudioFormat::Float)
+           ->setChannelCount(oboe::ChannelCount::Stereo)
+           ->setSampleRate(mCapabilities.sampleRate);
 
     std::shared_ptr<oboe::AudioStream> testStream;
     oboe::Result result = builder.openStream(testStream);

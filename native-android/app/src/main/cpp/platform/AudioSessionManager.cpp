@@ -1,5 +1,6 @@
 #include "AudioSessionManager.h"
 #include "VibeCoreLog.h"
+#include "../threads/ThreadModel.h"
 
 namespace vibecore {
 

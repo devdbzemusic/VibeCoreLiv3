@@ -1,5 +1,6 @@
 #include "Diagnostics.h"
 #include "VibeCoreLog.h"
+#include "../threads/ThreadModel.h"
 #include <sstream>
 #include <ctime>
 #include <iomanip>

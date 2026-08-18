@@ -143,3 +143,9 @@ UI-triggered notes use BassEngine::noteOn() → BassCommand queue → ≤1 buffe
 - B-02: Oversampling ×2/×4 (oversample buffer in VoicePool or BassPool)
 - B-05: Ladder filter implementation
 - ADR-005: JSI bridge decision
+
+## Build-Host-Gate (2026-08-18)
+- Build-Host komplett im Repo: settings/build/gradle.properties + kompletter Wrapper (offizielle v8.7.0-Artefakte) + Manifest + MainActivity/Application. Status: BUILD-READY / RUNTIME UNVERIFIED (kein SDK/NDK im Repl).
+- ZWEI JS-Interfaces: `window.VibeCoreNative` (Audio-Bridge, ADR-005) + `window.VibeCoreHost` (Mikrofon-Permission-Flow). Fokusverlust wird im Host DURCHGESETZT (stop/stopEngine), Auto-Resume bewusst nicht.
+- Oboe-1.9-API-Fallen (real im Code gefunden): Builder-Setter geben `AudioStreamBuilder*` zurück → Pointer-Chaining `->`, nie `.`; `ResultWithValue` hat KEIN `isOk()` → `error()==Result::OK`; Klasse fehlender `../threads/ThreadModel.h`-Includes zieht sich durch platform/ (Assert-Makros).
+- jni_bass_bridge.cpp / jni_voice_bridge.cpp sind #include-only in jni_bridge.cpp (CMake kompiliert nur jni_bridge.cpp) — nie standalone syntax-checken.

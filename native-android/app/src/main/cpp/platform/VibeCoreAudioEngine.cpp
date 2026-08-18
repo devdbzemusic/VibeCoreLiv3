@@ -1,6 +1,7 @@
 #include "VibeCoreAudioEngine.h"
 #include "VibeCoreLog.h"
 #include "../graph/MixerNode.h"
+#include "../threads/ThreadModel.h"
 #include <cstring>
 
 namespace vibecore {
@@ -156,8 +157,9 @@ oboe::DataCallbackResult VibeCoreAudioEngine::onAudioReady(
 
     // ── Step 6: Update latency estimate ───────────────────────────────────
     if (mStream) {
+        // Oboe 1.9 ResultWithValue hat kein isOk(); Prüfung via error().
         auto ts = mStream->calculateLatencyMillis();
-        if (ts.isOk()) mPerfMon.setEstimatedLatencyMs(ts.value());
+        if (ts.error() == oboe::Result::OK) mPerfMon.setEstimatedLatencyMs(ts.value());
     }
 
     mAbsoluteSamplePos += numFrames;
@@ -176,16 +178,17 @@ void VibeCoreAudioEngine::onErrorAfterClose(oboe::AudioStream*, oboe::Result res
 bool VibeCoreAudioEngine::openStream() {
     const auto& caps = mDeviceMgr.capabilities();
     oboe::AudioStreamBuilder builder;
+    // Oboe-Builder-Setter geben AudioStreamBuilder* zurück → Pointer-Chaining.
     builder.setDirection(oboe::Direction::Output)
-           .setPerformanceMode(oboe::PerformanceMode::LowLatency)
-           .setSharingMode(caps.supportsExclusive
+           ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
+           ->setSharingMode(caps.supportsExclusive
                ? oboe::SharingMode::Exclusive : oboe::SharingMode::Shared)
-           .setFormat(oboe::AudioFormat::Float)
-           .setChannelCount(oboe::ChannelCount::Stereo)
-           .setSampleRate(mSampleRate)
-           .setFramesPerDataCallback(mFramesPerCallback)
-           .setDataCallback(this)
-           .setErrorCallback(this);
+           ->setFormat(oboe::AudioFormat::Float)
+           ->setChannelCount(oboe::ChannelCount::Stereo)
+           ->setSampleRate(mSampleRate)
+           ->setFramesPerDataCallback(mFramesPerCallback)
+           ->setDataCallback(this)
+           ->setErrorCallback(this);
 
     oboe::Result r = builder.openStream(mStream);
     if (r != oboe::Result::OK) {
