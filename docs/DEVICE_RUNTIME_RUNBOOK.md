@@ -14,7 +14,7 @@ dort NOT DONE.
 | | |
 |---|---|
 | APK | `native-android/app/build/outputs/apk/debug/app-debug.apk` |
-| Größe | 4 529 481 Bytes |
+| Größe | 6 503 957 Bytes (Rebuild 2026-08-18 mit vollständigem Web-Build in assets/webapp) |
 | SHA-256 | `3962ac2f68c3895307d6961e221293e4450cca4d9585e287c962854df4e98d89` (Rebuild 2026-08-18, funktionsgleich; Debug-Signatur macht jeden Build hash-verschieden) |
 | Package | `com.vibecore.app` (versionCode 1) |
 | ABIs | arm64-v8a (Xiaomi-Standard), armeabi-v7a, x86_64 |
