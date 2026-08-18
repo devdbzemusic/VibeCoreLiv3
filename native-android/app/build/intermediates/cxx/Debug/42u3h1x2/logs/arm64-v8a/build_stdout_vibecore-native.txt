@@ -1,0 +1,62 @@
+ninja: Entering directory `/home/runner/workspace/native-android/app/.cxx/Debug/42u3h1x2/arm64-v8a'
+[1/34] Building CXX object CMakeFiles/vibecore-native.dir/platform/PerformanceMonitor.cpp.o
+[2/34] Building CXX object CMakeFiles/vibecore-native.dir/platform/AudioSessionManager.cpp.o
+[3/34] Building CXX object CMakeFiles/vibecore-native.dir/platform/sync/VibeCoreSync.cpp.o
+/home/runner/workspace/native-android/app/src/main/cpp/platform/sync/VibeCoreSync.cpp:201:22: warning: unused variable 'tickSampleF' [-Wunused-variable]
+        const double tickSampleF = mAT.playheadSample
+                     ^
+1 warning generated.
+[4/34] Building CXX object CMakeFiles/vibecore-native.dir/voice/VoicePitchShifter.cpp.o
+[5/34] Building CXX object CMakeFiles/vibecore-native.dir/graph/MixerNode.cpp.o
+[6/34] Building CXX object CMakeFiles/vibecore-native.dir/threads/ThreadModel.cpp.o
+[7/34] Building CXX object CMakeFiles/vibecore-native.dir/platform/AudioDeviceManager.cpp.o
+/home/runner/workspace/native-android/app/src/main/cpp/platform/AudioDeviceManager.cpp:57:47: warning: explicitly assigning value of variable of type 'int32_t' (aka 'int') to itself [-Wself-assign]
+    oboe::DefaultStreamValues::FramesPerBurst =
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ^
+1 warning generated.
+[8/34] Building CXX object CMakeFiles/vibecore-native.dir/platform/Diagnostics.cpp.o
+[9/34] Building CXX object CMakeFiles/vibecore-native.dir/graph/AudioGraphManager.cpp.o
+In file included from /home/runner/workspace/native-android/app/src/main/cpp/graph/AudioGraphManager.cpp:1:
+/home/runner/workspace/native-android/app/src/main/cpp/graph/AudioGraphManager.h:76:12: warning: private field 'mNextId' is not used [-Wunused-private-field]
+    NodeId mNextId{1};
+           ^
+1 warning generated.
+[10/34] Building CXX object CMakeFiles/vibecore-native.dir/platform/VibeCoreAudioEngine.cpp.o
+[11/34] Building CXX object CMakeFiles/vibecore-native.dir/groove/SceneEngine.cpp.o
+[12/34] Building CXX object CMakeFiles/vibecore-native.dir/groove/PianoRoll.cpp.o
+[13/34] Building CXX object CMakeFiles/vibecore-native.dir/groove/StepSequencer.cpp.o
+[14/34] Building CXX object CMakeFiles/vibecore-native.dir/groove/VoicePool.cpp.o
+[15/34] Building CXX object CMakeFiles/vibecore-native.dir/groove/GrooveEngine.cpp.o
+[16/34] Building CXX object CMakeFiles/vibecore-native.dir/bass/BassLFO.cpp.o
+/home/runner/workspace/native-android/app/src/main/cpp/bass/BassLFO.cpp:5:24: warning: unused variable 'kPi' [-Wunused-const-variable]
+static constexpr float kPi = 3.14159265359f;
+                       ^
+1 warning generated.
+[17/34] Building CXX object CMakeFiles/vibecore-native.dir/bass/BassFilter.cpp.o
+[18/34] Building CXX object CMakeFiles/vibecore-native.dir/bass/BassWavetable.cpp.o
+[19/34] Building CXX object CMakeFiles/vibecore-native.dir/bass/BassEnvelope.cpp.o
+[20/34] Building CXX object CMakeFiles/vibecore-native.dir/groove/GrooveNode.cpp.o
+[21/34] Building CXX object CMakeFiles/vibecore-native.dir/bass/Bass3DStereo.cpp.o
+[22/34] Building CXX object CMakeFiles/vibecore-native.dir/bass/BassVoice.cpp.o
+/home/runner/workspace/native-android/app/src/main/cpp/bass/BassVoice.cpp:167:17: warning: unused variable 'env1' [-Wunused-variable]
+    const float env1 = mEnvs[1].process();
+                ^
+/home/runner/workspace/native-android/app/src/main/cpp/bass/BassVoice.cpp:170:17: warning: unused variable 'lfo0' [-Wunused-variable]
+    const float lfo0 = mLFOs[0].process();
+                ^
+/home/runner/workspace/native-android/app/src/main/cpp/bass/BassVoice.cpp:6:24: warning: unused variable 'kTwoPi' [-Wunused-const-variable]
+static constexpr float kTwoPi    = 6.28318530718f;
+                       ^
+3 warnings generated.
+[23/34] Building CXX object CMakeFiles/vibecore-native.dir/bass/BassVoicePool.cpp.o
+[24/34] Building CXX object CMakeFiles/vibecore-native.dir/bass/BassNode.cpp.o
+[25/34] Building CXX object CMakeFiles/vibecore-native.dir/voice/VoiceDynamics.cpp.o
+[26/34] Building CXX object CMakeFiles/vibecore-native.dir/voice/VoiceFormant.cpp.o
+[27/34] Building CXX object CMakeFiles/vibecore-native.dir/voice/VoiceEQ.cpp.o
+[28/34] Building CXX object CMakeFiles/vibecore-native.dir/voice/VoiceUnit.cpp.o
+[29/34] Building CXX object CMakeFiles/vibecore-native.dir/bass/BassEngine.cpp.o
+[30/34] Building CXX object CMakeFiles/vibecore-native.dir/voice/VoiceInput.cpp.o
+[31/34] Building CXX object CMakeFiles/vibecore-native.dir/voice/VoiceNode.cpp.o
+[32/34] Building CXX object CMakeFiles/vibecore-native.dir/bridge/jni_bridge.cpp.o
+[33/34] Building CXX object CMakeFiles/vibecore-native.dir/voice/VoiceEngine.cpp.o
+[34/34] Linking CXX shared library /home/runner/workspace/native-android/app/build/intermediates/cxx/Debug/42u3h1x2/obj/arm64-v8a/libvibecore-native.so

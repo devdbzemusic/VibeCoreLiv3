@@ -1,0 +1,40 @@
+{
+  "buildFiles": [
+    "/home/runner/workspace/native-android/app/src/main/cpp/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/home/runner/workspace/.android-sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/home/runner/workspace/native-android/app/.cxx/Debug/42u3h1x2/x86_64",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/home/runner/workspace/.android-sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/home/runner/workspace/native-android/app/.cxx/Debug/42u3h1x2/x86_64",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "vibecore-native::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "x86_64",
+      "artifactName": "vibecore-native",
+      "output": "/home/runner/workspace/native-android/app/build/intermediates/cxx/Debug/42u3h1x2/obj/x86_64/libvibecore-native.so",
+      "runtimeFiles": [
+        "/home/runner/.gradle/caches/transforms-4/81f64aead9b355bd19655219c6d751b7/transformed/oboe-1.9.0/prefab/modules/oboe/libs/android.x86_64/liboboe.so"
+      ]
+    }
+  },
+  "toolchains": {
+    "toolchain": {
+      "cCompilerExecutable": "/home/runner/workspace/.android-sdk/ndk/26.1.10909125/toolchains/llvm/prebuilt/linux-x86_64/bin/clang.lld",
+      "cppCompilerExecutable": "/home/runner/workspace/.android-sdk/ndk/26.1.10909125/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++.lld"
+    }
+  },
+  "cFileExtensions": [],
+  "cppFileExtensions": [
+    "cpp"
+  ]
+}

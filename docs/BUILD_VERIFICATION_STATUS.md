@@ -1,6 +1,17 @@
 # BUILD VERIFICATION STATUS — native-android (Stand: 2026-08-18, Gate „Android Build Host" ausgeführt)
 
-> **STATUS: BUILD-READY / RUNTIME UNVERIFIED.** Der minimale Build-Host ist
+> **STATUS: BUILD VERIFIED (APK erzeugt) / RUNTIME UNVERIFIED (kein Gerät/Emulator).**
+> Realer Build am 2026-08-18 im Repl ausgeführt: JDK 17 + Android SDK
+> (Platform 34, Build-Tools 34.0.0, NDK 26.1.10909125, CMake 3.22.1) in
+> `.android-sdk/` installiert, `./gradlew :app:assembleDebug` →
+> **BUILD SUCCESSFUL** (43 Tasks). APK: `app/build/outputs/apk/debug/app-debug.apk`,
+> 4 529 481 Bytes, SHA-256 `375ac6f3…e583c`, enthält libvibecore-native.so +
+> liboboe.so + libc++_shared.so für arm64-v8a/armeabi-v7a/x86_64, 155
+> JNI-Exports (llvm-nm), Strings `VibeCoreNative`/`VibeCoreHost` im DEX,
+> webapp-Assets gebündelt. Runtime (Install/Launch/Oboe-Init/Audio) NICHT
+> verifiziert: `adb devices` leer, kein /dev/kvm (kein Emulator möglich).
+>
+> Historie (Vorzustand): Der minimale Build-Host ist
 > jetzt im Repo (settings/build/gradle.properties, Wrapper-Properties,
 > Manifest, VibeCoreApplication, MainActivity mit
 > `addJavascriptInterface(bridge, "VibeCoreNative")`). Ein realer Gradle-/

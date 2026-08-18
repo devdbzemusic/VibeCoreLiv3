@@ -149,3 +149,8 @@ UI-triggered notes use BassEngine::noteOn() → BassCommand queue → ≤1 buffe
 - ZWEI JS-Interfaces: `window.VibeCoreNative` (Audio-Bridge, ADR-005) + `window.VibeCoreHost` (Mikrofon-Permission-Flow). Fokusverlust wird im Host DURCHGESETZT (stop/stopEngine), Auto-Resume bewusst nicht.
 - Oboe-1.9-API-Fallen (real im Code gefunden): Builder-Setter geben `AudioStreamBuilder*` zurück → Pointer-Chaining `->`, nie `.`; `ResultWithValue` hat KEIN `isOk()` → `error()==Result::OK`; Klasse fehlender `../threads/ThreadModel.h`-Includes zieht sich durch platform/ (Assert-Makros).
 - jni_bass_bridge.cpp / jni_voice_bridge.cpp sind #include-only in jni_bridge.cpp (CMake kompiliert nur jni_bridge.cpp) — nie standalone syntax-checken.
+
+## Native Build Execution Gate (2026-08-18) — BUILD VERIFIED
+- Realer Android-Build IM REPL möglich: nix jdk17 + cmdline-tools nach `.android-sdk/` (Platform 34, Build-Tools 34.0.0, NDK 26.1.10909125, CMake 3.22.1; ~2,6 GB), `sdk.dir` via native-android/local.properties (gitignored). `./gradlew :app:assembleDebug --no-daemon` → BUILD SUCCESSFUL (~1 min nach Erstkonfiguration).
+- nohup-Hintergrundprozesse überleben ShellExec-Sessions NICHT — Gradle-Läufe im Vordergrund mit `timeout 290` fahren; Gradle-Cache macht Wiederholungsläufe schnell.
+- Runtime bleibt im Repl unverifizierbar: kein adb-Gerät, kein /dev/kvm (kein Emulator). Maximalstand hier: APK-Nachweis + statische DEX-/Symbol-Checks.
