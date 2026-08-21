@@ -42,3 +42,12 @@
 838	2038	1787040634640734736	CMakeFiles/vibecore-native.dir/voice/VoiceEngine.cpp.o	6bb594e47a7a246e
 995	2059	1787040634660278911	CMakeFiles/vibecore-native.dir/bridge/jni_bridge.cpp.o	27a38eb2d82f51ba
 2059	2481	1787040635081296957	/home/runner/workspace/native-android/app/build/intermediates/cxx/Debug/42u3h1x2/obj/x86_64/libvibecore-native.so	17a1ae64d08fea97
+3	1249	1787342410538860984	CMakeFiles/vibecore-native.dir/platform/AudioDeviceManager.cpp.o	39d46886f5aaaf9d
+6	1260	1787342410557425731	CMakeFiles/vibecore-native.dir/groove/GrooveNode.cpp.o	432fa944cf49b2be
+8	1310	1787342410608848492	CMakeFiles/vibecore-native.dir/voice/VoiceNode.cpp.o	c8160f643aa27136
+2	1358	1787342410665453572	CMakeFiles/vibecore-native.dir/platform/VibeCoreAudioEngine.cpp.o	ebd27b9ce0ff39c0
+6	1380	1787342410695807768	CMakeFiles/vibecore-native.dir/voice/VoiceInput.cpp.o	f0667af7e969c941
+3	1437	1787342410745453572	CMakeFiles/vibecore-native.dir/platform/Diagnostics.cpp.o	44bbea5734ad91ca
+1260	2073	1787342411381453572	CMakeFiles/vibecore-native.dir/bridge/jni_bridge.cpp.o	27a38eb2d82f51ba
+1252	2081	1787342411396843654	CMakeFiles/vibecore-native.dir/voice/VoiceEngine.cpp.o	6bb594e47a7a246e
+2081	2643	1787342411949453572	/home/runner/workspace/native-android/app/build/intermediates/cxx/Debug/42u3h1x2/obj/x86_64/libvibecore-native.so	17a1ae64d08fea97
