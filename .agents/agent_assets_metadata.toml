@@ -19,5 +19,5 @@ description = "Vollständiger Projektexport (580 Dateien, ~1,3 MB gepackt): Web-
 id = "pW-QMC2aTCp-k8Ctw4jJv"
 uri = "file://native-android/app/build/outputs/apk/debug/app-debug.apk"
 type = "unspecified"
-title = "VibeCore Univers — Debug APK (White-Screen-Fix)"
-description = "Korrigierter Debug-Build mit relativen Asset-Pfaden (./assets/...) statt /assets/... — behebt den weißen Bildschirm unter file:///android_asset/webapp/. SHA-256: 186697f38e27f7647198ed7abba922a17349ac532084421b686766eec0668700"
+title = "VibeCore Univers APK — detailliert geprüft"
+description = "Download des verifizierten Debug-APK. Geprüft: WebView-Index unter assets/webapp/index.html, relative ./assets/...-Referenzen, vorhandene JS/CSS-Dateien im APK und erfolgreicher Gradle-Build. Größe: 6.491.413 Bytes. SHA-256: 186697f38e27f7647198ed7abba922a17349ac532084421b686766eec0668700. Xiaomi-Runtime ist noch nicht verifiziert."
