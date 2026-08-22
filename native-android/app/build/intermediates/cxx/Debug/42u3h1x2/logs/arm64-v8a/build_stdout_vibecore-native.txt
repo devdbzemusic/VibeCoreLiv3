@@ -5,10 +5,10 @@ ninja: Entering directory `/home/runner/workspace/native-android/app/.cxx/Debug/
     oboe::DefaultStreamValues::FramesPerBurst =
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ^
 1 warning generated.
-[3/9] Building CXX object CMakeFiles/vibecore-native.dir/platform/VibeCoreAudioEngine.cpp.o
-[4/9] Building CXX object CMakeFiles/vibecore-native.dir/groove/GrooveNode.cpp.o
-[5/9] Building CXX object CMakeFiles/vibecore-native.dir/voice/VoiceNode.cpp.o
-[6/9] Building CXX object CMakeFiles/vibecore-native.dir/platform/Diagnostics.cpp.o
+[3/9] Building CXX object CMakeFiles/vibecore-native.dir/groove/GrooveNode.cpp.o
+[4/9] Building CXX object CMakeFiles/vibecore-native.dir/platform/Diagnostics.cpp.o
+[5/9] Building CXX object CMakeFiles/vibecore-native.dir/platform/VibeCoreAudioEngine.cpp.o
+[6/9] Building CXX object CMakeFiles/vibecore-native.dir/voice/VoiceNode.cpp.o
 [7/9] Building CXX object CMakeFiles/vibecore-native.dir/bridge/jni_bridge.cpp.o
 [8/9] Building CXX object CMakeFiles/vibecore-native.dir/voice/VoiceEngine.cpp.o
 [9/9] Linking CXX shared library /home/runner/workspace/native-android/app/build/intermediates/cxx/Debug/42u3h1x2/obj/arm64-v8a/libvibecore-native.so
