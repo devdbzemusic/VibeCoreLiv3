@@ -11,7 +11,6 @@ import { useGroove } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { TactileKnob } from "@/components/controls/TactileKnob";
 import { Synth3DSubtab } from "./Synth3DSubtab";
-import { AiContextButton } from "./AiContextButton";
 import { defaultSynth3D, type OscType3D } from "@/lib/synth3d/params";
 
 // ── Osc-Shape cycling button styled like a knob cell ─────────────────────────
@@ -19,6 +18,15 @@ const OSC_TYPES: OscType3D[] = ["sine", "saw", "square", "triangle", "noise", "w
 const OSC_LABELS: Record<OscType3D, string> = {
   sine: "SINE", saw: "SAW", square: "SQR", triangle: "TRI", noise: "NOISE", wavetable: "WT",
 };
+
+type SoundDirection = "BRIGHT" | "DARK" | "PUNCH" | "DREAM";
+
+const SOUND_DIRECTIONS: { key: SoundDirection; label: string; detail: string; color: string }[] = [
+  { key: "BRIGHT", label: "BRIGHT", detail: "OPEN · CLEAR", color: "text-neon-cyan" },
+  { key: "DARK", label: "DARK", detail: "WARM · DEEP", color: "text-neon-violet" },
+  { key: "PUNCH", label: "PUNCH", detail: "HIT · DRIVE", color: "text-neon-amber" },
+  { key: "DREAM", label: "DREAM", detail: "WIDE · AIR", color: "text-neon-lime" },
+];
 
 function OscShapeCell({ value, onChange }: { value: OscType3D; onChange: (t: OscType3D) => void }) {
   const idx = OSC_TYPES.indexOf(value);
@@ -124,9 +132,13 @@ function SecondaryPanel({ open, onClose }: { open: boolean; onClose: () => void 
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function Synth3DPage() {
-  const { parts, selectedPart, selectPart, setSynthEngine, setPartSource, setSynth3D } = useGroove();
+  const {
+    parts, selectedPart, selectPart, setSynthEngine, setPartSource,
+    setSynth3D, setSend, setChannel, fx,
+  } = useGroove();
   const [secondaryOpen, setSecondaryOpen] = useState(false);
   const [deepOpen, setDeepOpen] = useState(false);
+  const [lastDirection, setLastDirection] = useState<SoundDirection | null>(null);
 
   useEffect(() => {
     const p = useGroove.getState().parts[selectedPart];
@@ -134,27 +146,69 @@ export function Synth3DPage() {
       setSynthEngine(selectedPart, "3D");
       setPartSource(selectedPart, "synth");
     }
+    setLastDirection(null);
   }, [selectedPart, setSynthEngine, setPartSource]);
 
   const p = parts[selectedPart];
   const s3d = p?.synth3d ?? defaultSynth3D();
   if (!p) return null;
 
-  // Reverb send = sends[0] (first FX bus send)
-  const reverbSend = p.sends[0] ?? 0;
+  // The FX bank is configurable. Resolve a real reverb bus instead of assuming
+  // a fixed send index (the default first bus is Chorus, not Reverb).
+  const configuredReverbBus = fx.findIndex((slot) => slot.type === "Hall Reverb" || slot.type === "Room Reverb");
+  const reverbSendIndex = configuredReverbBus >= 0 ? configuredReverbBus : null;
+  const reverbSend = reverbSendIndex === null ? 0 : p.sends[reverbSendIndex] ?? 0;
+  const setReverbSend = (value: number) => {
+    if (reverbSendIndex !== null) setSend(p.id, reverbSendIndex, value);
+  };
 
-  const handleOptimizeSynth = () => {
-    // Apply a subtle random variation to filter and reverb
-    const types: OscType3D[] = ["sine", "saw", "square", "triangle"];
-    const t = types[Math.floor(Math.random() * types.length)];
-    setSynth3D(p.id, {
-      osc1: { ...s3d.osc1, type: t },
-      filter1: {
-        ...s3d.filter1,
-        freq: 400 + Math.random() * 4000,
-        q: 0.5 + Math.random() * 4,
-      },
-    });
+  const applyDirection = (direction: SoundDirection) => {
+    setLastDirection(direction);
+
+    // Every direction is a partial patch: existing OSC2/sub voicing and all
+    // untouched sound-design choices remain intact for the musician.
+    switch (direction) {
+      case "BRIGHT":
+        setSynth3D(p.id, {
+          osc1: { ...s3d.osc1, type: "saw" },
+          filter1: { ...s3d.filter1, enabled: true, freq: 8000, q: 1.2 },
+          ampEnv: { ...s3d.ampEnv, attack: 0.008, decay: 0.32, release: 0.22 },
+        });
+        setReverbSend(12);
+        break;
+      case "DARK":
+        setSynth3D(p.id, {
+          osc1: { ...s3d.osc1, type: "triangle" },
+          filter1: { ...s3d.filter1, enabled: true, freq: 500, q: 2.4 },
+          ampEnv: { ...s3d.ampEnv, attack: 0.55, decay: 1.1, release: 1.8 },
+        });
+        setReverbSend(68);
+        break;
+      case "PUNCH":
+        setSynth3D(p.id, {
+          osc1: { ...s3d.osc1, type: "square" },
+          filter1: { ...s3d.filter1, enabled: true, freq: 2800, q: 4.2 },
+          ampEnv: { ...s3d.ampEnv, attack: 0.003, decay: 0.18, sustain: 0.15, release: 0.07 },
+        });
+        setChannel(p.id, { drive: 68, driveType: "tube" });
+        setReverbSend(8);
+        break;
+      case "DREAM":
+        setSynth3D(p.id, {
+          osc1: { ...s3d.osc1, type: "sine", level: Math.max(s3d.osc1.level, 0.65) },
+          osc2: {
+            ...s3d.osc2,
+            type: "wavetable",
+            enabled: true,
+            level: Math.max(s3d.osc2.level, 0.38),
+          },
+          filter1: { ...s3d.filter1, enabled: true, freq: 2200, q: 0.8 },
+          ampEnv: { ...s3d.ampEnv, attack: 1.1, decay: 1.4, sustain: 0.75, release: 2 },
+          spatial: { ...s3d.spatial, enabled: true, mode: "binaural", width: 1.75 },
+        });
+        setReverbSend(76);
+        break;
+    }
   };
 
   return (
@@ -177,21 +231,37 @@ export function Synth3DPage() {
         </div>
       </div>
 
-      {/* 8 Macro knobs + secondary panel toggle */}
+      {/* 8 Macro knobs + direction picker + secondary panel toggle */}
       <div className="panel p-3">
         <div className="flex items-center justify-between mb-2">
-          <div className="font-display text-xs text-primary">MACRO · 8 PARAMS</div>
-          <div className="flex items-center gap-1.5">
-            <AiContextButton label="AI Optimize" onAction={handleOptimizeSynth} />
-            <button
-              onClick={() => setSecondaryOpen((o) => !o)}
-              className={cn("h-7 w-7 grid place-items-center panel-inset rounded transition-colors",
-                secondaryOpen && "neon-border text-primary")}
-              aria-label="Secondary parameters"
-            >
-              {secondaryOpen ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
-            </button>
+          <div>
+            <div className="font-display text-xs text-primary">MACRO · 8 PARAMS</div>
+            <div className="font-mono text-[8px] text-muted-foreground tracking-widest mt-0.5">AI DIRECTION · LAST APPLIED</div>
           </div>
+          <button
+            onClick={() => setSecondaryOpen((o) => !o)}
+            className={cn("h-7 w-7 grid place-items-center panel-inset rounded transition-colors",
+              secondaryOpen && "neon-border text-primary")}
+            aria-label="Secondary parameters"
+          >
+            {secondaryOpen ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5 mb-3">
+          {SOUND_DIRECTIONS.map((direction) => (
+            <button
+              key={direction.key}
+              onClick={() => applyDirection(direction.key)}
+              aria-pressed={lastDirection === direction.key}
+              className={cn(
+                "h-11 rounded panel-inset px-2 text-left flex items-center justify-between transition-colors touch-none",
+                lastDirection === direction.key && "neon-border",
+              )}
+            >
+              <span className={cn("font-display text-[10px]", direction.color)}>{direction.label}</span>
+              <span className="font-mono text-[7px] text-muted-foreground tracking-wider">{direction.detail}</span>
+            </button>
+          ))}
         </div>
         <div className="hairline mb-3" />
 
@@ -271,19 +341,18 @@ export function Synth3DPage() {
             display={`${Math.round(s3d.ampEnv.release * 1000)}ms`}
           />
 
-          {/* 8 — Reverb Send */}
+          {/* 8 — Reverb Send (resolved from the configured FX bus) */}
           <TactileKnob
             label="REVERB"
             value={reverbSend}
             min={0} max={100}
             defaultValue={0}
             onChange={(v) => {
-              const sends = [...p.sends];
-              sends[0] = Math.round(v);
-              useGroove.getState().setSend(p.id, 0, Math.round(v));
+              setReverbSend(Math.round(v));
             }}
             size="md" color="lime"
-            display={`${reverbSend}%`}
+            display={reverbSendIndex === null ? "NO BUS" : `${reverbSend}%`}
+            disabled={reverbSendIndex === null}
           />
         </div>
       </div>
