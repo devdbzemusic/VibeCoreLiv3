@@ -19,8 +19,8 @@ description = "Vollständiger Projektexport (580 Dateien, ~1,3 MB gepackt): Web-
 id = "pW-QMC2aTCp-k8Ctw4jJv"
 uri = "file://native-android/app/build/outputs/apk/debug/app-debug.apk"
 type = "unspecified"
-title = "VibeCore Univers — Recovery APK mit Asset- und Routing-Fix"
-description = "Aktueller Debug-APK aus Git-Commit a749fb7ffc26a272b44e539eeb1e239adde645d3. Enthält relative ./assets/...-Pfade und den Android-only HashRouter-Fix für file:///android_asset/webapp/index.html. Paket com.vibecore.app, Version 1.0 / Code 1, ABIs arm64-v8a/armeabi-v7a/x86_64. Gradle erfolgreich. Größe 6.491.541 Bytes. SHA-256: 3563a01a835db1cce57a1fdc9d19a55e21d83721b4f7f03cce0dc4c425ac102c. Xiaomi-Runtime noch nicht verifiziert."
+title = "VibeCore Univers Android APK"
+description = "Debug-APK für das Entwicklerteam. SHA-256: aa71a63f1c3100e96b546e7fc6d2e23041db874ac0551fb459b5462f596b881a. Größe: 6.491.452 Bytes."
 
 [[outputs]]
 id = "IeCvILTa3Iu2AKbKIfM_j"
