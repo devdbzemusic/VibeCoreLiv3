@@ -31,6 +31,20 @@ interface LoadedSample {
 
 const SLICE_OPTIONS = [2, 4, 8, 16, 32, 64] as const;
 
+function evenSlicePositions(sliceCount: number): number[] {
+  return Array.from(
+    { length: Math.max(0, Math.round(sliceCount) - 1) },
+    (_, i) => (i + 1) / sliceCount,
+  );
+}
+
+function slicePositionsForWave(wave: WaveEdit): number[] {
+  const expected = Math.max(0, Math.round(wave.slices) - 1);
+  return wave.sliceMarkers?.length === expected
+    ? wave.sliceMarkers
+    : evenSlicePositions(wave.slices);
+}
+
 export function SmplTab() {
   const { parts, selectedPart, selectPart, setPartSampleName, setWaveEdit } = useGroove();
   const part = parts[selectedPart];
@@ -50,13 +64,11 @@ export function SmplTab() {
   const [slicePositions, setSlicePositions] = useState<number[]>([]);
   const sliceDragRef = useRef<{ idx: number } | null>(null);
 
-  // Keep slicePositions in sync when wave.slices changes
+  // Restore custom positions when switching parts or returning to Sample Forge.
+  // Older projects and a changed slice count fall back to even divisions.
   useEffect(() => {
-    const n = wave.slices;
-    setSlicePositions(
-      Array.from({ length: n - 1 }, (_, i) => (i + 1) / n),
-    );
-  }, [wave.slices]);
+    setSlicePositions(slicePositionsForWave(wave));
+  }, [selectedPart, wave.slices, wave.sliceMarkers]);
 
   const partBuffer = getBuffer(selectedPart);
   const sample = library[selected];
@@ -134,6 +146,9 @@ export function SmplTab() {
     }
   };
   const onWavePointerUp = () => {
+    if (sliceDragRef.current !== null) {
+      setWaveEdit(selectedPart, { sliceMarkers: slicePositions });
+    }
     markerDragRef.current = null;
     sliceDragRef.current = null;
   };
@@ -204,7 +219,7 @@ export function SmplTab() {
       const n = Math.max(2, Math.min(16, slices.length));
       const supported = [2, 4, 8, 16];
       const chosen = supported.slice().reverse().find((v) => v <= n) ?? 2;
-      setWaveEdit(selectedPart, { slices: chosen });
+      setWaveEdit(selectedPart, { slices: chosen, sliceMarkers: undefined });
       setStatus(`Auto-chop: ${slices.length} transients → ${chosen} slices`);
     } finally {
       setBusy(false);
@@ -214,7 +229,10 @@ export function SmplTab() {
   const triggerSlice = async (i: number) => {
     await ensureAudio();
     if (!partBuffer) return;
-    const positions = [wave.start, ...slicePositions, wave.end];
+    const markers = wave.sliceMarkers?.length === Math.max(0, Math.round(wave.slices) - 1)
+      ? wave.sliceMarkers
+      : slicePositions;
+    const positions = [wave.start, ...markers, wave.end];
     const s = positions[i];
     const e = positions[i + 1];
     triggerSampleRegion(selectedPart, s, e, 110);
@@ -243,6 +261,15 @@ export function SmplTab() {
     const bool = (v: unknown, def: boolean) => (typeof v === "boolean" ? v : def);
     const oneOf = <T extends string>(v: unknown, opts: readonly T[], def: T): T =>
       (typeof v === "string" && (opts as readonly string[]).includes(v) ? v as T : def);
+    const slices = num(r.slices, fallback.slices, 2, 64);
+    const hasSliceMarkers = Object.prototype.hasOwnProperty.call(r, "sliceMarkers");
+    const sliceMarkers = Array.isArray(r.sliceMarkers)
+      ? r.sliceMarkers.filter((v): v is number =>
+          typeof v === "number" && Number.isFinite(v) && v > 0 && v < 1,
+        )
+      : null;
+    const expectedMarkers = Math.max(0, Math.round(slices) - 1);
+
     return {
       ...fallback,
       start: num(r.start, fallback.start, 0, 1),
@@ -254,7 +281,13 @@ export function SmplTab() {
       normalize: bool(r.normalize, fallback.normalize),
       fadeIn: num(r.fadeIn, fallback.fadeIn, 0, 100),
       fadeOut: num(r.fadeOut, fallback.fadeOut, 0, 100),
-      slices: num(r.slices, fallback.slices, 2, 64),
+      slices,
+      sliceMarkers: !hasSliceMarkers
+        ? fallback.sliceMarkers
+        : sliceMarkers?.length === expectedMarkers &&
+            sliceMarkers.every((v, i) => i === 0 || v > sliceMarkers[i - 1])
+          ? sliceMarkers
+          : undefined,
       grainSize: num(r.grainSize, fallback.grainSize, 0, 100),
       grainDensity: num(r.grainDensity, fallback.grainDensity, 0, 100),
       grainPos: num(r.grainPos, fallback.grainPos, 0, 100),
@@ -504,7 +537,7 @@ export function SmplTab() {
           <span className="text-muted-foreground">SLICES</span>
           <div className="flex-1 flex gap-1">
             {SLICE_OPTIONS.map((n) => (
-              <button key={n} onClick={() => setWaveEdit(selectedPart, { slices: n })}
+              <button key={n} onClick={() => setWaveEdit(selectedPart, { slices: n, sliceMarkers: undefined })}
                 className={cn("flex-1 h-6 rounded panel-inset text-[10px]",
                   wave.slices === n ? "neon-border text-primary" : "text-muted-foreground")}>
                 {n}

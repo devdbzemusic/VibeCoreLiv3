@@ -74,6 +74,8 @@ export interface WaveEdit {
    *  Undefined = no slices saved; `slices` (count) is the fallback for
    *  equal-spaced slicing when no `sliceData` is present. */
   sliceData?: Slice[];
+  /** Custom normalized positions for the interior slice dividers. */
+  sliceMarkers?: number[];
   grainSize: number; grainDensity: number; grainPos: number; grainSpray: number;
   freeze: boolean; pitchShift: number; timeStretch: number;
   granEnabled: boolean; granDir: GrainDir; granPitch: number;
