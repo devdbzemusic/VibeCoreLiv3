@@ -1,9 +1,8 @@
 // VibeCoreLiv3 — Automation Drawer
 //
 // Collapsible lane strip showing per-step automation data for the current
-// part in the current scene. Lanes: VEL (step velocity), PROB (step
-// probability), GATE (step gate length). Each lane is a draggable bar chart
-// aligned 1:1 with the Piano Roll step columns. Drag a bar up/down to edit.
+// part in the current scene. Each lane is a draggable bar chart aligned 1:1
+// with the Piano Roll step columns. Drag a bar up/down to edit.
 //
 // Signal flow: reads from store partSteps → writes back via updateStep.
 // No audio thread contact; all changes propagate via store listeners.
@@ -15,25 +14,30 @@ import { cn } from "@/lib/utils";
 import type { Step } from "@/lib/model";
 import { ChevronDown } from "lucide-react";
 
-type Lane = "VEL" | "PROB" | "GATE";
+type Lane = "VEL" | "PROB" | "GATE" | "FILT" | "PAN";
 
 const LANE_LABELS: Record<Lane, string> = {
   VEL: "VELOCITY",
   PROB: "PROBABILITY",
   GATE: "GATE",
+  FILT: "FILTER CUTOFF",
+  PAN: "PAN OFFSET",
 };
 
 function laneValue(s: Step, lane: Lane): number {
   if (lane === "VEL")  return s.velocity ?? 100;
   if (lane === "PROB") return s.probability ?? 100;
   if (lane === "GATE") return Math.min(100, (s.gate ?? 100) / 2);
+  if (lane === "FILT") return s.filterCutoff ?? 100;
+  if (lane === "PAN") return s.panOffset ?? 0;
   return 0;
 }
 function laneMax(lane: Lane): number {
-  return lane === "GATE" ? 200 : 100;
+  if (lane === "GATE") return 200;
+  return lane === "PAN" ? 50 : 100;
 }
 function laneMin(lane: Lane): number {
-  return lane === "GATE" ? 0 : 0;
+  return lane === "PAN" ? -50 : 0;
 }
 
 export function AutomationDrawer({ onClose }: { onClose: () => void }) {
@@ -73,7 +77,9 @@ export function AutomationDrawer({ onClose }: { onClose: () => void }) {
     const patch: Partial<Step> =
       activeLane === "VEL"  ? { velocity: val } :
       activeLane === "PROB" ? { probability: val } :
-                              { gate: val };
+      activeLane === "GATE" ? { gate: val } :
+      activeLane === "FILT" ? { filterCutoff: val } :
+                              { panOffset: val };
     updateStep(part.id, idx, patch);
   };
 
@@ -103,7 +109,7 @@ export function AutomationDrawer({ onClose }: { onClose: () => void }) {
         </div>
         <div className="flex items-center gap-1.5">
           {/* Lane selector */}
-          {(["VEL", "PROB", "GATE"] as Lane[]).map((lane) => (
+          {(["VEL", "PROB", "GATE", "FILT", "PAN"] as Lane[]).map((lane) => (
             <button
               key={lane}
               onClick={() => setActiveLane(lane)}
@@ -139,6 +145,10 @@ export function AutomationDrawer({ onClose }: { onClose: () => void }) {
           const val  = laneValue(s, activeLane);
           const pct  = ((val - min) / (max - min)) * 100;
           const on   = s.on;
+          const isPan = activeLane === "PAN";
+          const barHeight = isPan
+            ? Math.max(4, Math.abs(val) / laneMax(activeLane) * 50)
+            : Math.max(4, pct);
           return (
             <div
               key={idx}
@@ -151,11 +161,21 @@ export function AutomationDrawer({ onClose }: { onClose: () => void }) {
             >
               <div
                 className={cn(
-                  "w-full rounded-sm transition-none",
+                  "absolute left-0 w-full rounded-sm transition-none",
                   on ? "bg-primary" : "bg-muted-foreground/40",
                 )}
-                style={{ height: `${Math.max(4, pct)}%` }}
+                style={{
+                  height: `${barHeight}%`,
+                  ...(isPan
+                    ? val >= 0
+                      ? { bottom: "50%" }
+                      : { bottom: `${50 - barHeight}%` }
+                    : {}),
+                }}
               />
+              {isPan && (
+                <div className="absolute left-0 right-0 top-1/2 h-px bg-border/70 pointer-events-none" />
+              )}
               {/* Step number */}
               {idx % 4 === 0 && (
                 <span className="absolute top-0.5 left-0.5 font-mono text-[6px] text-muted-foreground/60 pointer-events-none">

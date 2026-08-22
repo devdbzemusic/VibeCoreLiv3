@@ -208,7 +208,13 @@ function scheduleTickAt(
 
     for (let r = 0; r < ratchet; r++) {
       const t = when + micro + (dur * r) / ratchet;
-      triggerPart(part.id, t, { velocity: velOut, semitone: semiOut, gateSec: gateSec / ratchet });
+      triggerPart(part.id, t, {
+        velocity: velOut,
+        semitone: semiOut,
+        gateSec: gateSec / ratchet,
+        filterCutoff: s.filterCutoff,
+        panOffset: s.panOffset,
+      });
     }
 
     const notes = scene.partNotes[part.id];
@@ -223,6 +229,8 @@ function scheduleTickAt(
           velocity: n.velocity,
           semitone: n.pitch - 60,
           gateSec: nDur * 0.95,
+          filterCutoff: s.filterCutoff,
+          panOffset: s.panOffset,
         });
       }
     }

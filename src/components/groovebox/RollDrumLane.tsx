@@ -16,6 +16,8 @@ export function RollDrumLane({ partId, stepCount }: { partId: number; stepCount:
     return sc?.partSteps[partId] ?? EMPTY;
   });
   const toggleStep = useGroove((s) => s.toggleStep);
+  const selectedStep = useGroove((s) => s.selectedStep);
+  const selectStep = useGroove((s) => s.selectStep);
   const playing = useGroove((s) => s.transport.playing);
   const curPattern = useGroove((s) => s.transport.currentPattern);
   const selPattern = useGroove((s) => s.selectedPattern);
@@ -41,13 +43,14 @@ export function RollDrumLane({ partId, stepCount }: { partId: number; stepCount:
           return (
             <button
               key={idx}
-              onPointerDown={(e) => { e.preventDefault(); toggleStep(partId, idx); }}
+              onPointerDown={(e) => { e.preventDefault(); selectStep(idx); toggleStep(partId, idx); }}
               data-active={on}
               data-playing={isCur}
               className={cn(
                 "h-5 rounded-sm border touch-none transition-colors",
                 on ? "bg-primary/25 border-primary/60" : "bg-muted border-border",
                 isCur && "ring-1 ring-neon-lime",
+                selectedStep === idx && "neon-border",
               )}
               aria-label={`step ${idx + 1} ${on ? "on" : "off"}`}
             />

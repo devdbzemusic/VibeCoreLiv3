@@ -25,7 +25,7 @@ import {
   Plus, Minus, Trash2, Eraser, Magnet, X, Undo2, Redo2,
   Copy, ClipboardPaste, Paintbrush, ChevronLeft, ChevronRight,
 } from "lucide-react";
-import type { Note } from "@/lib/model";
+import type { Note, Step } from "@/lib/model";
 import { RollPlayhead } from "./RollPlayhead";
 import { RollDrumLane } from "./RollDrumLane";
 
@@ -69,6 +69,8 @@ export function PianoRollTab({
   const quantizeNotes = useGroove((s) => s.quantizeNotes);
   const replaceNotes  = useGroove((s) => s.replaceNotes);
   const selectPattern = useGroove((s) => s.selectPattern);
+  const selectedStep = useGroove((s) => s.selectedStep);
+  const selectStep = useGroove((s) => s.selectStep);
 
   // Extra subscriptions for compact mode (low-cost, no unnecessary re-renders)
   const bpm       = useGroove((s) => s.bpm);
@@ -79,6 +81,7 @@ export function PianoRollTab({
   const part    = parts[selectedPart];
   const scene   = pattern?.scenes[Math.min(selectedSceneIdx, (pattern?.scenes.length ?? 1) - 1)];
   const notes   = (scene?.partNotes[part?.id ?? 0] ?? []) as Note[];
+  const steps   = (scene?.partSteps[part?.id ?? 0] ?? []) as Step[];
 
   const [topPitch, setTopPitch] = useState<number>(72);   // C5 down to G3
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
@@ -215,8 +218,9 @@ export function PianoRollTab({
         if (d.painted.has(key)) return;
         d.painted.add(key);
         const ex = L.notes.find((n) => n.step === st && n.pitch === pitch);
-        if (ex) { setSelectedNoteId(ex.id); return; }
+        if (ex) { selectStep(st); setSelectedNoteId(ex.id); return; }
         const id = addNote(L.part.id, { step: st, pitch, length: 1, velocity: 100, micro: 0 });
+        selectStep(st);
         setSelectedNoteId(id);
       }
     };
@@ -295,19 +299,25 @@ export function PianoRollTab({
       const ex = notes.find((n) => n.step === c.step && n.pitch === c.pitch);
       if (!ex) {
         const id = addNote(part.id, { step: c.step, pitch: c.pitch, length: 1, velocity: 100, micro: 0 });
+        selectStep(c.step);
         setSelectedNoteId(id);
-      } else setSelectedNoteId(ex.id);
+      } else {
+        selectStep(c.step);
+        setSelectedNoteId(ex.id);
+      }
       return;
     }
     const existing = notes.find((n) => n.step === c.step && n.pitch === c.pitch);
-    if (existing) { setSelectedNoteId(existing.id); return; }
+    if (existing) { selectStep(c.step); setSelectedNoteId(existing.id); return; }
     commit();
     const id = addNote(part.id, { step: c.step, pitch: c.pitch, length: 1, velocity: 100, micro: 0 });
+    selectStep(c.step);
     setSelectedNoteId(id);
   };
 
   const onNotePointerDown = (e: React.PointerEvent, n: Note) => {
     e.preventDefault(); e.stopPropagation();
+    selectStep(n.step);
     setSelectedNoteId(n.id);
     const rect    = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const nearRight = e.clientX > rect.right - 9;
@@ -366,6 +376,15 @@ export function PianoRollTab({
           className={cn("relative flex-1 touch-none select-none", paint && "cursor-crosshair")}
           style={{ height: ROW_PX * ROWS_VISIBLE }}
         >
+          {selectedStep !== null && selectedStep < stepCount && (
+            <div
+              className="absolute top-0 bottom-0 bg-primary/10 border-x border-primary/40 pointer-events-none z-[1]"
+              style={{
+                left: `${(selectedStep / stepCount) * 100}%`,
+                width: `${100 / stepCount}%`,
+              }}
+            />
+          )}
           {visiblePitches.map((p, ri) => (
             <div
               key={p}
@@ -579,8 +598,44 @@ export function PianoRollTab({
         {/* Note grid */}
         {noteGrid}
 
-        {/* ── Compact inspector: Note | Velocity | Gate ── */}
-        <div className="panel p-2">
+        {/* ── Compact inspector: selected note + selected step automation ── */}
+        <div className={cn(
+          "panel p-2 transition-all",
+          selectedStep !== null && selectedStep < stepCount ? "opacity-100" : "opacity-60",
+        )}>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="font-mono text-[8px] text-muted-foreground">STEP AUTOMATION</span>
+            <span className={cn(
+              "font-display text-[10px] tabular-nums",
+              selectedStep !== null && selectedStep < stepCount ? "text-primary" : "text-muted-foreground",
+            )}>
+              {selectedStep !== null && selectedStep < stepCount
+                ? `STEP ${selectedStep + 1}/${stepCount}`
+                : "tap a step"}
+            </span>
+          </div>
+          {selectedStep !== null && selectedStep < stepCount && (
+            <div className="grid grid-cols-2 gap-1.5 mb-2">
+              <div className="panel-inset px-2 py-1.5 border border-primary/50">
+                <div className="flex items-center justify-between font-mono text-[8px] text-muted-foreground">
+                  <span>FILT</span>
+                  <span className="text-primary font-display text-[10px]">
+                    {steps[selectedStep]?.filterCutoff ?? "—"}
+                  </span>
+                </div>
+              </div>
+              <div className="panel-inset px-2 py-1.5 border border-primary/50">
+                <div className="flex items-center justify-between font-mono text-[8px] text-muted-foreground">
+                  <span>PAN</span>
+                  <span className="text-primary font-display text-[10px]">
+                    {steps[selectedStep]?.panOffset === undefined
+                      ? "—"
+                      : `${steps[selectedStep].panOffset > 0 ? "+" : ""}${steps[selectedStep].panOffset}`}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
           {selectedNote ? (
             <div className="flex items-center gap-2">
               {/* 6. Note pitch display */}

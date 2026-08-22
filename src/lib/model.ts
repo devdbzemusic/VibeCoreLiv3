@@ -159,6 +159,10 @@ export interface Step {
   condition?: string;
   pitch?: number;
   humanize?: number;
+  /** Optional per-step low-pass cutoff override, normalized 0..100. */
+  filterCutoff?: number;
+  /** Optional per-step pan offset from the Part pan, centered at 0 (-50..50). */
+  panOffset?: number;
 }
 
 export interface Note {
