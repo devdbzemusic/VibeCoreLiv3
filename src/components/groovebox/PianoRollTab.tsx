@@ -17,7 +17,7 @@
 //   compact      — single-row 8-param header (used by GrooveModule)
 //   hidePartStrip — suppress the PartStrip (caller provides its own)
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useGroove } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { PartStrip } from "./PartStrip";
@@ -42,6 +42,56 @@ function isBlackKey(p: number): boolean {
   const n = ((p % 12) + 12) % 12;
   return n === 1 || n === 3 || n === 6 || n === 8 || n === 10;
 }
+
+type NoteRectProps = {
+  note: Note;
+  rowIdx: number;
+  stepCount: number;
+  selected: boolean;
+  onPointerDown: (e: React.PointerEvent, note: Note) => void;
+};
+
+const NoteRect = memo(function NoteRect({
+  note,
+  rowIdx,
+  stepCount,
+  selected,
+  onPointerDown,
+}: NoteRectProps) {
+  const left = (note.step / stepCount) * 100;
+  const width = (Math.max(0.25, note.length) / stepCount) * 100;
+  const microPct = ((note.micro ?? 0) / 50) * (50 / stepCount);
+  const velocity = Math.max(0.25, Math.min(1, note.velocity / 127));
+
+  return (
+    <div
+      data-noteid={note.id}
+      onPointerDown={(e) => onPointerDown(e, note)}
+      className={cn(
+        "absolute rounded-sm border touch-none cursor-move",
+        selected ? "border-primary z-20" : "border-primary/40 z-10",
+      )}
+      style={{
+        top: rowIdx * ROW_PX + 1,
+        height: ROW_PX - 2,
+        left: `calc(${left + microPct}% + 1px)`,
+        width: `calc(${width}% - 2px)`,
+        background: `hsl(var(--primary) / ${0.35 + velocity * 0.5})`,
+        boxShadow: selected ? "0 0 8px hsl(var(--primary))" : undefined,
+      }}
+      title={`${pitchLabel(note.pitch)} step ${note.step + 1} · vel ${note.velocity} · gate ${note.length.toFixed(2)} · μ ${note.micro ?? 0}`}
+    >
+      {selected && (
+        <span className="absolute right-0 top-0 bottom-0 w-[6px] cursor-ew-resize bg-primary/70 rounded-r-sm" />
+      )}
+    </div>
+  );
+}, (prev, next) => (
+  prev.note === next.note
+  && prev.rowIdx === next.rowIdx
+  && prev.stepCount === next.stepCount
+  && prev.selected === next.selected
+));
 
 type Drag =
   | { mode: "move"; noteId: string; startStep: number; startPitch: number; px: number; py: number }
@@ -412,38 +462,16 @@ export function PianoRollTab({
             sceneCount={pattern.scenes.length}
             stepCount={stepCount}
           />
-          {notesInView.map((n) => {
-            const rowIdx   = pitchRow.get(n.pitch)!;
-            const left     = (n.step / stepCount) * 100;
-            const width    = (Math.max(0.25, n.length) / stepCount) * 100;
-            const microPct = ((n.micro ?? 0) / 50) * (50 / stepCount);
-            const sel = n.id === selectedNoteId;
-            const vel = Math.max(0.25, Math.min(1, n.velocity / 127));
-            return (
-              <div
-                key={n.id}
-                data-noteid={n.id}
-                onPointerDown={(e) => onNotePointerDown(e, n)}
-                className={cn(
-                  "absolute rounded-sm border touch-none cursor-move",
-                  sel ? "border-primary z-20" : "border-primary/40 z-10",
-                )}
-                style={{
-                  top: rowIdx * ROW_PX + 1,
-                  height: ROW_PX - 2,
-                  left: `calc(${left + microPct}% + 1px)`,
-                  width: `calc(${width}% - 2px)`,
-                  background: `hsl(var(--primary) / ${0.35 + vel * 0.5})`,
-                  boxShadow: sel ? "0 0 8px hsl(var(--primary))" : undefined,
-                }}
-                title={`${pitchLabel(n.pitch)} step ${n.step + 1} · vel ${n.velocity} · gate ${n.length.toFixed(2)} · μ ${n.micro ?? 0}`}
-              >
-                {sel && (
-                  <span className="absolute right-0 top-0 bottom-0 w-[6px] cursor-ew-resize bg-primary/70 rounded-r-sm" />
-                )}
-              </div>
-            );
-          })}
+          {notesInView.map((n) => (
+            <NoteRect
+              key={n.id}
+              note={n}
+              rowIdx={pitchRow.get(n.pitch)!}
+              stepCount={stepCount}
+              selected={n.id === selectedNoteId}
+              onPointerDown={onNotePointerDown}
+            />
+          ))}
         </div>
       </div>
     </div>
