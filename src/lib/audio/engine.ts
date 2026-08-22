@@ -449,7 +449,7 @@ export async function resamplePart(partId: number, seconds = 4): Promise<AudioBu
   return buf;
 }
 
-interface TriggerOpts {
+export interface TriggerOpts {
   velocity?: number;
   semitone?: number;
   gateSec?: number;
@@ -457,6 +457,33 @@ interface TriggerOpts {
   filterCutoff?: number;
   /** Per-step pan offset from the Part pan, centered at 0 (-50..50). */
   panOffset?: number;
+}
+
+export interface StepAutomationTargets {
+  lowPassFrequency: {
+    setTargetAtTime(value: number, startTime: number, timeConstant: number): unknown;
+  };
+  pan: {
+    setTargetAtTime(value: number, startTime: number, timeConstant: number): unknown;
+  };
+}
+
+/**
+ * Schedules step-local automation on the shared Part channel. Missing values
+ * deliberately resolve to the channel defaults so a previous step cannot leak
+ * its cutoff or pan offset into the next note.
+ */
+export function scheduleStepAutomation(
+  targets: StepAutomationTargets,
+  part: Pick<Part, "pan"> & { channel: Pick<Part["channel"], "lpCut"> },
+  when: number,
+  opts: Pick<TriggerOpts, "filterCutoff" | "panOffset">,
+): void {
+  const cutoff = Math.max(0, Math.min(100, opts.filterCutoff ?? part.channel.lpCut));
+  targets.lowPassFrequency.setTargetAtTime(lpFreq(cutoff), when, 0.01);
+  const offset = Math.max(-50, Math.min(50, opts.panOffset ?? 0));
+  const pan = Math.max(-1, Math.min(1, ((part.pan ?? 0) + offset) / 50));
+  targets.pan.setTargetAtTime(pan, when, 0.01);
 }
 
 export function triggerPart(partId: number, when: number, opts: TriggerOpts = {}) {
@@ -496,11 +523,12 @@ export function triggerPart(partId: number, when: number, opts: TriggerOpts = {}
   // note-on time. A step without an override resolves back to its Part channel
   // value, so automation on one step cannot bleed into the next. setTargetAtTime
   // avoids cancelling nearby look-ahead events when several steps are scheduled.
-  const cutoff = Math.max(0, Math.min(100, opts.filterCutoff ?? part.channel.lpCut));
-  chain.lp.frequency.setTargetAtTime(lpFreq(cutoff), when, 0.01);
-  const offset = Math.max(-50, Math.min(50, opts.panOffset ?? 0));
-  const pan = Math.max(-1, Math.min(1, ((part.pan ?? 0) + offset) / 50));
-  chain.pan.pan.setTargetAtTime(pan, when, 0.01);
+  scheduleStepAutomation(
+    { lowPassFrequency: chain.lp.frequency, pan: chain.pan.pan },
+    part,
+    when,
+    opts,
+  );
 
   // Helpers for one-shot sample voices
   const getReversed = (b: AudioBuffer): AudioBuffer => {

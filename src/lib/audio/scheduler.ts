@@ -16,6 +16,7 @@
 
 import { useGroove } from "@/lib/store";
 import type { Pattern, Scene } from "@/lib/model";
+import type { TriggerOpts } from "./engine";
 import { ensureAudio, getCtx, triggerPart, softStart, softStop } from "./engine";
 import { getQuality, onQualityChange } from "./quality";
 import {
@@ -172,7 +173,9 @@ function advancePattern() {
   }
 }
 
-function scheduleTickAt(
+export type PartTrigger = (partId: number, when: number, opts: TriggerOpts) => void;
+
+export function scheduleTickAt(
   when: number,
   tickIndex: number,
   pat: Pattern,
@@ -180,6 +183,7 @@ function scheduleTickAt(
   step: number,
   bpm: number,
   partsList: ReturnType<typeof useGroove.getState>["parts"],
+  trigger: PartTrigger = triggerPart,
 ) {
   const dur = stepDurSec(bpm);
   const swing = pat.swing;
@@ -209,7 +213,7 @@ function scheduleTickAt(
 
     for (let r = 0; r < ratchet; r++) {
       const t = when + micro + (dur * r) / ratchet;
-      triggerPart(part.id, t, {
+      trigger(part.id, t, {
         velocity: velOut,
         semitone: semiOut,
         gateSec: gateSec / ratchet,
@@ -226,7 +230,7 @@ function scheduleTickAt(
         const nMicro = ((n.micro ?? 0) / 50) * dur * 0.25;
         const nSwing = step % 2 === 1 ? ((swing - 50) / 50) * dur * 0.5 : 0;
         const nDur = dur * Math.max(0.25, n.length);
-        triggerPart(part.id, when + nMicro + nSwing, {
+        trigger(part.id, when + nMicro + nSwing, {
           velocity: n.velocity,
           semitone: n.pitch - 60,
           gateSec: nDur * 0.95,
