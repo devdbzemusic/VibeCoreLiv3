@@ -21,3 +21,10 @@ uri = "file://native-android/app/build/outputs/apk/debug/app-debug.apk"
 type = "unspecified"
 title = "VibeCore Univers APK — detailliert geprüft"
 description = "Download des verifizierten Debug-APK. Geprüft: WebView-Index unter assets/webapp/index.html, relative ./assets/...-Referenzen, vorhandene JS/CSS-Dateien im APK und erfolgreicher Gradle-Build. Größe: 6.491.413 Bytes. SHA-256: 186697f38e27f7647198ed7abba922a17349ac532084421b686766eec0668700. Xiaomi-Runtime ist noch nicht verifiziert."
+
+[[outputs]]
+id = "IeCvILTa3Iu2AKbKIfM_j"
+uri = "file://VibeCore_Univers_Developer_Package.zip"
+type = "unspecified"
+title = "VibeCore Univers — Entwicklerprojekt als ZIP"
+description = "Sauberes Entwicklerpaket mit Web-Quellcode, Android-Projekt, nativen Quellen, Web-Assets, Konfiguration und Dokumentation. Lokale Abhängigkeiten, SDK-/Build-Caches, Git-Daten, Debug-Keystore und mögliche Geheimnisdateien ausgeschlossen. ZIP-Test erfolgreich. Größe: 5,2 MB. SHA-256: 5f6c8145caeaa1aec4b70d2e65e5a4cef0b1175902724f718ca781a309462ec3."
