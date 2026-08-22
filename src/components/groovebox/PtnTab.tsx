@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useGroove } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Activity, Pencil, Power, Trash2 } from "lucide-react";
@@ -13,6 +13,10 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { PatternBrowser } from "./PatternBrowser";
 import { SceneManager } from "./SceneManager";
+import {
+  cancelMidiLearn, getMidiCcStatus, learnNextMidiCC, startMidiInput,
+  type MidiCcStatus,
+} from "@/lib/audio/midiInput";
 
 export function PtnTab() {
   return (
@@ -95,7 +99,9 @@ function ModMatrix() {
                   <div className="absolute top-0 bottom-0 left-1/2 w-px bg-muted-foreground" />
                 </div>
                 <div className="font-display text-[10px] text-primary w-8 text-right">{m.amount > 0 ? "+" : ""}{m.amount}</div>
-                <div className="font-mono text-[8px] text-muted-foreground uppercase w-6">{m.curve}</div>
+                <div className="font-mono text-[8px] text-muted-foreground uppercase w-14 text-right">
+                  {m.source === "MIDI CC" ? `CC#${m.cc ?? 0}` : m.curve}
+                </div>
                 <button onClick={(e) => { e.stopPropagation(); openEdit(m); }} className="h-6 w-6 panel-inset rounded grid place-items-center shrink-0" aria-label="edit route"><Pencil className="h-3 w-3" /></button>
                 <button onClick={(e) => { e.stopPropagation(); removeModRoute(m.id); }} className="h-6 w-6 panel-inset rounded grid place-items-center shrink-0 text-neon-crimson" aria-label="delete route"><Trash2 className="h-3 w-3" /></button>
               </div>
@@ -140,9 +146,55 @@ function RouteEditor({
   onDelete: () => void;
 }) {
   const parts = useGroove((s) => s.parts);
+  const [learning, setLearning] = useState(false);
+  const [learnError, setLearnError] = useState<string | null>(null);
+  const [midiStatus, setMidiStatus] = useState<MidiCcStatus | null>(() => getMidiCcStatus());
+
+  useEffect(() => {
+    if (!route || route.source !== "MIDI CC") {
+      setMidiStatus(null);
+      return;
+    }
+    let active = true;
+    // Show the synchronous capability/connection state immediately; the
+    // permission request below replaces it once Web MIDI resolves.
+    setMidiStatus(getMidiCcStatus());
+    void startMidiInput().then((status) => {
+      if (active) setMidiStatus(status);
+    });
+    return () => { active = false; };
+  }, [route?.id, route?.source]);
+
   if (!route) return null;
+
+  const learnCc = async () => {
+    if (learning) return;
+    setLearning(true);
+    setLearnError(null);
+    try {
+      const status = await startMidiInput();
+      setMidiStatus(status);
+      if (!status.connected) throw new Error(status.error ?? "Kein MIDI-Input");
+      const cc = await learnNextMidiCC();
+      onChange({ cc });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "MIDI Learn fehlgeschlagen";
+      if (message !== "MIDI Learn cancelled") setLearnError(message);
+    } finally {
+      setLearning(false);
+    }
+  };
+
   return (
-    <Dialog open={!!route} onOpenChange={(o) => !o && onClose()}>
+    <Dialog
+      open={!!route}
+      onOpenChange={(o) => {
+        if (!o) {
+          if (learning) cancelMidiLearn();
+          onClose();
+        }
+      }}
+    >
       <DialogContent className="max-w-md bg-background border-primary/40">
         <DialogHeader>
           <DialogTitle className="font-display text-primary text-sm">EDIT MOD ROUTE</DialogTitle>
@@ -155,12 +207,62 @@ function RouteEditor({
               {MOD_SOURCES.map((s: ModSource) => (
                 <button
                   key={s}
-                  onClick={() => onChange({ source: s })}
+                  onClick={() => {
+                    setLearnError(null);
+                    onChange({
+                      source: s,
+                      ...(s === "MIDI CC" && route.cc === undefined ? { cc: 0 } : {}),
+                    });
+                  }}
                   className={cn("h-8 panel-inset rounded font-mono text-[10px] touch-none active:scale-95", route.source === s && "neon-border text-primary")}
                 >{s}</button>
               ))}
             </div>
           </div>
+
+          {route.source === "MIDI CC" && (
+            <div className="panel-inset rounded p-2 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="font-mono text-[10px] text-muted-foreground">MIDI CC#</div>
+                <div className="font-mono text-[9px] text-muted-foreground">0–127</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={127}
+                  step={1}
+                  value={route.cc ?? 0}
+                  onChange={(e) => {
+                    const value = Math.max(0, Math.min(127, Math.round(Number(e.target.value) || 0)));
+                    onChange({ cc: value });
+                  }}
+                  aria-label="MIDI CC number"
+                  className="h-9 w-20 rounded panel-inset bg-background px-2 text-center font-display text-sm text-primary outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={learnCc}
+                  disabled={learning}
+                  className={cn(
+                    "h-9 flex-1 rounded panel-inset font-mono text-[10px] text-primary touch-none active:scale-95",
+                    learning && "neon-border animate-pulse",
+                  )}
+                >
+                  {learning ? "MOVE A MIDI CONTROL…" : "LEARN"}
+                </button>
+              </div>
+              <div className="font-mono text-[8px] text-muted-foreground">
+                {learnError
+                  ?? (midiStatus?.error
+                    ?? (!midiStatus?.available
+                      ? "Web MIDI nicht verfügbar"
+                      : !midiStatus.connected
+                        ? "Kein MIDI-Input"
+                        : `${midiStatus.inputCount} MIDI input${midiStatus.inputCount === 1 ? "" : "s"} active`))}
+              </div>
+            </div>
+          )}
 
           <div>
             <div className="font-mono text-[10px] text-muted-foreground mb-1">TARGET PART</div>

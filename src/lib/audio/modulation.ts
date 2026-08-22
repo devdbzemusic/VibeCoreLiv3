@@ -2,13 +2,10 @@
 // and writes additive offsets to per-part AudioParams + FX wet gains + trigger
 // offsets. Random source is seeded per-pattern (deterministic).
 //
-// TODO(RFC): Ribbon and MIDI CC are reserved sources. Their host-side input
-// interfaces are not yet wired:
-//   - Ribbon needs a touch/pointer surface in the UI that pushes a normalized
-//     0..1 value into a ring buffer consumed here.
-//   - MIDI CC needs WebMIDI subscription + per-route CC# selection in the
-//     route editor. Both should land via a `ModulationInput` interface so the
-//     runtime treats them identically to internal sources.
+// Host-side input adapters:
+//   - Ribbon remains reserved for a future touch/pointer surface.
+//   - MIDI CC is supplied by audio/midiInput.ts, which stores normalized
+//     controller values and exposes them here through the route's CC number.
 
 import { useGroove } from "@/lib/store";
 import type { ModDestParam, ModRoute, ModSource } from "@/lib/model";

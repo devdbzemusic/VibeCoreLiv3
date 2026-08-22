@@ -961,20 +961,28 @@ export const useGroove = create<State>()(persist((set) => ({
 
   addModRoute: (r) => {
     const id = nextId("m");
+    const source = r?.source ?? "LFO 1";
+    const cc = r?.cc === undefined ? 0 : Math.max(0, Math.min(127, Math.round(r.cc)));
     const route: ModRoute = {
       id,
-      source: r?.source ?? "LFO 1",
+      source,
       destParam: r?.destParam ?? "Filter Cutoff",
       partId: r?.partId ?? 0,
       amount: r?.amount ?? 50,
       curve: r?.curve ?? "lin",
       enabled: r?.enabled ?? true,
+      ...(source === "MIDI CC" ? { cc } : {}),
     };
     set((s) => ({ mod: [...s.mod, route], selectedMod: id }));
     return id;
   },
   updateModRoute: (id, patch) => set((s) => ({
-    mod: s.mod.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+    mod: s.mod.map((r) => {
+      if (r.id !== id) return r;
+      const next = { ...r, ...patch };
+      if (next.cc !== undefined) next.cc = Math.max(0, Math.min(127, Math.round(next.cc)));
+      return next;
+    }),
   })),
   removeModRoute: (id) => set((s) => ({
     mod: s.mod.filter((r) => r.id !== id),

@@ -30,6 +30,7 @@ import { initSchedulerBindings } from "@/lib/audio/scheduler";
 import { bindParamUpdates }      from "@/lib/audio/engine";
 import { bindInternalSource }    from "@/lib/clock/sources/internalSource";
 import { startQualityManager }   from "@/lib/audio/quality";
+import { startMidiInput }        from "@/lib/audio/midiInput";
 
 // ── Module-name mapping (MASTERPROMPT v5.0 — Workflow Consolidation) ─────────
 // Maps every TabKey to its display module name shown in the ModuleHeader.
@@ -62,6 +63,7 @@ function ModulePage({ tab, children }: { tab: TabKey; children: React.ReactNode 
 
 const Index = () => {
   const { tab, setTab } = useGroove();
+  const hasMidiCcRoute = useGroove((s) => s.mod.some((route) => route.source === "MIDI CC"));
 
   useEffect(() => {
     // Wire the three core engine/clock bindings in dependency order:
@@ -75,6 +77,12 @@ const Index = () => {
     // Quality manager: measures FPS + voice load → AUTO profile selection.
     startQualityManager();
   }, []);
+
+  // MIDI CC routes are project state, not PTN-view state. Keep their input
+  // lifecycle active when the app starts on HOME or another module.
+  useEffect(() => {
+    if (hasMidiCcRoute) void startMidiInput();
+  }, [hasMidiCcRoute]);
 
   // SEQ → ROLL redirect: SEQ tab is deprecated (Universal Piano Roll consolidation).
   // Persisted state or deep-links that land on SEQ are silently promoted to ROLL.
