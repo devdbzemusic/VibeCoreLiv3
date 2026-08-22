@@ -21,6 +21,7 @@ let backend: AudioBackend | null = null;
 let bound = false;
 let lastError: string | null = null;
 let transportWork: Promise<void> = Promise.resolve();
+const NATIVE_TICKS_PER_STEP = 480; // VibeCoreSync PPQ 1920 / 4 sixteenth-notes.
 
 function reportError(error: unknown) {
   lastError = error instanceof Error ? error.message : String(error);
@@ -62,6 +63,7 @@ export async function activateNativeAudio(): Promise<boolean> {
     const state = useGroove.getState();
     backend.setTempo(state.bpm);
     backend.setMasterGain(state.masterVolume / 100);
+    syncNativeSeek(state);
     lastError = null;
     useGroove.setState({ audioReady: true });
     return true;
@@ -77,6 +79,35 @@ export function setNativeMasterGain(value01: number): boolean {
   return true;
 }
 
+function syncNativeSeek(state: ReturnType<typeof useGroove.getState>): void {
+  const seek = state.transport.pendingSeek;
+  const pattern = state.patterns[state.transport.currentPattern];
+  if (!backend || !seek || !pattern) return;
+  const sceneIdx = Math.max(0, Math.min(pattern.scenes.length - 1, seek.sceneIdx));
+  const previousSteps = pattern.scenes
+    .slice(0, sceneIdx)
+    .reduce((total, scene) => total + scene.length, 0);
+  const scene = pattern.scenes[sceneIdx];
+  const step = Math.max(0, Math.min(Math.max(0, (scene?.length ?? 1) - 1), seek.step));
+  const songSteps = previousSteps + step;
+
+  backend.setPosition(songSteps * NATIVE_TICKS_PER_STEP);
+  useGroove.setState({
+    transport: {
+      ...state.transport,
+      pendingSeek: null,
+      currentStep: step,
+      currentSceneIdx: sceneIdx,
+    },
+    playheads: {
+      ...state.playheads,
+      step,
+      sceneIdx,
+      songTicks: songSteps,
+    },
+  });
+}
+
 /**
  * Routes state changes to native transport. The browser does not bind this
  * subscriber, and the native path does not start the WebAudio scheduler.
@@ -87,6 +118,7 @@ export function bindNativeAudioRuntime(): void {
   let prevBpm = useGroove.getState().bpm;
   let prevGain = useGroove.getState().masterVolume;
   let prevPlaying = useGroove.getState().transport.playing;
+  let previousSeekKey: string | null = null;
 
   useGroove.subscribe((state) => {
     if (state.bpm !== prevBpm) {
@@ -109,6 +141,14 @@ export function bindNativeAudioRuntime(): void {
           }
         })
         .catch(reportError);
+    }
+    const pending = state.transport.pendingSeek;
+    const seekKey = pending
+      ? `${state.transport.currentPattern}:${pending.sceneIdx}:${pending.step}`
+      : null;
+    if (seekKey !== previousSeekKey) {
+      previousSeekKey = seekKey;
+      if (seekKey) syncNativeSeek(state);
     }
   });
 }

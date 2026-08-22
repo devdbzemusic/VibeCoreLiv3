@@ -1,12 +1,12 @@
 # INTEGRATION GATE — ONE ENGINE (Web ↔ Native) — OFFEN (P1)
 
-**Status:** 🔴 OFFEN — Gate nicht bestanden (Bedingung 1 von 4 erfüllt, Stand 2026-08-18)
+**Status:** 🔴 OFFEN — Adapter umgesetzt; Hardware-Evidenz und Divergenz-Plan offen (Stand 2026-08-22)
 **Ebene:** Plattform-Konstitution (VibeCore Univers SUPREMÉ, „One Engine, One Clock, Zero Legacy")
 **Bezug:** ADR-005 (ENTSCHIEDEN 2026-08-18: WebView-`JavascriptInterface`, Interface-Name `VibeCoreNative` — Decision C), Task #38
 
 ---
 
-## 1. Festgestellter Ist-Zustand (evidenzbasiert, Stand 2026-08-18)
+## 1. Festgestellter Ist-Zustand (evidenzbasiert, Stand 2026-08-22)
 
 Es existieren derzeit **zwei getrennte Ausführungspfade** für Audio:
 
@@ -15,14 +15,19 @@ Es existieren derzeit **zwei getrennte Ausführungspfade** für Audio:
 | **Native Oboe Engine** | `native-android/app/src/main/cpp/` | Intern konstitutionskonform: EIN Oboe-Callback (`VibeCoreAudioEngine::onAudioReady`), EINE Clock (`VibeCoreSync`, PPQ 1920, sample-genaue Tick-Events), ein AudioNode-Graph (Groove = 1, Bass = 2, Voice = 3). Kein zweiter Thread/Scheduler im C++-Baum (grep-verifiziert). |
 | **WebAudio Engine** | `src/lib/audio/engine.ts` (v1.2) | Vollständige parallele Architektur: Per-Part-Channel-Strips, 6 FX-Busse, Master-Kette, Voice-Allocator. Genutzt von 15+ Groovebox-Komponenten (SoundTab, ForgeTab, Bass3DSubtab, Synth3DSubtab, PerformanceTab, SyncTab, …). |
 
-**Kernbefund (präzisiert 2026-08-18):** Die Web-App ruft die native Engine
-nirgends auf. Es existiert jedoch ein **vorbereiteter, derzeit unverdrahteter**
-Adapter-Seam: `src/lib/audio/AudioBackend.ts` + `NativeOboeBackend.ts` prüfen
-auf `window.VibeCoreNative` und werden von keinem anderen App-Code importiert.
-Darüber hinaus gibt es keine Referenzen auf die native Bridge in `src/`
-(grep-verifiziert). Zusatzbefund: Das TS-Interface `VibeCoreNativeBridge`
-(9 Methoden) ist ein Minimal-Subset und namentlich noch nicht mit den
-Kotlin-Bridge-Methoden abgeglichen — Teil von Gate-Bedingung 2.
+**Kernbefund (aktualisiert 2026-08-22):** Die Android-Erkennung und der
+Transport-Seam sind aktiv. `AudioBackend.ts`, `NativeOboeBackend.ts` und
+`nativeAudioRuntime.ts` sprechen ausschließlich reale
+`window.VibeCoreNative`-Methoden. Auf Android wird der WebAudio-Scheduler beim
+Transportstart nicht mitgestartet; im Browser bleibt der bestehende WebAudio-Pfad
+aktiv. Ein nativer Startfehler setzt `audioReady` zurück und wird in der
+Diagnose angezeigt, statt still auf WebAudio zurückzufallen.
+
+Die Voice-Schnittstelle stellt acht Slot-basierte Mono-Float-Samples bereit.
+Der TS-Adapter verwendet diese `voiceLoadSample`-, `voiceNoteOn`- und
+`voiceNoteOff`-Methoden direkt. Eine vollständige Zuordnung der größeren
+Web-Part-, Pattern- und FX-Welt ist ausdrücklich Teil des offenen
+Divergenz-Plans.
 
 ## 2. Konsequenz für die One-Rule
 
@@ -37,13 +42,15 @@ FX Mix Lab existiert nur web-seitig; 3D Bass/Voice-DSP nur nativ.
 1. ✅ **ERFÜLLT (2026-08-18) — Entscheidung dokumentiert (ADR-005, Decision C):**
    WebView-`JavascriptInterface` ist final; JSI verworfen (Re-Evaluation nur via
    Review-Trigger). Verbindlicher Interface-Name: `window.VibeCoreNative`.
-2. **Adapter implementiert:** Eine dünne TS-Schicht, die auf Android zur
-   nativen Bridge routet und im Browser auf die WebAudio-Engine zurückfällt —
-   ohne Doppel-Ausführung beider Engines.
-3. **End-to-End verifiziert:** Mindestens Transport (Play/Stop/Tempo) und ein
+2. ✅ **Adapter implementiert (Code-verifiziert, 2026-08-22):** Die dünne
+   TS-Schicht mappt Lifecycle, Transport, Position, Tempo, Master-Gain,
+   Latenz/Diagnose sowie Voice-Sample/Note-On/Off 1:1 auf die Kotlin-Bridge.
+   Der Android-Transport startet nicht zusätzlich den WebAudio-Scheduler; im
+   Browser bleibt der bisherige Fallback aktiv.
+3. **End-to-End verifiziert (offen):** Mindestens Transport (Play/Stop/Tempo) und ein
    Instrumentenpfad (Note-On/Off) laufen nachweislich über die native Engine
    aus der WebView; Timing-Quelle ist ausschließlich VibeCoreSync.
-4. **Divergenz-Plan:** Festgelegt, welche web-seitigen DSP-Funktionen (FX Mix
+4. **Divergenz-Plan (offen):** Festgelegt, welche web-seitigen DSP-Funktionen (FX Mix
    Lab) nativ nachgezogen oder übergangsweise hybrid betrieben werden — ohne
    zweite Clock.
 
