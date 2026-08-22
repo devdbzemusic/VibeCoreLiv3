@@ -6,6 +6,7 @@
 import { useGroove } from "@/lib/store";
 import { getCtx, ensureAudio } from "@/lib/audio/engine";
 import { masterClock } from "../masterClock";
+import { isNativeAudioPath } from "@/lib/audio/nativeAudioRuntime";
 
 let bound = false;
 
@@ -31,6 +32,9 @@ export function bindInternalSource() {
       masterClock.setTempo(s.bpm, c?.currentTime ?? 0);
     }
   });
+  // Native Android owns the real-time clock in VibeCoreSync. Do not create a
+  // WebAudio context just to anchor the UI mirror on that platform.
+  if (isNativeAudioPath()) return;
   // Ensure clock anchor is in audio-time once the context is live
   ensureAudio().then((c) => {
     masterClock.setTempo(useGroove.getState().bpm, c.currentTime);

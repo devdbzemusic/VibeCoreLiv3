@@ -8,6 +8,7 @@ import { tapTempo } from "@/lib/clock/tapTempo";
 import { DiagnosticsModal } from "./DiagnosticsModal";
 import { useDiagnosticsTrigger } from "@/hooks/useDiagnosticsTrigger";
 import { useMeter } from "@/hooks/useMeter";
+import { activateNativeAudio, isNativeAudioPath } from "@/lib/audio/nativeAudioRuntime";
 
 
 const QUALITY_CYCLE: QualityMode[] = ["AUTO", "HIGH", "MEDIUM", "LOW"];
@@ -53,6 +54,11 @@ export function TopBar() {
   const patternLen = pat?.scenes[currentScene]?.length ?? 0;
 
   const handlePlay = async () => {
+    if (isNativeAudioPath()) {
+      if (!await activateNativeAudio()) return;
+      togglePlay();
+      return;
+    }
     await ensureAudio();
     const ctx = getCtx();
     if (ctx && ctx.state === "suspended") {

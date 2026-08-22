@@ -1,0 +1,114 @@
+/**
+ * Native audio runtime coordinator.
+ *
+ * Android owns the real-time VibeCoreSync/Oboe path. The browser never gets a
+ * native backend, and a native startup error is reported instead of silently
+ * activating a second WebAudio transport.
+ */
+import { createAudioBackend, isNativeOboeAvailable, type AudioBackend } from "./AudioBackend";
+import { useGroove } from "@/lib/store";
+
+export interface NativeAudioStatus {
+  available: boolean;
+  active: boolean;
+  engineRunning: boolean;
+  latencyMs: number;
+  diagnostic: string;
+  error: string | null;
+}
+
+let backend: AudioBackend | null = null;
+let bound = false;
+let lastError: string | null = null;
+let transportWork: Promise<void> = Promise.resolve();
+
+function reportError(error: unknown) {
+  lastError = error instanceof Error ? error.message : String(error);
+  useGroove.setState({ audioReady: false });
+  console.error("[native-audio]", lastError);
+}
+
+export function isNativeAudioPath(): boolean {
+  return isNativeOboeAvailable();
+}
+
+export function getNativeAudioBackend(): AudioBackend | null {
+  return backend;
+}
+
+export function getNativeAudioStatus(): NativeAudioStatus {
+  const available = isNativeOboeAvailable();
+  if (!available) {
+    return { available: false, active: false, engineRunning: false, latencyMs: -1, diagnostic: "browser:webaudio", error: null };
+  }
+  return {
+    available: true,
+    active: backend?.kind === "oboe-native",
+    engineRunning: backend?.isEngineRunning() ?? false,
+    latencyMs: backend?.getOutputLatencyMs() ?? -1,
+    diagnostic: backend?.getDiagnosticStatus() ?? "native:ready",
+    error: lastError,
+  };
+}
+
+/** Starts native audio only after a user-triggered action requests it. */
+export async function activateNativeAudio(): Promise<boolean> {
+  if (!isNativeAudioPath()) return false;
+  try {
+    backend ??= createAudioBackend();
+    if (!backend) return false;
+    await backend.init();
+    await backend.startEngine();
+    const state = useGroove.getState();
+    backend.setTempo(state.bpm);
+    backend.setMasterGain(state.masterVolume / 100);
+    lastError = null;
+    useGroove.setState({ audioReady: true });
+    return true;
+  } catch (error) {
+    reportError(error);
+    return false;
+  }
+}
+
+export function setNativeMasterGain(value01: number): boolean {
+  if (!backend) return false;
+  backend.setMasterGain(Math.max(0, Math.min(1, value01)));
+  return true;
+}
+
+/**
+ * Routes state changes to native transport. The browser does not bind this
+ * subscriber, and the native path does not start the WebAudio scheduler.
+ */
+export function bindNativeAudioRuntime(): void {
+  if (bound || !isNativeAudioPath()) return;
+  bound = true;
+  let prevBpm = useGroove.getState().bpm;
+  let prevGain = useGroove.getState().masterVolume;
+  let prevPlaying = useGroove.getState().transport.playing;
+
+  useGroove.subscribe((state) => {
+    if (state.bpm !== prevBpm) {
+      prevBpm = state.bpm;
+      backend?.setTempo(state.bpm);
+    }
+    if (state.masterVolume !== prevGain) {
+      prevGain = state.masterVolume;
+      backend?.setMasterGain(state.masterVolume / 100);
+    }
+    if (state.transport.playing !== prevPlaying) {
+      prevPlaying = state.transport.playing;
+      transportWork = transportWork
+        .catch(() => undefined)
+        .then(async () => {
+          if (state.transport.playing) {
+            if (await activateNativeAudio()) backend?.play();
+          } else {
+            await backend?.stop();
+          }
+        })
+        .catch(reportError);
+    }
+  });
+}

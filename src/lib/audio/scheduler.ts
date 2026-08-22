@@ -29,6 +29,7 @@ import { hashSeed, mulberry32, type Rng } from "@/lib/utils/random";
 import { masterClock } from "@/lib/clock/masterClock";
 import { quantizeStepsForGrid } from "@/lib/clock/divisions";
 import type { HeldPosition, PendingSeek } from "@/lib/store";
+import { isNativeAudioPath } from "./nativeAudioRuntime";
 
 let timer: number | null = null;
 let currentTickMs = 25;
@@ -493,6 +494,9 @@ export function initSchedulerBindings() {
   unsubPlay = useGroove.subscribe((s) => {
     if (s.transport.playing !== prevPlaying) {
       prevPlaying = s.transport.playing;
+      // Native VibeCoreSync/Groove owns Android timing. Starting this
+      // WebAudio look-ahead scheduler as well would double-trigger events.
+      if (isNativeAudioPath()) return;
       if (s.transport.playing) startScheduler();
       else stopScheduler();
     }

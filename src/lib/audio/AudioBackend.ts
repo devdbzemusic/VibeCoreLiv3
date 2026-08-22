@@ -16,37 +16,55 @@ export type AudioBackendKind = "webaudio" | "oboe-native";
 export interface AudioBackend {
   readonly kind: AudioBackendKind;
   init(): Promise<void>;
-  start(): Promise<void>;
+  startEngine(): Promise<void>;
+  stopEngine(): Promise<void>;
+  isEngineRunning(): boolean;
+  play(): void;
   stop(): Promise<void>;
-  /** Lädt ein Sample in einen Slot (0..63). Interleaved float, 1 oder 2 Kanäle. */
-  loadSample(
+  isPlaying(): boolean;
+  setPosition(absoluteTick: number): void;
+  getCurrentTick(): number;
+  setTempo(bpm: number): void;
+  getTempo(): number;
+  setMasterGain(gain: number): void;
+  /** Lädt ein mono Float-Sample in einen nativen Voice-Slot (0..7). */
+  loadVoiceSample(
     slot: number,
     data: Float32Array,
-    frames: number,
-    channels: number,
-    sampleRate: number
+    sampleRate: number,
+    rootNote: number
   ): Promise<void>;
-  /** Triggert eine Stimme auf dem Slot. semitones relativ zum Originalpitch. */
-  trigger(slot: number, semitones: number, velocity: number, loop: boolean): void;
-  setTempo(bpm: number): void;
-  setMasterGain(gain: number): void;
+  clearVoiceSample(slot: number): void;
+  noteOn(note: number, velocity: number, slot: number, slice: number): void;
+  noteOff(note: number): void;
+  allNotesOff(): void;
   /** Geschätzte Ausgabe-Pufferlatenz in ms; -1 wenn unbekannt. */
   getOutputLatencyMs(): number;
-  /** Geräte-Tuning (SynthMark): Burst-Größe, Big-Core-Index, ADPF. */
-  configure(framesPerBurst: number, bigCpuIndex: number, enableAdpf: boolean): void;
+  getDiagnosticStatus(): string;
   close(): Promise<void>;
 }
 
+/** Verbindlicher JS-Vertrag zu NativeAudioBridge.kt. */
 export interface VibeCoreNativeBridge {
   isAvailable(): boolean;
-  start(): number;           // 0 = ok, -1 = Fehler
+  startEngine(): boolean;
+  stopEngine(): void;
+  isEngineRunning(): boolean;
+  play(): void;
   stop(): void;
+  isPlaying(): boolean;
   setTempo(bpm: number): void;
+  getTempo(): number;
   setMasterGain(gain: number): void;
-  loadSample(slot: number, data: Float32Array, frames: number, channels: number, sampleRate: number): number;
-  trigger(slot: number, semitones: number, velocity: number, loop: boolean): void;
+  setPosition(absoluteTick: number): void;
+  getCurrentTick(): number;
   getLatencyMs(): number;
-  configure(framesPerBurst: number, bigCpuIndex: number, enableAdpf: boolean): number;
+  getDiagnosticStatus(): string;
+  voiceLoadSample(slot: number, data: Float32Array, sampleRate: number, rootNote: number): boolean;
+  voiceClearSample(slot: number): void;
+  voiceNoteOn(note: number, velocity: number, slot: number, slice: number): void;
+  voiceNoteOff(note: number): void;
+  voiceAllNotesOff(): void;
 }
 
 declare global {

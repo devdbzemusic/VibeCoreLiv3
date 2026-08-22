@@ -31,6 +31,7 @@ import { bindParamUpdates }      from "@/lib/audio/engine";
 import { bindInternalSource }    from "@/lib/clock/sources/internalSource";
 import { startQualityManager }   from "@/lib/audio/quality";
 import { startMidiInput }        from "@/lib/audio/midiInput";
+import { bindNativeAudioRuntime } from "@/lib/audio/nativeAudioRuntime";
 
 // ── Module-name mapping (MASTERPROMPT v5.0 — Workflow Consolidation) ─────────
 // Maps every TabKey to its display module name shown in the ModuleHeader.
@@ -66,6 +67,7 @@ const Index = () => {
   const hasMidiCcRoute = useGroove((s) => s.mod.some((route) => route.source === "MIDI CC"));
 
   useEffect(() => {
+    bindNativeAudioRuntime();
     // Wire the three core engine/clock bindings in dependency order:
     //   1. bindInternalSource  — establishes BPM/transport → MasterClock link
     //   2. initSchedulerBindings — subscribes MasterClock transport events → scheduler

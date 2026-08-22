@@ -17,6 +17,7 @@ import { requestVoice, partVoiceClass, setVoiceCap } from "./voiceAllocator";
 import { recordActiveVoices, recordDroppedVoice, recordVoiceCreated, recordVoiceDestroyed } from "./audioPerf";
 import { publishMeter, isPartVisible, isPartActive, markPartActive, getMeterSnapshot } from "./meterBus";
 import { applyMixerRoutingSnapshot } from "./mixerRoutingBridge";
+import { setNativeMasterGain } from "./nativeAudioRuntime";
 
 let ctx: AudioContext | null = null;
 type SampleId = number | string;
@@ -294,6 +295,7 @@ export async function restartAudio(): Promise<AudioContext> {
 
 
 export function setMasterVolume(v: number) {
+  if (setNativeMasterGain(v / 100)) return;
   if (masterGain && ctx) masterGain.gain.setTargetAtTime(v / 100, ctx.currentTime, 0.01);
 }
 

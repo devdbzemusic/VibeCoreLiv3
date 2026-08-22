@@ -7,6 +7,7 @@ import { getAudioPerf, resetAudioPerf, type AudioPerf } from "@/lib/audio/audioP
 import { getProbeStats, exportRawEvents, type ProbeStats } from "@/lib/audio/audioClockProbe";
 import { runStressTest, onStressResult, isStressRunning, type StressTestName, type StressTestResult } from "@/lib/audio/stressTests";
 import { runClockTest } from "@/lib/setup/clockTest";
+import { getNativeAudioStatus } from "@/lib/audio/nativeAudioRuntime";
 
 const PSYCHO_PRESETS: PsychoPresetName[] = ["NEUTRAL", "WARM", "CRUNCH", "HI_DEF"];
 const STRESS_TESTS: { id: StressTestName; label: string }[] = [
@@ -66,6 +67,7 @@ export function DiagPanel({ embedded = false }: { embedded?: boolean }) {
   const state = ctx?.state ?? "idle";
   const fxOn = fx.filter((f) => !f.bypass && f.type).length;
   const dbg = getAudioDebugStats();
+  const native = getNativeAudioStatus();
 
   const row = (k: string, v: string | number, hot?: boolean) => (
     <div className="flex items-center justify-between">
@@ -114,6 +116,9 @@ export function DiagPanel({ embedded = false }: { embedded?: boolean }) {
 
         <div className="space-y-0.5">
           {row("AUDIO", state, state === "running")}
+          {row("BACKEND", native.available ? "OBOE" : "WEBAUDIO", native.active)}
+          {native.available && row("NATIVE", native.error ?? native.diagnostic, !native.error && native.engineRunning)}
+          {native.available && row("NATIVE LAT", native.latencyMs >= 0 ? `${native.latencyMs.toFixed(1)} ms` : "n/a")}
           {row("SR", `${sr} Hz`)}
           {row("CPU", `${cpu}%`)}
           {row("VOICES", `${activeVoices}/${voices}`)}
