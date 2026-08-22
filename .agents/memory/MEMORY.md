@@ -8,3 +8,4 @@
 - [AI Arpeggiator Intelligence](ai-arp-intelligence.md) — ONE global ARP engine; 24 genres; Energy Engine 0-100; module APIs; nav: GROOVE→ARP
 - [Native audio lifetime patterns](native-audio-review-lessons.md) — ack-handshakes not atomic gates; epoch-gated sample free; FIFO graph order; deferred steal; MusicalPosition has no bpm; JNI symbols must be nativeXxx
 - [MIDI CC input lifecycle](midi-cc-lifecycle.md) — direct CC assignment must initialize Web MIDI without requiring Learn first; unavailable states must be visible
+- [Android White-Screen hold](task-43-pause.md) — Task #43 is explicitly paused; no White-Screen repair work resumes without a later explicit release
