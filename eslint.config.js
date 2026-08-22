@@ -6,6 +6,15 @@ import pluginUnusedImports from "eslint-plugin-unused-imports";
 
 export default [
   {
+    // Local Android toolchains and Gradle/CMake outputs are not application source.
+    ignores: [
+      ".android-sdk/**",
+      "native-android/.gradle/**",
+      "native-android/**/.cxx/**",
+      "native-android/**/build/**",
+    ],
+  },
+  {
     files: [
       "src/components/**/*.{js,mjs,cjs,jsx}",
       "src/pages/**/*.{js,mjs,cjs,jsx}",
