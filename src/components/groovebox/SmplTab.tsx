@@ -21,6 +21,7 @@ import {
   spectralFreezeAudioBuffer, autoChopBuffer,
 } from "@/lib/audio/sampleForge";
 import { AiContextButton } from "./AiContextButton";
+import { ForgeTab } from "./ForgeTab";
 import type { WaveEdit } from "@/lib/model";
 
 interface LoadedSample {
@@ -56,6 +57,7 @@ export function SmplTab() {
   const [busy, setBusy] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [partsOpen, setPartsOpen] = useState(false);
+  const [forgeOpen, setForgeOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const presetRef = useRef<HTMLInputElement>(null);
   const waveRef = useRef<HTMLDivElement>(null);
@@ -376,8 +378,41 @@ export function SmplTab() {
     { label: "EXP ALL",   icon: <Download className="h-4 w-4" />,  onClick: () => exportPreset("all"),  color: "text-neon-cyan" },
   ];
 
+  if (forgeOpen) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3 panel p-2">
+          <div>
+            <div className="font-display text-xs">SAMPLE FORGE</div>
+            <div className="font-mono text-[8px] text-muted-foreground tracking-widest">SOUND GENERATOR</div>
+          </div>
+          <button
+            onClick={() => setForgeOpen(false)}
+            className="h-8 px-3 rounded panel-inset font-mono text-[9px] text-primary"
+          >
+            WAVEFORM
+          </button>
+        </div>
+        <ForgeTab />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3" onPointerMove={onWavePointerMove} onPointerUp={onWavePointerUp}>
+
+      <div className="panel p-2 flex items-center justify-between gap-3">
+        <div>
+          <div className="font-display text-xs">WAVEFORM EDITOR</div>
+          <div className="font-mono text-[8px] text-muted-foreground tracking-widest">SAMPLE FORGE</div>
+        </div>
+        <button
+          onClick={() => setForgeOpen(true)}
+          className="h-8 px-3 rounded panel-inset font-mono text-[9px] text-neon-lime flex items-center gap-1.5"
+        >
+          <Sparkles className="h-3.5 w-3.5" /> FORGE PRESETS
+        </button>
+      </div>
 
       {/* ─── PRIMARY: Waveform editor ─────────────────────── */}
       <div className="panel p-2">
