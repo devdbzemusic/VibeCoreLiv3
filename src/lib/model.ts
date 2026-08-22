@@ -102,6 +102,8 @@ export interface Part {
   id: number; name: string; category: PartCategory; color: string;
   volume: number; pan: number; pitch: number;
   mute: boolean; solo: boolean;
+  /** Dry/main output destination: null = master, 0..5 = FX bus index. */
+  busTarget?: number | null;
   sends: number[]; sampleName: string | null;
   channel: Channel; source: SourceMode;
   wave: WaveEdit; synth: SynthParams; hybrid: HybridParams;
@@ -437,6 +439,7 @@ export function buildDefaultParts(): Part[] {
       id: i,
       volume: 78, pan: 0, pitch: 0,
       mute: false, solo: false,
+      busTarget: null,
       sends: [0, 0, 0, 0, 0, 0],
       sampleName: null,
       channel: defaultChannel(),

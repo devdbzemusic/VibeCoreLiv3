@@ -1,9 +1,18 @@
 import { useMemo } from "react";
 import { useGroove } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Headphones, Sliders, Activity } from "lucide-react";
+import { Headphones, Sliders, Activity, Route, Volume2, VolumeX } from "lucide-react";
 import type { DriveType } from "@/lib/model";
 import { useMeter, useVisibleParts } from "@/hooks/useMeter";
+
+const BUS_TARGETS = [
+  { value: "master", label: "MASTER" },
+  ...Array.from({ length: 6 }, (_, i) => ({ value: String(i), label: `BUS ${i + 1}` })),
+];
+
+function busTargetValue(target: number | null | undefined): string {
+  return target === null || target === undefined ? "master" : String(target);
+}
 
 function Fader({ value, onChange, color = "primary", peak = 0 }: { value: number; onChange: (v: number) => void; color?: string; peak?: number }) {
   return (
@@ -31,7 +40,10 @@ function Fader({ value, onChange, color = "primary", peak = 0 }: { value: number
 }
 
 export function MixTab() {
-  const { parts, setPartVolume, setPartPan, setPartPitch, toggleMute, toggleSolo, selectedPart, selectPart } = useGroove();
+  const {
+    parts, partBusAssignments, setPartVolume, setPartPan, setPartPitch,
+    setPartBusAssignment, toggleMute, toggleSolo, selectedPart, selectPart,
+  } = useGroove();
   // Register every visible part so the engine reads its analyser.
   const visibleIds = useMemo(() => parts.map((p) => p.id), [parts]);
   useVisibleParts(visibleIds);
@@ -56,6 +68,8 @@ export function MixTab() {
                 onVolume={(v) => setPartVolume(p.id, v)}
                 onPan={(v) => setPartPan(p.id, v)}
                 onPitch={(v) => setPartPitch(p.id, v)}
+                busTarget={p.busTarget ?? partBusAssignments[p.id] ?? null}
+                onBusTarget={(busIdx) => setPartBusAssignment(p.id, busIdx)}
                 onMute={() => toggleMute(p.id)}
                 onSolo={() => toggleSolo(p.id)}
               />
@@ -65,6 +79,7 @@ export function MixTab() {
       </div>
 
       <ChannelStrip />
+      <BusRoutingPanel />
       <SelectedPartSends />
       <MasterBus />
     </div>
@@ -124,13 +139,15 @@ interface PartMixerCellProps {
   onVolume: (v: number) => void;
   onPan: (v: number) => void;
   onPitch: (v: number) => void;
+  busTarget: number | null;
+  onBusTarget: (busIdx: number | null) => void;
   onMute: () => void;
   onSolo: () => void;
 }
 
 // Isolated meter cell: only this component rerenders @ ≤10 Hz when the
 // part's peak changes. The rest of MixTab stays still.
-function PartMixerCell({ p, selected, onSelect, onVolume, onPan, onPitch, onMute, onSolo }: PartMixerCellProps) {
+function PartMixerCell({ p, selected, onSelect, onVolume, onPan, onPitch, busTarget, onBusTarget, onMute, onSolo }: PartMixerCellProps) {
   const peak = useMeter((s) => s.partPeaks[p.id] ?? 0);
   return (
     <div
@@ -169,6 +186,21 @@ function PartMixerCell({ p, selected, onSelect, onVolume, onPan, onPitch, onMute
         <div className="font-mono text-[8px] text-neon-cyan text-center">{p.pitch > 0 ? `+${p.pitch}` : p.pitch}st</div>
       </div>
 
+      <select
+        aria-label={`${p.name} output bus`}
+        value={busTargetValue(busTarget)}
+        onChange={(e) => {
+          e.stopPropagation();
+          onBusTarget(e.target.value === "master" ? null : Number(e.target.value));
+        }}
+        onClick={(e) => e.stopPropagation()}
+        className="h-6 w-full rounded panel-inset bg-surface-0 px-0.5 text-[8px] font-mono text-primary outline-none"
+      >
+        {BUS_TARGETS.map((target) => (
+          <option key={target.value} value={target.value}>{target.label}</option>
+        ))}
+      </select>
+
       <div className="flex gap-1 w-full">
         <button
           onClick={(e) => { e.stopPropagation(); onMute(); }}
@@ -183,6 +215,58 @@ function PartMixerCell({ p, selected, onSelect, onVolume, onPan, onPitch, onMute
       </div>
 
       <div className="font-mono text-[8px] text-primary">{p.volume}</div>
+    </div>
+  );
+}
+
+function BusRoutingPanel() {
+  const { busLevels, setBusLevelAction } = useGroove();
+
+  return (
+    <div className="panel p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="font-display text-xs text-primary flex items-center gap-2">
+          <Route className="h-3.5 w-3.5" />
+          FX BUS CHANNELS
+        </div>
+        <div className="font-mono text-[9px] text-muted-foreground">DRY ROUTING · LEVEL · MUTE</div>
+      </div>
+      <div className="hairline mb-3" />
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        {busLevels.map((bus, i) => (
+          <div key={i} className={cn("panel-inset rounded-md p-2", bus.mute && "opacity-70")}>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="font-display text-[10px] text-foreground">BUS {i + 1}</div>
+              <button
+                type="button"
+                aria-label={`Mute bus ${i + 1}`}
+                aria-pressed={bus.mute}
+                onClick={() => setBusLevelAction(i, bus.volume, !bus.mute)}
+                className={cn(
+                  "h-6 w-7 rounded panel-inset grid place-items-center",
+                  bus.mute ? "bg-neon-crimson text-primary-foreground border-neon-crimson" : "text-muted-foreground",
+                )}
+              >
+                {bus.mute ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+              </button>
+            </div>
+            <input
+              aria-label={`Bus ${i + 1} volume`}
+              type="range"
+              min={0}
+              max={100}
+              value={bus.volume}
+              onChange={(e) => setBusLevelAction(i, Number(e.target.value), bus.mute)}
+              className="w-full h-1 accent-primary"
+            />
+            <div className="flex items-center justify-between mt-1 font-mono text-[8px] text-muted-foreground">
+              <span>FX {String.fromCharCode(65 + i)}</span>
+              <span className="text-primary">{bus.volume}%</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

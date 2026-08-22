@@ -869,9 +869,11 @@ export const useGroove = create<State>()(persist((set) => ({
   toggleFxBypass: (slot) => set((s) => ({ fx: s.fx.map((f, i) => i === slot ? { ...f, bypass: !f.bypass } : f) })),
   toggleFxSharedFloor: () => set((s) => ({ fxSharedFloor: !s.fxSharedFloor })),
   setPartBusAssignment: (partId, busIdx) => set((s) => ({
+    parts: s.parts.map((p) => p.id === partId ? { ...p, busTarget: busIdx } : p),
     partBusAssignments: { ...s.partBusAssignments, [partId]: busIdx },
   })),
   setBusLevelAction: (busIdx, volume, mute) => set((s) => {
+    if (busIdx < 0 || busIdx >= s.busLevels.length) return {};
     const next = s.busLevels.slice();
     next[busIdx] = { volume: Math.max(0, Math.min(100, volume)), mute };
     return { busLevels: next };
@@ -1022,6 +1024,8 @@ export const useGroove = create<State>()(persist((set) => ({
     fx: s.fx,
     fxRouting: s.fxRouting,
     fxSharedFloor: s.fxSharedFloor,
+    partBusAssignments: s.partBusAssignments,
+    busLevels: s.busLevels,
     mod: s.mod,
     arp: s.arp,
     selectedPattern: s.selectedPattern,

@@ -221,7 +221,16 @@ export async function ensureAudio(): Promise<AudioContext> {
     // are always reflected from the very first audio frame.
     {
       const initS = useGroove.getState();
-      const assignments = initS.partBusAssignments as Record<string, number | null>;
+      const assignments = { ...(initS.partBusAssignments as Record<string, number | null>) };
+      // Older v12 projects may have persisted the per-Part field before the
+      // routing map was added. Prefer the explicit map, then hydrate it from
+      // Part.busTarget so those assignments also survive an AudioContext rebuild.
+      initS.parts.forEach((part) => {
+        const key = String(part.id);
+        if (!Object.prototype.hasOwnProperty.call(assignments, key) && part.busTarget !== undefined) {
+          assignments[key] = part.busTarget ?? null;
+        }
+      });
       Object.entries(assignments).forEach(([pidStr, busIdx]) => {
         routePartMainToBus(Number(pidStr), busIdx);
       });
