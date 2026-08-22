@@ -28,3 +28,24 @@ uri = "file://VibeCore_Univers_Developer_Package.zip"
 type = "unspecified"
 title = "VibeCore Univers — Entwicklerprojekt als ZIP"
 description = "Sauberes Entwicklerpaket mit Web-Quellcode, Android-Projekt, nativen Quellen, Web-Assets, Konfiguration und Dokumentation. Lokale Abhängigkeiten, SDK-/Build-Caches, Git-Daten, Debug-Keystore und mögliche Geheimnisdateien ausgeschlossen. ZIP-Test erfolgreich. Größe: 5,2 MB. SHA-256: 5f6c8145caeaa1aec4b70d2e65e5a4cef0b1175902724f718ca781a309462ec3."
+
+[[outputs]]
+id = "qodaJ1U0SWUUT9J-Q9QAY"
+uri = "file://.local/exports/VibeCore_Univers_dev-export_7818ef28.zip"
+type = "unspecified"
+title = "VibeCore Univers — Entwickler-Export 7818ef28"
+description = "Kompletter Entwickler-Export des sauberen Git-Stands 7818ef28 inklusive exaktem Quellstand, Android-Debug-APK und EXPORT_MANIFEST.txt. ZIP-SHA-256: a8da992da585c91facb5067c326d462a94ce472cd9c2f6ad465709e41895d1b3"
+
+[[outputs]]
+id = "bEuEknwwbTOSefLyrnYlZ"
+uri = "file://.local/exports/VibeCore_Univers_app-debug_1.0_7818ef28.apk"
+type = "unspecified"
+title = "VibeCore Univers — Android Debug APK 1.0"
+description = "Direkt installierbare Debug-APK für das Entwicklerteam. Paket com.vibecore.app, Version 1.0 (Code 1), ABIs arm64-v8a/armeabi-v7a/x86_64. APK-SHA-256: 3563a01a835db1cce57a1fdc9d19a55e21d83721b4f7f03cce0dc4c425ac102c"
+
+[[outputs]]
+id = "JoyMZ7yHSoiVXcjEWIZ6I"
+uri = "file://.local/exports/SHA256SUMS_7818ef28.txt"
+type = "text"
+title = "VibeCore Univers — Export-Prüfsummen"
+description = "SHA-256-Prüfsummen für Entwickler-Export, APK und Export-Manifest."
