@@ -279,6 +279,8 @@ interface State {
   setPartBusAssignment: (partId: number, busIdx: number | null) => void;
   /** Update the volume/mute for one of the 6 engine FX buses. volume: 0–100. */
   setBusLevelAction: (busIdx: number, volume: number, mute: boolean) => void;
+  /** Toggle one bus mute state without changing its current volume. */
+  toggleBusMute: (busIdx: number) => void;
   setFxType: (slot: number, t: FxSlot["type"]) => void;
   setFxParam: (slot: number, key: string, v: number) => void;
   setChannel: (id: number, patch: Partial<Channel>) => void;
@@ -876,6 +878,12 @@ export const useGroove = create<State>()(persist((set) => ({
     if (busIdx < 0 || busIdx >= s.busLevels.length) return {};
     const next = s.busLevels.slice();
     next[busIdx] = { volume: Math.max(0, Math.min(100, volume)), mute };
+    return { busLevels: next };
+  }),
+  toggleBusMute: (busIdx) => set((s) => {
+    if (busIdx < 0 || busIdx >= s.busLevels.length) return {};
+    const next = s.busLevels.slice();
+    next[busIdx] = { ...next[busIdx], mute: !next[busIdx].mute };
     return { busLevels: next };
   }),
   setFxType: (slot, t) => set((s) => ({ fx: s.fx.map((f, i) => i === slot ? { ...f, type: t, params: defaultFxParams(t) } : f) })),

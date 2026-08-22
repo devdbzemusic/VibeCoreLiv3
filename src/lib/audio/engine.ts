@@ -16,6 +16,7 @@ import { getQuality } from "./quality";
 import { requestVoice, partVoiceClass, setVoiceCap } from "./voiceAllocator";
 import { recordActiveVoices, recordDroppedVoice, recordVoiceCreated, recordVoiceDestroyed } from "./audioPerf";
 import { publishMeter, isPartVisible, isPartActive, markPartActive, getMeterSnapshot } from "./meterBus";
+import { applyMixerRoutingSnapshot } from "./mixerRoutingBridge";
 
 let ctx: AudioContext | null = null;
 type SampleId = number | string;
@@ -213,31 +214,13 @@ export async function ensureAudio(): Promise<AudioContext> {
     buildFxBuses();
     buildAllPartChains();
     applyAllParams();
-    // Restore persisted bus routing immediately after graph construction.
-    // bindParamUpdates() subscriptions only fire on *future* store mutations;
-    // they will not re-apply routing that was already saved in the store when
-    // this AudioContext was created (e.g. after a page reload or AudioContext
-    // recreation).  Call explicitly here so saved assignments and bus levels
-    // are always reflected from the very first audio frame.
-    {
-      const initS = useGroove.getState();
-      const assignments = { ...(initS.partBusAssignments as Record<string, number | null>) };
-      // Older v12 projects may have persisted the per-Part field before the
-      // routing map was added. Prefer the explicit map, then hydrate it from
-      // Part.busTarget so those assignments also survive an AudioContext rebuild.
-      initS.parts.forEach((part) => {
-        const key = String(part.id);
-        if (!Object.prototype.hasOwnProperty.call(assignments, key) && part.busTarget !== undefined) {
-          assignments[key] = part.busTarget ?? null;
-        }
-      });
-      Object.entries(assignments).forEach(([pidStr, busIdx]) => {
-        routePartMainToBus(Number(pidStr), busIdx);
-      });
-      (initS.busLevels as { volume: number; mute: boolean }[]).forEach((b, i) => {
-        setBusChannelLevel(i, b.volume / 100, b.mute);
-      });
-    }
+    // Restore persisted routing immediately after graph construction.
+    // bindParamUpdates() only sees future mutations; this explicit hydration
+    // is required after a page reload or AudioContext reconstruction.
+    applyMixerRoutingSnapshot(useGroove.getState(), {
+      routePartMainToBus,
+      setBusChannelLevel,
+    });
     startMeterLoop();
     await initGranularWorklet(ctx);
     const { startModulationLoop } = await import("./modulation");
@@ -1530,13 +1513,19 @@ export function bindParamUpdates() {
     // numeric bus indices from the store — named FxMixLab bus IDs require
     // callers to pass an explicit busIdMap to applyFxMixLabRouting() directly.
     if (ctx && s.partBusAssignments !== prev.partBusAssignments) {
-      Object.entries(s.partBusAssignments as Record<string, number | null>).forEach(
-        ([pidStr, busIdx]) => { routePartMainToBus(Number(pidStr), busIdx); },
-      );
+      applyMixerRoutingSnapshot({
+        partBusAssignments: s.partBusAssignments,
+      }, {
+        routePartMainToBus,
+        setBusChannelLevel,
+      });
     }
     if (ctx && s.busLevels !== prev.busLevels) {
-      (s.busLevels as { volume: number; mute: boolean }[]).forEach((b, i) => {
-        setBusChannelLevel(i, b.volume / 100, b.mute);
+      applyMixerRoutingSnapshot({
+        busLevels: s.busLevels,
+      }, {
+        routePartMainToBus,
+        setBusChannelLevel,
       });
     }
 

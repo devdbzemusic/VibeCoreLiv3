@@ -1,3 +1,4 @@
+- [React range input testing](react-range-input-testing.md) — use real keyboard/input events for controlled sliders; direct DOM value changes can bypass React state
 - [Creative Workflow Constitution](creative-workflow-constitution.md) — SUPREMÉ DIRECTIVE 001: Workflow is Law; 11-phase flow; highest authority; no UI/arch/code without WORKFLOW APPROVED
 - [SonicArchitect architecture](sonic-architect-arch.md) — key engine/clock/store invariants that must be preserved across all edits
 - [VibeCore Univers SUPREMÉ](vibecore-univers-supreme.md) — TOP-LEVEL CONSTITUTION: 7 bands, the One Rule, SUPREMÉ APPROVED gate, all invariants. Supersedes all other docs on conflict.

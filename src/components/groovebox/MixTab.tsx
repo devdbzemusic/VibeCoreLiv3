@@ -220,7 +220,7 @@ function PartMixerCell({ p, selected, onSelect, onVolume, onPan, onPitch, busTar
 }
 
 function BusRoutingPanel() {
-  const { busLevels, setBusLevelAction } = useGroove();
+  const { busLevels, setBusLevelAction, toggleBusMute } = useGroove();
 
   return (
     <div className="panel p-3">
@@ -242,7 +242,7 @@ function BusRoutingPanel() {
                 type="button"
                 aria-label={`Mute bus ${i + 1}`}
                 aria-pressed={bus.mute}
-                onClick={() => setBusLevelAction(i, bus.volume, !bus.mute)}
+                onClick={() => toggleBusMute(i)}
                 className={cn(
                   "h-6 w-7 rounded panel-inset grid place-items-center",
                   bus.mute ? "bg-neon-crimson text-primary-foreground border-neon-crimson" : "text-muted-foreground",
