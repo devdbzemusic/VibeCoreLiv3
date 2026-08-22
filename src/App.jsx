@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -10,6 +10,14 @@ import Index from "@/pages/Index";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 // Add page imports here
+
+// Android loads the app from file:///android_asset/webapp/index.html. A
+// BrowserRouter would treat that asset path as the route and select the
+// wildcard 404 page. HashRouter keeps the Android asset filename out of the
+// application route while preserving BrowserRouter for normal HTTP(S) builds.
+const Router = typeof window !== 'undefined' && window.location.protocol === 'file:'
+  ? HashRouter
+  : BrowserRouter;
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
