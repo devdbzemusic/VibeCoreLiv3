@@ -7,8 +7,7 @@
 // Signal flow: reads from store partSteps → writes back via updateStep.
 // No audio thread contact; all changes propagate via store listeners.
 
-import { useRef } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGroove } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { Step } from "@/lib/model";
@@ -56,6 +55,7 @@ export function AutomationDrawer({ onClose }: { onClose: () => void }) {
 
   const [activeLane, setActiveLane] = useState<Lane>("VEL");
   const dragging = useRef<number | null>(null);   // step index being dragged
+  const handleDragCleanup = useRef<(() => void) | null>(null);
   const barContainerRef = useRef<HTMLDivElement>(null);
 
   if (!pattern || !part || !scene || stepCount === 0) {
@@ -97,16 +97,65 @@ export function AutomationDrawer({ onClose }: { onClose: () => void }) {
 
   const onBarPointerUp = () => { dragging.current = null; };
 
+  useEffect(() => () => {
+    handleDragCleanup.current?.();
+  }, []);
+
+  // Swipe-down-to-close via the drag handle. The release listener lives on
+  // window so a short handle still receives a completed gesture after the
+  // pointer leaves its bounds.
+  const onHandlePointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    handleDragCleanup.current?.();
+    const startY = e.clientY;
+    const pointerId = e.pointerId;
+    const cleanup = () => {
+      window.removeEventListener("pointerup", finish, true);
+      window.removeEventListener("pointercancel", cleanup, true);
+      if (handleDragCleanup.current === cleanup) {
+        handleDragCleanup.current = null;
+      }
+    };
+    const finish = (event: PointerEvent) => {
+      if (event.pointerId !== pointerId) return;
+      cleanup();
+      if (event.clientY - startY > 60) onClose();
+    };
+    window.addEventListener("pointerup", finish, true);
+    window.addEventListener("pointercancel", cleanup, true);
+    handleDragCleanup.current = cleanup;
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+
   return (
-    <div className="panel p-3 space-y-2 animate-slide-up">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="font-display text-xs text-primary flex items-center gap-2">
-          AUTO — {LANE_LABELS[activeLane]}
-          <span className="font-mono text-[8px] text-muted-foreground">
+    <div className="relative z-40 panel p-3 space-y-2 animate-slide-up">
+      {/* Drag handle */}
+      <div
+        data-testid="automation-drawer-handle"
+        className="flex items-center justify-between px-1 py-1 cursor-ns-resize touch-none select-none"
+        onPointerDown={onHandlePointerDown}
+        aria-label="Drag down to close automation drawer"
+      >
+        <div className="min-w-0 font-display text-xs text-primary flex items-center gap-2">
+          <span>AUTO — {LANE_LABELS[activeLane]}</span>
+          <span className="hidden sm:inline truncate font-mono text-[8px] text-muted-foreground">
             {part.name} · SCN {Math.min(selectedSceneIdx, pattern.scenes.length - 1) + 1}
           </span>
         </div>
+        <div className="shrink-0 flex items-center gap-2">
+          <div className="w-10 h-0.5 rounded-full bg-muted-foreground/40 mx-auto" aria-hidden="true" />
+          <button
+            onClick={onClose}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="h-7 w-7 rounded panel-inset grid place-items-center text-muted-foreground"
+            aria-label="Close automation drawer"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-1.5">
         <div className="flex items-center gap-1.5">
           {/* Lane selector */}
           {(["VEL", "PROB", "GATE", "FILT", "PAN"] as Lane[]).map((lane) => (
@@ -121,13 +170,6 @@ export function AutomationDrawer({ onClose }: { onClose: () => void }) {
               {lane}
             </button>
           ))}
-          <button
-            onClick={onClose}
-            className="h-7 w-7 rounded panel-inset grid place-items-center text-muted-foreground ml-1"
-            aria-label="Close automation drawer"
-          >
-            <ChevronDown className="h-3.5 w-3.5" />
-          </button>
         </div>
       </div>
 

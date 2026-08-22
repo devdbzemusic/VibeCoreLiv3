@@ -30,9 +30,10 @@ export function PatternChainDrawer({ onClose }: { onClose: () => void }) {
   const onHandlePointerUp = () => { startY.current = null; };
 
   return (
-    <div className="panel overflow-hidden animate-slide-up">
+    <div className="relative z-40 panel overflow-hidden animate-slide-up">
       {/* Drag handle */}
       <div
+        data-testid="pattern-chain-drawer-handle"
         className="flex items-center justify-between px-3 py-2 cursor-ns-resize touch-none select-none"
         onPointerDown={onHandlePointerDown}
         onPointerMove={onHandlePointerMove}
@@ -45,6 +46,7 @@ export function PatternChainDrawer({ onClose }: { onClose: () => void }) {
           <div className="w-10 h-0.5 rounded-full bg-muted-foreground/40 mx-auto" />
           <button
             onClick={onClose}
+            onPointerDown={(e) => e.stopPropagation()}
             className="h-7 w-7 rounded panel-inset grid place-items-center text-muted-foreground"
             aria-label="Close drawer"
           >

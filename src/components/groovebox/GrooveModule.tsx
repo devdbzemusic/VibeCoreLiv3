@@ -28,13 +28,62 @@
 //   MasterClock → Scheduler → store transport → Piano Roll
 //   Store writes (note edits) → Scheduler reads on next tick → Audio engine
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useGroove } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { PianoRollTab }      from "./PianoRollTab";
 import { AutomationDrawer }  from "./AutomationDrawer";
 import { PatternChainDrawer } from "./PatternChainDrawer";
 import { Activity, Link2 }   from "lucide-react";
+
+const SWIPE_DISTANCE_PX = 48;
+
+function DrawerSwipeZone({
+  onOpenAutomation,
+  onOpenChain,
+}: {
+  onOpenAutomation: () => void;
+  onOpenChain: () => void;
+}) {
+  const startRef = useRef<{ x: number; y: number } | null>(null);
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    startRef.current = { x: e.clientX, y: e.clientY };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const start = startRef.current;
+    if (!start || start.y - e.clientY < SWIPE_DISTANCE_PX) return;
+
+    startRef.current = null;
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (start.x - rect.left < rect.width / 4) {
+      onOpenAutomation();
+    } else {
+      onOpenChain();
+    }
+  };
+
+  const clearStart = () => { startRef.current = null; };
+
+  return (
+    <div
+      data-testid="groove-drawer-swipe-zone"
+      className="md:hidden h-10 -mt-1 flex items-start justify-center touch-none select-none"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={clearStart}
+      onPointerCancel={clearStart}
+      aria-label="Swipe up to open automation or pattern chain"
+    >
+      <div className="mt-1.5 h-5 w-16 rounded-full panel-inset flex items-start justify-center">
+        <div className="mt-1 h-1 w-9 rounded-full bg-muted-foreground/50" aria-hidden="true" />
+      </div>
+    </div>
+  );
+}
 
 export function GrooveModule() {
   const recording = useGroove((s) => s.recording);
@@ -43,10 +92,25 @@ export function GrooveModule() {
   const [autoOpen,  setAutoOpen]  = useState(false);
   const [chainOpen, setChainOpen] = useState(false);
 
+  const openAutomation = () => { setAutoOpen(true); setChainOpen(false); };
+  const openChain = () => { setChainOpen(true); setAutoOpen(false); };
+
   return (
     <div className="space-y-2">
       {/* Primary editing surface — compact mode enforces 8-param rule */}
       <PianoRollTab compact />
+      <DrawerSwipeZone
+        onOpenAutomation={openAutomation}
+        onOpenChain={openChain}
+      />
+
+      {/* ── Drawers (mutually exclusive, above the footer/navigation) ── */}
+      {autoOpen && (
+        <AutomationDrawer onClose={() => setAutoOpen(false)} />
+      )}
+      {chainOpen && (
+        <PatternChainDrawer onClose={() => setChainOpen(false)} />
+      )}
 
       {/* ── Footer bar: 1-touch access to automation + pattern chain ── */}
       <div className="flex items-center gap-2">
@@ -92,14 +156,6 @@ export function GrooveModule() {
           SEQ tab for step view
         </div>
       </div>
-
-      {/* ── Drawers (mutually exclusive) ── */}
-      {autoOpen && (
-        <AutomationDrawer onClose={() => setAutoOpen(false)} />
-      )}
-      {chainOpen && (
-        <PatternChainDrawer onClose={() => setChainOpen(false)} />
-      )}
     </div>
   );
 }
