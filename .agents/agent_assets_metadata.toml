@@ -49,3 +49,10 @@ uri = "file://.local/exports/SHA256SUMS_7818ef28.txt"
 type = "text"
 title = "VibeCore Univers — Export-Prüfsummen"
 description = "SHA-256-Prüfsummen für Entwickler-Export, APK und Export-Manifest."
+
+[[outputs]]
+id = "VZhwK9KfXUUkqgGKP8iLJ"
+uri = "file://exports/VibeCoreLiv3_Developer_Handoff_2026-08-22.zip"
+type = "unspecified"
+title = "VibeCoreLiv3 – Entwicklerübergabe"
+description = "Aktueller Quellcode inklusive Android-Projekt, Assets, Dokumentation, Konfiguration und package-lock.json; ohne node_modules, Builds, Caches, Git-Metadaten und lokale Konfiguration."
