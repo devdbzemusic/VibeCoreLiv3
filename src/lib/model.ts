@@ -150,6 +150,23 @@ export function engineForCategory(c: PartCategory): SynthEngine {
   return "Synth";
 }
 
+export function allowedSourcesForCategory(category: PartCategory): SourceMode[] {
+  if (category === "sample") return ["sample"];
+  return ["sample", "synth", "hybrid"];
+}
+
+export function normalizeSourceForCategory(category: PartCategory, source: SourceMode): SourceMode {
+  return allowedSourcesForCategory(category).includes(source) ? source : allowedSourcesForCategory(category)[0];
+}
+
+export function canUseSynthForCategory(category: PartCategory): boolean {
+  return category !== "sample";
+}
+
+export function canUseHybridForCategory(category: PartCategory): boolean {
+  return allowedSourcesForCategory(category).includes("hybrid");
+}
+
 export interface Step {
   on: boolean;
   velocity: number;

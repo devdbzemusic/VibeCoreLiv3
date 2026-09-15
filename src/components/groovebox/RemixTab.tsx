@@ -9,11 +9,14 @@ import { useGroove } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
   Sparkles, Wand2, ArrowRight, Trash2, Plus, Repeat2,
-  Eye, EyeOff, Zap, Music2,
+  Eye, EyeOff, Zap, Music2, Upload, Gauge,
 } from "lucide-react";
 import { buildContext } from "@/lib/ai/context";
 import { suggestRemixIdea } from "@/lib/ai/remixAssistant";
+import { analyzeRemixAudioInput, type RemixAudioInputAnalysis } from "@/lib/ai/remixAudioInput";
 import { suggestSongStructure } from "@/lib/ai/arrangementAssistant";
+import { ensureAudio } from "@/lib/audio/engine";
+import { bufferToPCM } from "@/lib/audio/sampleForge";
 import type { ChainStep } from "@/lib/model";
 import { AiContextButton } from "./AiContextButton";
 
@@ -28,7 +31,7 @@ const GENRES = ["techno", "house", "dnb", "ambient", "pop"] as const;
 
 export function RemixTab() {
   const {
-    patterns, selectedPattern, transport,
+    patterns, selectedPattern, transport, bpm, setBpm,
     setChainSteps, addToChain, removeFromChain,
     setChainStepRepeat, toggleChainStepSkip, clearChain,
     moveChainStep, setChainMode, queuePattern,
@@ -40,6 +43,11 @@ export function RemixTab() {
   const [genre, setGenre] = useState<string>("techno");
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [aiChainSteps, setAiChainSteps] = useState<ChainStep[] | null>(null);
+  const [audioAnalysis, setAudioAnalysis] = useState<RemixAudioInputAnalysis | null>(null);
+  const [audioInputName, setAudioInputName] = useState<string | null>(null);
+  const [audioInputError, setAudioInputError] = useState<string | null>(null);
+  const [audioInputBusy, setAudioInputBusy] = useState(false);
+  const audioInputRef = useRef<HTMLInputElement | null>(null);
 
   const chain = transport.chainSteps ?? [];
   const chainMode = transport.chainMode;
@@ -78,8 +86,87 @@ export function RemixTab() {
     setAiResult(null);
   };
 
+  const analyzeAudioFile = useCallback(async (file: File) => {
+    setAudioInputBusy(true);
+    setAudioInputError(null);
+    try {
+      const ctx = await ensureAudio();
+      const data = await file.arrayBuffer();
+      const decoded = await ctx.decodeAudioData(data.slice(0));
+      const analysis = analyzeRemixAudioInput(bufferToPCM(decoded), { targetBpm: bpm });
+      setAudioInputName(file.name);
+      setAudioAnalysis(analysis);
+      addAiHistoryEntry({ action: "Analyzed remix audio input", module: "REMIX" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Audio input could not be analyzed.";
+      setAudioInputError(msg);
+      setAudioAnalysis(null);
+    } finally {
+      setAudioInputBusy(false);
+    }
+  }, [bpm, addAiHistoryEntry]);
+
   return (
     <div className="space-y-3">
+      {/* ── Audio input analysis ─── */}
+      <div className="panel p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Upload className="h-3.5 w-3.5 text-primary" />
+          <span className="font-display text-xs text-primary">AUDIO INPUT</span>
+          <span className="font-mono text-[9px] text-muted-foreground ml-1">file remix analysis</span>
+          <input
+            ref={audioInputRef}
+            type="file"
+            accept="audio/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.currentTarget.files?.[0];
+              if (file) void analyzeAudioFile(file);
+              e.currentTarget.value = "";
+            }}
+          />
+          <button
+            onClick={() => audioInputRef.current?.click()}
+            disabled={audioInputBusy}
+            className="ml-auto h-7 px-2 rounded panel-inset text-[9px] text-primary font-mono disabled:opacity-40"
+          >
+            {audioInputBusy ? "SCAN" : "LOAD"}
+          </button>
+        </div>
+        <div className="hairline mb-2" />
+        {audioInputError ? (
+          <div className="font-mono text-[10px] text-neon-crimson py-2">{audioInputError}</div>
+        ) : audioAnalysis ? (
+          <div className="space-y-2">
+            <div className="flex items-start gap-2">
+              <Gauge className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <div className="font-mono text-[10px] text-foreground truncate">{audioInputName}</div>
+                <div className="font-mono text-[9px] text-muted-foreground">{audioAnalysis.summary}</div>
+              </div>
+              <span className="font-mono text-[9px] text-primary tabular-nums">{Math.round(audioAnalysis.confidence * 100)}%</span>
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              <Metric label="BPM" value={audioAnalysis.bpm > 0 ? String(audioAnalysis.bpm) : "?"} />
+              <Metric label="KEY" value={audioAnalysis.keyLabel} />
+              <Metric label="NRG" value={audioAnalysis.energy.toUpperCase()} />
+              <Metric label="CLIP" value={audioAnalysis.clipping ? "YES" : "NO"} warn={audioAnalysis.clipping} />
+            </div>
+            <button
+              onClick={() => audioAnalysis.bpm > 0 && setBpm(audioAnalysis.bpm)}
+              disabled={audioAnalysis.bpm <= 0}
+              className="w-full h-9 rounded-lg panel-inset font-display text-[10px] text-primary disabled:opacity-40"
+            >
+              SYNC PROJECT BPM
+            </button>
+          </div>
+        ) : (
+          <div className="font-mono text-[10px] text-muted-foreground py-4 text-center">
+            Load an audio file to detect tempo, key, energy and clipping.
+          </div>
+        )}
+      </div>
+
       {/* ── Pattern queue ─── */}
       <div className="hw-bezel p-3">
         <div className="flex items-center gap-2 mb-2">
@@ -312,6 +399,15 @@ export function RemixTab() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function Metric({ label, value, warn = false }: { label: string; value: string; warn?: boolean }) {
+  return (
+    <div className="panel-inset rounded-lg px-2 py-1.5 min-w-0">
+      <div className="font-mono text-[7px] text-muted-foreground">{label}</div>
+      <div className={cn("font-display text-[10px] truncate", warn ? "text-neon-crimson" : "text-primary")}>{value}</div>
     </div>
   );
 }

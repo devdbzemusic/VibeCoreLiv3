@@ -10,9 +10,10 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import {
   buildDefaultFx, buildDefaultMod, buildDefaultParts, buildDefaultPattern,
+  canUseHybridForCategory, canUseSynthForCategory,
   buildScene, defaultFxParams, defaultMaster, defaultSynth,
   emptyStep, MAX_PATTERN_PARTS, MAX_SCENES_PER_PATTERN, nextSceneId, patternTotalSteps,
-  resizeScene, snapSceneLength,
+  normalizeSourceForCategory, resizeScene, snapSceneLength,
   type Channel, type ChainStep, type FxRouting, type FxSlot, type HybridParams,
   type MasterChannel, type ModRoute, type Note, type Part, type Pattern,
   type Scene, type SceneLength, type Slice, type SourceMode, type Step,
@@ -852,7 +853,11 @@ export const useGroove = create<State>()(persist((set) => ({
   setPartVolume: (id, v) => set((s) => ({ parts: s.parts.map((p) => p.id === id ? { ...p, volume: v } : p) })),
   setPartPan: (id, v) => set((s) => ({ parts: s.parts.map((p) => p.id === id ? { ...p, pan: v } : p) })),
   setPartPitch: (id, v) => set((s) => ({ parts: s.parts.map((p) => p.id === id ? { ...p, pitch: Math.max(-24, Math.min(24, v)) } : p) })),
-  setPartSampleName: (id, name) => set((s) => ({ parts: s.parts.map((p) => p.id === id ? { ...p, sampleName: name } : p) })),
+  setPartSampleName: (id, name) => set((s) => ({
+    parts: s.parts.map((p) => p.id === id
+      ? { ...p, sampleName: name, source: normalizeSourceForCategory(p.category, p.source) }
+      : p),
+  })),
   toggleMute: (id) => set((s) => ({ parts: s.parts.map((p) => p.id === id ? { ...p, mute: !p.mute } : p) })),
   toggleSolo: (id) => set((s) => ({ parts: s.parts.map((p) => p.id === id ? { ...p, solo: !p.solo } : p) })),
 
@@ -897,7 +902,7 @@ export const useGroove = create<State>()(persist((set) => ({
   setMaster: (patch) => set((s) => ({ master: { ...s.master, ...patch } })),
 
   setPartSource: (id, src) => set((s) => ({
-    parts: s.parts.map((p) => p.id === id ? { ...p, source: src } : p),
+    parts: s.parts.map((p) => p.id === id ? { ...p, source: normalizeSourceForCategory(p.category, src) } : p),
   })),
   setWaveEdit: (id, patch) => set((s) => ({
     parts: s.parts.map((p) => p.id === id ? { ...p, wave: clampWavePatch({ ...p.wave, ...patch }) } : p),
@@ -908,23 +913,29 @@ export const useGroove = create<State>()(persist((set) => ({
       : p),
   })),
   setSynthEngine: (id, engine) => set((s) => ({
-    parts: s.parts.map((p) => p.id === id ? { ...p, synth: defaultSynth(engine) } : p),
+    parts: s.parts.map((p) => p.id === id && canUseSynthForCategory(p.category)
+      ? { ...p, synth: defaultSynth(engine) }
+      : p),
   })),
   setSynthParam: (id, key, v) => set((s) => ({
-    parts: s.parts.map((p) => p.id === id ? { ...p, synth: { ...p.synth, [key]: v } } : p),
+    parts: s.parts.map((p) => p.id === id && canUseSynthForCategory(p.category)
+      ? { ...p, synth: { ...p.synth, [key]: v } }
+      : p),
   })),
   setSynth3D: (id, patch) => set((s) => ({
-    parts: s.parts.map((p) => p.id === id
+    parts: s.parts.map((p) => p.id === id && canUseSynthForCategory(p.category)
       ? { ...p, synth3d: { ...(p.synth3d ?? _defaultSynth3D()), ...patch } }
       : p),
   })),
   setBass3D: (id, patch) => set((s) => ({
-    parts: s.parts.map((p) => p.id === id
+    parts: s.parts.map((p) => p.id === id && canUseSynthForCategory(p.category)
       ? { ...p, bass3d: { ...(p.bass3d ?? _defaultBass3D()), ...patch } }
       : p),
   })),
   setHybridParam: (id, patch) => set((s) => ({
-    parts: s.parts.map((p) => p.id === id ? { ...p, hybrid: { ...p.hybrid, ...patch } } : p),
+    parts: s.parts.map((p) => p.id === id && canUseHybridForCategory(p.category)
+      ? { ...p, hybrid: { ...p.hybrid, ...patch } }
+      : p),
   })),
 
   addNote: (partId, n) => {
