@@ -13,6 +13,7 @@ import { TactileSlider } from "@/components/controls/TactileSlider";
 import { TactileButton } from "@/components/controls/TactileButton";
 import { Bass3DSubtab } from "./Bass3DSubtab";
 import { AiContextButton } from "./AiContextButton";
+import { InstrumentKeyboard } from "./InstrumentKeyboard";
 import { defaultBass3D } from "@/lib/bass3d/params";
 import { masterClock } from "@/lib/clock/masterClock";
 import { buildMelody } from "@/lib/audio/aiSceneBuild";
@@ -53,12 +54,19 @@ export function Bass3DPage() {
   const [deepOpen, setDeepOpen] = useState(false);
 
   useEffect(() => {
-    const p = useGroove.getState().parts[selectedPart];
-    if (p && p.synth.engine !== "3D Bass") {
-      setSynthEngine(selectedPart, "3D Bass");
-      setPartSource(selectedPart, "synth");
+    const p = parts[selectedPart];
+    if (p && p.category !== "bass") {
+      const bassPart = parts.find((pt) => pt.category === "bass");
+      if (bassPart) {
+        selectPart(bassPart.id);
+        return;
+      }
     }
-  }, [selectedPart, setSynthEngine, setPartSource]);
+    if (p && p.synth.engine !== "3D Bass") {
+      setSynthEngine(p.id, "3D Bass");
+      setPartSource(p.id, "synth");
+    }
+  }, [parts, selectedPart, selectPart, setSynthEngine, setPartSource]);
 
   const p = parts[selectedPart];
   const b = p?.bass3d ?? defaultBass3D();
@@ -96,12 +104,12 @@ export function Bass3DPage() {
       {/* Voice picker */}
       <div className="panel p-2">
         <div className="font-mono text-[8px] text-muted-foreground tracking-widest mb-1.5">VOICE</div>
-        <div className="no-scrollbar overflow-x-auto -mx-1 px-1">
+        <div className="no-scrollbar overflow-x-auto touch-scroll-x -mx-1 px-1">
           <div className="flex gap-1 min-w-max">
             {parts.map((pt) => (
               <button key={pt.id} onClick={() => selectPart(pt.id)}
                 className={cn(
-                  "shrink-0 h-11 min-w-[3.5rem] px-2 rounded panel-inset flex flex-col items-center justify-center gap-0.5 touch-none",
+                  "shrink-0 h-11 min-w-[3.5rem] px-2 rounded panel-inset flex flex-col items-center justify-center gap-0.5",
                   pt.id === selectedPart && "neon-border text-primary")}>
                 <span className="text-[7px] text-muted-foreground font-mono">{String(pt.id + 1).padStart(2, "0")}</span>
                 <span className="font-display text-[9px] truncate w-full text-center">{pt.name}</span>
@@ -184,6 +192,13 @@ export function Bass3DPage() {
           ))}
         </div>
       </div>
+
+      <InstrumentKeyboard
+        partId={p.id}
+        title={`BASS KEYS · ${p.name}`}
+        baseOctave={2}
+        gateSec={1}
+      />
 
       {/* One-touch Piano Roll access */}
       <button

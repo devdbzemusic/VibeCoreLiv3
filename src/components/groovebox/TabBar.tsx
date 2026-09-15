@@ -118,7 +118,7 @@ export function TabBar() {
       {hasSubTabs && activeMod.subTabs && (
         <>
           <div className="px-2 pt-1.5">
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-scroll-x">
               <span className="font-mono text-[8px] tracking-widest text-muted-foreground/60 pr-1 shrink-0 uppercase">
                 {activeMod.shortLabel}
               </span>
@@ -131,7 +131,7 @@ export function TabBar() {
                     data-active={on}
                     aria-pressed={on}
                     className={cn(
-                      "tab-pill shrink-0 px-3 py-2.5 rounded-md font-display text-[10px] tracking-wider transition-colors touch-none",
+                      "tab-pill shrink-0 px-3 py-2.5 rounded-md font-display text-[10px] tracking-wider transition-colors",
                       on ? "text-primary" : "text-muted-foreground hover:text-foreground",
                     )}
                   >
@@ -146,7 +146,7 @@ export function TabBar() {
       )}
 
       {/* Primary module strip (12 modules, horizontally scrollable) */}
-      <div className="overflow-x-auto no-scrollbar px-1 py-1.5">
+      <div className="overflow-x-auto no-scrollbar touch-scroll-x px-1 py-1.5">
         <div className="flex items-stretch gap-0.5 min-w-max">
           {MODULES.map((mod) => {
             const active = mod.id === activeModId;
@@ -160,7 +160,7 @@ export function TabBar() {
                 aria-label={mod.id.toLowerCase()}
                 className={cn(
                   "tab-pill flex flex-col items-center justify-center gap-0.5",
-                  "min-w-[2.9rem] px-2 py-1.5 transition-colors touch-none select-none",
+                  "min-w-[2.9rem] px-2 py-1.5 transition-colors select-none",
                   active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )}
               >

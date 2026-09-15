@@ -11,6 +11,7 @@ import { useGroove } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { TactileKnob } from "@/components/controls/TactileKnob";
 import { Synth3DSubtab } from "./Synth3DSubtab";
+import { InstrumentKeyboard } from "./InstrumentKeyboard";
 import { defaultSynth3D, type OscType3D } from "@/lib/synth3d/params";
 
 // ── Osc-Shape cycling button styled like a knob cell ─────────────────────────
@@ -141,13 +142,20 @@ export function Synth3DPage() {
   const [lastDirection, setLastDirection] = useState<SoundDirection | null>(null);
 
   useEffect(() => {
-    const p = useGroove.getState().parts[selectedPart];
+    const p = parts[selectedPart];
+    if (p && p.category !== "synth") {
+      const synthPart = parts.find((pt) => pt.category === "synth");
+      if (synthPart) {
+        selectPart(synthPart.id);
+        return;
+      }
+    }
     if (p && p.synth.engine !== "3D") {
-      setSynthEngine(selectedPart, "3D");
-      setPartSource(selectedPart, "synth");
+      setSynthEngine(p.id, "3D");
+      setPartSource(p.id, "synth");
     }
     setLastDirection(null);
-  }, [selectedPart, setSynthEngine, setPartSource]);
+  }, [parts, selectedPart, selectPart, setSynthEngine, setPartSource]);
 
   const p = parts[selectedPart];
   const s3d = p?.synth3d ?? defaultSynth3D();
@@ -212,16 +220,16 @@ export function Synth3DPage() {
   };
 
   return (
-    <div className="relative space-y-3 overflow-hidden">
+    <div className="relative space-y-3">
       {/* Voice picker */}
       <div className="panel p-2">
         <div className="font-mono text-[8px] text-muted-foreground tracking-widest mb-1.5">VOICE</div>
-        <div className="no-scrollbar overflow-x-auto -mx-1 px-1">
+        <div className="no-scrollbar overflow-x-auto touch-scroll-x -mx-1 px-1">
           <div className="flex gap-1 min-w-max">
             {parts.map((pt) => (
               <button key={pt.id} onClick={() => selectPart(pt.id)}
                 className={cn(
-                  "shrink-0 h-11 min-w-[3.5rem] px-2 rounded panel-inset flex flex-col items-center justify-center gap-0.5 touch-none",
+                  "shrink-0 h-11 min-w-[3.5rem] px-2 rounded panel-inset flex flex-col items-center justify-center gap-0.5",
                   pt.id === selectedPart && "neon-border text-primary")}>
                 <span className="text-[7px] text-muted-foreground font-mono">{String(pt.id + 1).padStart(2, "0")}</span>
                 <span className="font-display text-[9px] truncate w-full text-center">{pt.name}</span>
@@ -356,6 +364,13 @@ export function Synth3DPage() {
           />
         </div>
       </div>
+
+      <InstrumentKeyboard
+        partId={p.id}
+        title={`KEYBOARD · ${p.name}`}
+        baseOctave={4}
+        gateSec={0.9}
+      />
 
       {/* Deep editor — collapsible */}
       <div className="panel p-3">

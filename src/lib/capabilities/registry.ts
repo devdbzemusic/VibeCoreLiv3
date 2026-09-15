@@ -107,8 +107,8 @@ const CAPABILITIES: Capability[] = [
     area: "instrument",
     status: "partial",
     verification: "STATICALLY_VERIFIED",
-    owner: "src/components/groovebox/Synth3DPage.tsx + Bass3DPage.tsx",
-    contract: "Piano Roll access exists; on-screen keyboard, external MIDI keyboard, and motion recorder are pending.",
+    owner: "src/components/groovebox/Synth3DPage.tsx + Bass3DPage.tsx + InstrumentKeyboard.tsx",
+    contract: "Piano Roll access and on-screen touch keyboard exist; external MIDI keyboard and motion recorder are pending.",
   },
   {
     id: "sample.slot-integrity",

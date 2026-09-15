@@ -93,10 +93,10 @@ const Index = () => {
   }, [tab, setTab]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <div className="h-screen overflow-hidden flex flex-col bg-background text-foreground">
       <TopBar />
 
-      <main className="flex-1 overflow-y-auto px-3 py-3 pb-24 animate-slide-up">
+      <main className="flex-1 overflow-y-auto touch-scroll-y px-3 py-3 pb-48 animate-slide-up">
         <h1 className="sr-only">VibeCoreLiv3 — Mobile Groovebox & Sound Workstation</h1>
 
         {/* HOME — no ModuleHeader; HomeTab has its own hero layout */}

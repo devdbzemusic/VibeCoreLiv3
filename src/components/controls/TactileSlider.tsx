@@ -126,7 +126,7 @@ export function TactileSlider({
         )}
         style={{
           ...(isH ? { minHeight: 44 } : { minWidth: 44 }),
-          touchAction: "none",
+          touchAction: isH ? "pan-y" : "pan-x",
           cursor: disabled ? "not-allowed" : "pointer",
         }}
         onPointerDown={onPointerDown}
