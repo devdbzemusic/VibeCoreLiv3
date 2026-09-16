@@ -62,7 +62,10 @@ Status terminology follows the v4.0 MasterPrompt.
 - AI learning consent/profile implementation exists — `STATICALLY VERIFIED`
 - AI Intent v1 exists for parameter-backed Mix volume/pan with validation, pure preview, apply, receipt-based revert and explain — `STATICALLY VERIFIED CORE`
 - current-Scene Store → Native Groove hydration runs after successful Native engine activation and reports mirror diagnostics separately from audio activation — `STATICALLY VERIFIED`
-- Sample/Synth ownership contract, v13 project migration core, new-write policy and UI policy exist — `STATICALLY VERIFIED CORE`
+- Sample/Synth ownership contract, v13 migration core, new-write policy, UI policy and runtime-source plan exist — `STATICALLY VERIFIED CORE`
+- live canonical Source Guard is bound before Native/clock/scheduler/parameter startup and re-canonicalizes recognized legacy Part source writes inside the existing Zustand authority — `STATICALLY VERIFIED`
+- Runtime diagnostics report canonical/invalid/legacy instrument source counts — `STATICALLY VERIFIED`
+- dedicated Synth3D and Bass3D pages no longer write the legacy `Part.source` switch when selecting their engines — `STATICALLY VERIFIED`
 - E2E simulation matrix exists — `STATICALLY VERIFIED`
 
 ## Runtime capability authority
@@ -125,6 +128,8 @@ The old v12 model still contains legacy `SourceMode = sample | synth | hybrid` a
 - `src/lib/instruments/projectMigration.ts`
 - `src/lib/instruments/sourcePolicy.ts`
 - `src/lib/instruments/sourceUiPolicy.ts`
+- `src/lib/instruments/runtimeSourcePlan.ts`
+- `src/lib/instruments/sourceRuntimeGuard.ts`
 
 Canonical ownership is:
 
@@ -133,9 +138,16 @@ Canonical ownership is:
 - bass → `bass3d`
 - `hybrid` → compatibility data only, not a valid new runtime source
 
-The v13 migration core preserves incompatible v12 source values under `legacyInstrument.source` instead of silently discarding them.
+The migration core preserves incompatible v12 source values under `legacyInstrument.source` instead of silently discarding them. The live Source Guard is now bound before audio/clock/scheduler startup, canonicalizes the authoritative Zustand `parts` state on application startup, and immediately repairs later recognized legacy source writes. It does not create a second state store.
 
-Store schema bump/default adoption and `SoundTab` caller adoption remain pending because those large files require complete-file/build-safe editing rather than replacement from truncated connector payloads.
+The dedicated Synth3D and Bass3D pages have also been decoupled from `setPartSource(..., "synth")`; engine ownership now stands on its own in those pages.
+
+Still partial:
+
+- the Zustand persist declaration itself still says schema v12 rather than v13
+- `buildDefaultParts()` still contains legacy source defaults before the live guard runs
+- `SoundTab` still exposes the three-way legacy Source Mode UI
+- WebAudio `engine.ts` still contains the legacy audible `part.source` sample/synth/hybrid branch
 
 See `docs/SAMPLE_SYNTH_MIGRATION_CONTRACT.md`.
 
@@ -193,7 +205,7 @@ The new budgeted cache core is present but not yet connected to the ~77 KB engin
 - Native Preview buffer/region renderer — `UNSUPPORTED / GAP`
 - Native Groove full ProjectMirror/bulk-load/sample-asset contract — `PARTIAL`
 - full ParameterHub coverage and gesture/undo/automation integration — `PARTIAL`
-- Sample/Synth store/UI/runtime adoption — `PARTIAL`; core ownership/migration policies implemented
+- Sample/Synth store/UI/runtime adoption — `PARTIAL`; live guard and dedicated-page decoupling implemented, legacy store declaration/SoundTab/engine branch remain
 - AI Intent adapters beyond Mix volume/pan — `PARTIAL`
 - Runtime backend access is not yet uniformly represented by one frontend backend interface — `PARTIAL`
 - Motion Step Recorder end-to-end contract — `PARTIAL / UNKNOWN`
@@ -219,9 +231,13 @@ Configured target values and transient UI-reported counters are not benchmark ev
 
 ## Verification status
 
-The presence of scripts, test files or test plans is not proof of successful execution.
+The presence of scripts, test files, workflows or test plans is not proof of successful execution.
 
-For the current revision branch, these remain `NOT EXECUTED` in this verification cycle:
+A local clean-worktree verification attempt was blocked before checkout because the execution shell could not resolve `github.com`.
+
+A GitHub Actions verification workflow now exists and attempted run `35060578966` / job `104679844962`, but GitHub assigned no runner (`runner_id: 0`, empty runner name) and recorded `steps: []`. No `npm ci`, TypeScript, lint, Vitest or Vite command ran. This is a runner/workflow-start blocker, not application build-failure evidence.
+
+Therefore these application gates remain `NOT EXECUTED`:
 
 - typecheck
 - lint
@@ -239,16 +255,12 @@ For the current revision branch, these remain `NOT EXECUTED` in this verificatio
 - UI frame-pacing profiling
 - reference-audio/DSP quality verification
 
-A clean-worktree verification attempt from the current ChatGPT execution environment could not reach GitHub through shell DNS. This is an environment/worktree-access blocker, not evidence of project build failure.
-
-A GitHub combined-status query during this revision cycle returned no status checks for the inspected commit (`statuses: []`). This is not failed CI; no GitHub status-check evidence was observed there.
-
 See `docs/TEST_STATUS.md` for the verification ledger.
 
 ## Revision order from current branch state
 
 1. Runtime/capability authority consolidation — **materially implemented / still expanding adoption**
-2. Sample/Synth v13 store/UI adoption — **core policy implemented; mechanical adoption pending**
+2. Sample/Synth v13 store/UI/runtime adoption — **live guard active; legacy store declaration/SoundTab/engine branch remain**
 3. Native Groove ProjectMirror bulk-load/sample-asset completion
 4. ParameterHub adoption and command-history design
 5. AI Intent caller migration / additional validated command adapters
