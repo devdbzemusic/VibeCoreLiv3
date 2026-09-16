@@ -22,6 +22,7 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: VibeCoreViewModel by viewModels()
     private var audioFocusRequest: AudioFocusRequest? = null
+    private val legacyAudioFocusListener = AudioManager.OnAudioFocusChangeListener(::onAudioFocusChange)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,7 +50,7 @@ class MainActivity : ComponentActivity() {
         } else {
             @Suppress("DEPRECATION")
             audioManager.requestAudioFocus(
-                ::onAudioFocusChange,
+                legacyAudioFocusListener,
                 AudioManager.STREAM_MUSIC,
                 AudioManager.AUDIOFOCUS_GAIN,
             )
@@ -72,7 +73,7 @@ class MainActivity : ComponentActivity() {
             audioFocusRequest?.let(audioManager::abandonAudioFocusRequest)
         } else {
             @Suppress("DEPRECATION")
-            audioManager.abandonAudioFocus(null)
+            audioManager.abandonAudioFocus(legacyAudioFocusListener)
         }
         super.onDestroy()
     }
