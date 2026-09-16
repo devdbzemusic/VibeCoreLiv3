@@ -68,19 +68,25 @@ Branch: `revision/v4-runtime-consolidation`
 - freshly confirmed the legacy model still permits `sample`, `synth` and `hybrid` for almost every non-generic sample category
 - freshly confirmed `buildDefaultParts()` initializes kick/snare/perc/hat as `source: "synth"`
 - freshly confirmed the v12 persistence migration returns v12+ state unchanged and therefore does not repair legacy ownership
-- added `src/lib/instruments/sourceBoundary.ts` as a pure canonical ownership contract
-- canonical ownership now resolves drum/sample categories to `sample-domain`, synth to `synth3d`, and bass to `bass3d`
-- `hybrid` is classified as legacy compatibility data rather than a valid new v4 runtime source
-- added reversible v12 → v13 source migration semantics that preserve the original invalid source value instead of silently discarding it
-- added source-level tests for ownership, invalid transitions and legacy preservation
-- documented the integration contract in `docs/SAMPLE_SYNTH_MIGRATION_CONTRACT.md`
-- Store/UI/runtime adoption remains pending; no large whole-file Store replacement was attempted through the connector
+- freshly confirmed `SoundTab` still exposes interactive `sample` / `synth` / `hybrid` source switching and a Hybrid editor
+- freshly confirmed WebAudio `engine.ts` still selects the audible renderer from mutable `part.source`, including a legacy Hybrid/Sub branch
+- added `src/lib/instruments/sourceBoundary.ts` as the canonical ownership contract
+- added `src/lib/instruments/projectMigration.ts` with pure, reversible v12 → v13 project migration
+- added `src/lib/instruments/sourcePolicy.ts` for canonical new/default state and new source writes
+- added `src/lib/instruments/sourceUiPolicy.ts` so new v4 UI exposes one authority per Part category
+- added `src/lib/instruments/runtimeSourcePlan.ts` so target audible-render ownership is category/authority-driven rather than `Part.source`-driven
+- canonical ownership resolves drum/sample categories to `sample-domain`, synth to `synth3d`, and bass to `bass3d`
+- `hybrid` is compatibility data only; no new v4 runtime/UI path re-enables it
+- incompatible legacy source values are preserved under `legacyInstrument.source` rather than silently discarded
+- added source-level tests for boundary, project migration, write policy, UI policy and runtime render planning
+- reconciled `docs/SAMPLE_SYNTH_MIGRATION_CONTRACT.md` and `docs/PROJECT_STATUS.md` to the actual branch state
+- Store schema/default/action adoption and large `SoundTab` / `engine.ts` mechanical integration remain pending; no truncated whole-file replacement was attempted through the connector
 
 ### Current
 
 Runtime consolidation continues with three main open implementation fronts:
 
-1. adopt the new Sample/Synth ownership contract in Zustand persistence/defaults/UI/runtime routing
+1. apply the now-defined v13 Sample/Synth policies mechanically in Zustand defaults/persistence, SoundTab and WebAudio trigger routing
 2. complete Native ProjectMirror bulk-load/sample-asset contract
 3. continue safe ParameterHub/AI Intent caller adoption
 
