@@ -10,6 +10,8 @@
 //   - "partial" means present but not complete enough for all v4.0 promises.
 //   - "planned" means reserved/designed but not implemented.
 //   - "blocked" means known constraints prevent use.
+//   - verification status MUST describe evidence, not intent. Device/runtime
+//     behavior remains NOT_EXECUTED until an actual APK/device run proves it.
 
 export type CapabilityStatus = "ready" | "partial" | "planned" | "blocked";
 export type VerificationStatus = "VERIFIED" | "STATICALLY_VERIFIED" | "EXPECTED" | "UNKNOWN" | "NOT_EXECUTED";
@@ -46,6 +48,7 @@ const CAPABILITIES: Capability[] = [
     verification: "STATICALLY_VERIFIED",
     owner: "src/lib/clock + src/lib/audio/scheduler",
     contract: "Modules derive transport/timing from masterClock or scheduler timestamps.",
+    notes: "Browser/native single-authority behavior still requires executed runtime proof. Tick domains currently differ (24 PPQ-style browser clock, sixteenth scheduler counters, native PPQ 1920).",
   },
   {
     id: "state.project-persist",
@@ -97,9 +100,10 @@ const CAPABILITIES: Capability[] = [
     label: "Native Android Oboe backend",
     area: "android",
     status: "ready",
-    verification: "VERIFIED",
-    owner: "native-android",
-    contract: "WebView bridge exposes VibeCoreNative and routes native audio through the Android host.",
+    verification: "STATICALLY_VERIFIED",
+    owner: "src/lib/audio/AudioBackend.ts + NativeOboeBackend.ts + native-android",
+    contract: "WebView host injects VibeCoreNative; inspected TypeScript/Kotlin/JNI/C++ source reaches VibeCoreAudioEngine and its Oboe callback.",
+    notes: "APK install/launch, callback activity, latency, xRuns, jitter, CPU/RAM and complete Groove-state mirroring are NOT_EXECUTED/UNKNOWN until device evidence exists.",
   },
   {
     id: "instrument.keyboard-performance",
