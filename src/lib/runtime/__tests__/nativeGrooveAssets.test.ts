@@ -1,9 +1,12 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildDefaultParts } from "@/lib/model";
+import type { NativeGrooveAssetBridge } from "../nativeGrooveAssets";
 import {
   NATIVE_GROOVE_MAX_SAMPLES,
+  clearNativeGrooveAsset,
   nativeGrooveAssetRegistry,
   nativeGrooveSampleIdForPart,
+  uploadNativeGrooveAsset,
 } from "../nativeGrooveAssets";
 
 afterEach(() => nativeGrooveAssetRegistry.clearSession());
@@ -40,6 +43,65 @@ describe("native groove asset registry", () => {
     expect(registration?.sampleId).toBe(part.id);
     expect(nativeGrooveAssetRegistry.isRegistered(part)).toBe(true);
     nativeGrooveAssetRegistry.clearSession();
+    expect(nativeGrooveAssetRegistry.isRegistered(part)).toBe(false);
+  });
+});
+
+describe("native groove cold-load upload", () => {
+  function bridge(overrides: Partial<NativeGrooveAssetBridge> = {}): NativeGrooveAssetBridge {
+    return {
+      canLoad: vi.fn(() => true),
+      loadSample: vi.fn(() => true),
+      clearSample: vi.fn(() => true),
+      sampleLoaded: vi.fn(() => true),
+      ...overrides,
+    };
+  }
+
+  it("marks registration only after native load and loaded acknowledgement", () => {
+    const part = buildDefaultParts().find((p) => p.category === "sample")!;
+    const native = bridge();
+    const pcm = Float32Array.from([0, 0.25, -0.25, 0]);
+
+    const result = uploadNativeGrooveAsset(part, pcm, 48000, native);
+
+    expect(result.accepted).toBe(true);
+    expect(result.sampleId).toBe(part.id);
+    expect(native.loadSample).toHaveBeenCalledWith(part.id, pcm, 48000);
+    expect(native.sampleLoaded).toHaveBeenCalledWith(part.id);
+    expect(nativeGrooveAssetRegistry.isRegistered(part)).toBe(true);
+  });
+
+  it("does not register when cold-load is unavailable because the stream is running", () => {
+    const part = buildDefaultParts().find((p) => p.category === "sample")!;
+    const native = bridge({ canLoad: vi.fn(() => false) });
+
+    const result = uploadNativeGrooveAsset(part, Float32Array.from([0.1]), 48000, native);
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toContain("stream is running");
+    expect(native.loadSample).not.toHaveBeenCalled();
+    expect(nativeGrooveAssetRegistry.isRegistered(part)).toBe(false);
+  });
+
+  it("does not register when native load succeeds but loaded acknowledgement is false", () => {
+    const part = buildDefaultParts().find((p) => p.category === "sample")!;
+    const native = bridge({ sampleLoaded: vi.fn(() => false) });
+
+    const result = uploadNativeGrooveAsset(part, Float32Array.from([0.1, -0.1]), 44100, native);
+
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toContain("did not acknowledge");
+    expect(nativeGrooveAssetRegistry.isRegistered(part)).toBe(false);
+  });
+
+  it("clears both native cold asset and session registration", () => {
+    const part = buildDefaultParts().find((p) => p.category === "sample")!;
+    const native = bridge();
+    uploadNativeGrooveAsset(part, Float32Array.from([0.1, -0.1]), 48000, native);
+
+    expect(clearNativeGrooveAsset(part, native)).toBe(true);
+    expect(native.clearSample).toHaveBeenCalledWith(part.id);
     expect(nativeGrooveAssetRegistry.isRegistered(part)).toBe(false);
   });
 });
