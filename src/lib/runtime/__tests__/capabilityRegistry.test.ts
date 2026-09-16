@@ -48,6 +48,6 @@ describe("Capability Registry runtime contract", () => {
   it("records ParameterHub v1 as partial rather than complete", () => {
     const capability = getCapability("parameter.authoritative-hub");
     expect(capability?.status).toBe("partial");
-    expect(capability?.owner).toContain("parameterHub.ts");
+    expect(capability?.owner).toContain("src/lib/parameters/hub.ts");
   });
 });
