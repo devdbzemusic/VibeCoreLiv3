@@ -1,10 +1,13 @@
 #include "GrooveEngine.h"
 #include "../platform/VibeCoreLog.h"
+#include <cstring>
 
 namespace vibecore {
 
 GrooveEngine::GrooveEngine(GrooveNode& node) : mNode(node) {
     // UI mirror starts as default-constructed (all tracks empty, inactive)
+    mSampleLengths.fill(0);
+    mSampleRates.fill(0);
 }
 
 // ─── Internal: snapshot + apply ───────────────────────────────────────────────
@@ -86,12 +89,14 @@ void GrooveEngine::setStepProbability(int t, int s, uint8_t prob) {
 
 void GrooveEngine::setStepMuted(int t, int s, bool muted) {
     if (!validTrack(t) || !validStep(s)) return;
+    snapshotBefore(t);
     mUITracks[t].activePattern().steps[s].muted = muted;
     mNode.setStepMuted(t, s, muted);
 }
 
 void GrooveEngine::setStepAccent(int t, int s, bool accent) {
     if (!validTrack(t) || !validStep(s)) return;
+    snapshotBefore(t);
     mUITracks[t].activePattern().steps[s].accent = accent;
     mNode.setStepAccent(t, s, accent);
 }
@@ -211,6 +216,54 @@ void GrooveEngine::setTrackMode(int t, TrackMode mode) {
     if (!validTrack(t)) return;
     mUITracks[t].mode = mode;
     mNode.setTrackMode(t, mode);
+}
+
+// ─── Sample storage (cold-load only) ─────────────────────────────────────────
+
+bool GrooveEngine::loadSample(int32_t id, const float* monoData,
+                              int32_t lengthFrames, int32_t sampleRate) {
+    if (id < 0 || id >= kMaxSamples || monoData == nullptr || lengthFrames <= 0 || sampleRate <= 0)
+        return false;
+
+    auto storage = std::unique_ptr<float[]>(new float[static_cast<size_t>(lengthFrames)]);
+    std::memcpy(storage.get(), monoData, sizeof(float) * static_cast<size_t>(lengthFrames));
+
+    // PRECONDITION: stream stopped. Replacing storage while the callback can
+    // read Voice::buffer would require epoch/deferred reclamation (VoiceEngine
+    // already provides the reference design for the later hot-swap contract).
+    mSampleStorage[id] = std::move(storage);
+    mSampleLengths[id] = lengthFrames;
+    mSampleRates[id]   = sampleRate;
+
+    SampleBuffer view;
+    view.data       = mSampleStorage[id].get();
+    view.length     = lengthFrames;
+    view.sampleRate = sampleRate;
+    view.looping    = false;
+    view.loopStart  = 0;
+    view.loopEnd    = lengthFrames;
+    view.valid      = true;
+    mNode.registerSample(id, view);
+
+    VLOG_I("GrooveEngine: cold-loaded sample id=%d frames=%d sr=%d", id, lengthFrames, sampleRate);
+    return true;
+}
+
+void GrooveEngine::clearSample(int32_t id) {
+    if (id < 0 || id >= kMaxSamples) return;
+
+    // PRECONDITION: stream stopped; see loadSample().
+    mNode.registerSample(id, SampleBuffer{});
+    mSampleStorage[id].reset();
+    mSampleLengths[id] = 0;
+    mSampleRates[id] = 0;
+}
+
+bool GrooveEngine::sampleLoaded(int32_t id) const noexcept {
+    return id >= 0 && id < kMaxSamples
+        && mSampleStorage[id] != nullptr
+        && mSampleLengths[id] > 0
+        && mSampleRates[id] > 0;
 }
 
 // ─── Piano Roll ────────────────────────────────────────────────────────────────
