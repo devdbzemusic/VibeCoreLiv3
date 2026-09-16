@@ -36,6 +36,13 @@ interface InstrumentKeyboardProps {
   className?: string;
 }
 
+interface PointerNote {
+  midi: number;
+  instrument: PerformanceInstrument;
+  accepted: boolean;
+  released: boolean;
+}
+
 export function InstrumentKeyboard({
   partId,
   instrument,
@@ -48,12 +55,14 @@ export function InstrumentKeyboard({
   const [octave, setOctave] = useState(baseOctave);
   const [active, setActive] = useState<Set<number>>(() => new Set());
   const [runtimeMessage, setRuntimeMessage] = useState<string | null>(null);
-  const activePointers = useRef(new Map<number, { midi: number; instrument: PerformanceInstrument }>());
+  const pointerNotes = useRef(new Map<number, PointerNote>());
+  const disposed = useRef(false);
 
   const resolvedInstrument = () => instrument ?? inferPerformanceInstrument(partId);
   const noteFor = (semitone: number) => (octave + 1) * 12 + semitone;
 
   const addActive = (midi: number) => {
+    if (disposed.current) return;
     setActive((prev) => {
       const next = new Set(prev);
       next.add(midi);
@@ -62,6 +71,7 @@ export function InstrumentKeyboard({
   };
 
   const removeActive = (midi: number) => {
+    if (disposed.current) return;
     setActive((prev) => {
       if (!prev.has(midi)) return prev;
       const next = new Set(prev);
@@ -70,9 +80,25 @@ export function InstrumentKeyboard({
     });
   };
 
+  const issueNoteOff = (note: PointerNote) => {
+    performanceNoteOff({
+      instrument: note.instrument,
+      partId,
+      midiNote: note.midi,
+      velocity,
+      gateSec,
+    });
+  };
+
   const play = async (pointerId: number, semitone: number) => {
     const midi = noteFor(semitone);
     const route = resolvedInstrument();
+
+    // Reserve pointer ownership before any async runtime startup. Pointer-up
+    // may arrive while ensureAudio()/activateNativeAudio() is still pending.
+    const pending: PointerNote = { midi, instrument: route, accepted: false, released: false };
+    pointerNotes.current.set(pointerId, pending);
+
     const result = await performanceNoteOn({
       instrument: route,
       partId,
@@ -81,39 +107,69 @@ export function InstrumentKeyboard({
       gateSec,
     });
 
-    if (!result.accepted) {
-      setRuntimeMessage(result.reason ?? "Performance input unavailable");
-      activePointers.current.delete(pointerId);
-      removeActive(midi);
+    const current = pointerNotes.current.get(pointerId);
+    // Pointer ids can be reused. Ignore an obsolete completion rather than
+    // attaching it to a newer gesture.
+    if (current !== pending) {
+      if (result.accepted) issueNoteOff(pending);
       return;
     }
 
-    setRuntimeMessage(null);
-    activePointers.current.set(pointerId, { midi, instrument: route });
+    if (!result.accepted) {
+      pointerNotes.current.delete(pointerId);
+      if (!disposed.current) {
+        setRuntimeMessage(result.reason ?? "Performance input unavailable");
+        removeActive(midi);
+      }
+      return;
+    }
+
+    pending.accepted = true;
+
+    // A very short tap, cancellation or unmount may already have released the
+    // pointer while runtime activation was awaiting. Never let the late note-on
+    // become a hanging note.
+    if (pending.released || disposed.current) {
+      issueNoteOff(pending);
+      pointerNotes.current.delete(pointerId);
+      return;
+    }
+
+    if (!disposed.current) setRuntimeMessage(null);
     addActive(midi);
   };
 
   const releasePointer = (pointerId: number) => {
-    const activeNote = activePointers.current.get(pointerId);
-    if (!activeNote) return;
-    activePointers.current.delete(pointerId);
-    performanceNoteOff({
-      instrument: activeNote.instrument,
-      partId,
-      midiNote: activeNote.midi,
-      velocity,
-      gateSec,
-    });
-    removeActive(activeNote.midi);
+    const note = pointerNotes.current.get(pointerId);
+    if (!note) return;
+    note.released = true;
+    removeActive(note.midi);
+
+    if (!note.accepted) {
+      // Async note-on completion will immediately issue note-off if accepted.
+      return;
+    }
+
+    issueNoteOff(note);
+    pointerNotes.current.delete(pointerId);
   };
 
-  // A tab switch/unmount must never leave sustained performance notes behind.
-  useEffect(() => () => {
-    const instruments = new Set<PerformanceInstrument>();
-    for (const activeNote of activePointers.current.values()) instruments.add(activeNote.instrument);
-    if (instruments.size === 0) instruments.add(resolvedInstrument());
-    activePointers.current.clear();
-    for (const route of instruments) performanceAllNotesOff(route, partId);
+  useEffect(() => {
+    disposed.current = false;
+    return () => {
+      disposed.current = true;
+      const instruments = new Set<PerformanceInstrument>();
+      for (const note of pointerNotes.current.values()) {
+        note.released = true;
+        instruments.add(note.instrument);
+      }
+      if (instruments.size === 0) instruments.add(resolvedInstrument());
+
+      // Accepted notes are stopped immediately. Pending async notes keep their
+      // map entry so their completion can observe released/disposed and issue
+      // the matching note-off without touching React state.
+      for (const route of instruments) performanceAllNotesOff(route, partId);
+    };
   }, [instrument, partId]);
 
   return (
