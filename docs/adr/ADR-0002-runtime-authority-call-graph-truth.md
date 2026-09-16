@@ -60,14 +60,21 @@ The current application does NOT yet have one universal frontend audio command e
 Static conflicts found:
 
 - `InstrumentKeyboard` calls `ensureAudio()` and `triggerPart()` directly. 3D Synth and 3D Bass both use this component.
-- `PerformanceTab` always initializes/resumes WebAudio before toggling transport, unlike the backend-aware `TopBar`.
 - Sample Forge preview and slice audition render directly through WebAudio.
 - Forge audition renders through WebAudio preview.
 - bRAINWAVEz and Quantum Spatial create audible WebAudio graphs directly.
 - generic modulation/granular subsystems are browser-runtime implementations.
 - the narrow `AudioBackend` currently has a native concrete implementation, while browser audio bypasses that interface.
-- `nativeAudioRuntime` proves transport/tempo/gain/seek mirroring, but no Store → Native Groove project-state mirror has yet been proven.
 - Voice UI caller mapping into the larger native Voice bridge remains incomplete.
+
+Already corrected on the revision branch:
+
+- TopBar and Performance transport now route through the same frontend `toggleRuntimePlay()` entry point.
+- Native seek no longer uses an unexplained raw `480`; sixteenth-step to Native PPQ conversion is explicit and typed.
+- Runtime timing units now distinguish Beat / Clock24Tick / SixteenthStep / NativePpq1920Tick.
+- `VibeCoreNativeBridge` exposes only statically proven Groove methods needed by the first ProjectMirror slice.
+- `projectMirror.ts` implements a bounded Current-Scene mirror for 16 Native Groove tracks with explicit semantic conversion for swing, ratchet and micro-timing.
+- Native `GrooveEngine` now contains a project-load guard capable of suppressing undo snapshots during authoritative hydration; Kotlin/JNI exposure of that guard is still OPEN.
 
 Therefore:
 
@@ -146,17 +153,88 @@ UI / Domain Command
 
 Asset decoding/analysis remains a separate service boundary and is not forced through the audible runtime.
 
+## ProjectMirror v1 contract
+
+The currently proven bridge does not expose a complete 256-Pattern / multi-Scene bank-loader. Therefore ProjectMirror v1 intentionally mirrors only the active Web Pattern/Scene into Native Groove.
+
+Supported in the first bounded slice:
+
+- first 16 parts → Native Groove tracks 0..15
+- track mode
+- mute / solo / volume
+- scene length
+- web swing converted from centered `50 = straight` to native `0 = straight`
+- step active / velocity / probability / accent
+- web ratchet total-hit count → native extra-hit roll count
+- web micro timing → Native PPQ tick offset
+- Piano Roll note start/end/pitch/velocity
+
+Explicitly NOT mirrored yet:
+
+- project-wide 256-pattern banks
+- full 1..8 scene chain
+- stable web asset/sample-name → native sampleId assignment
+- per-step gate
+- per-step filter cutoff
+- per-step pan offset
+- browser-only auxiliary audible engines
+
+Native Groove has `kMaxTracks = 16`; extra parts must remain visible in project state but cannot silently disappear from a VERIFIED native claim.
+
+### Semantic conversions
+
+Web and Native values are not assumed to be numerically identical.
+
+- Web swing uses `50 = straight`; Native swing uses `0 = straight` and delays odd steps only.
+- Web ratchet stores total hits; Native `rollCount` stores extra hits.
+- Web micro timing `-50..50` maps to +/-25% of one sixteenth; at Native PPQ 1920 this is `-120..120` ticks.
+
+Negative/pre-beat web swing cannot be represented by the current Native Groove swing field and is clamped to straight with a warning. This remains a contract gap, not a hidden conversion.
+
+## Native bridge correlation status
+
+STATICALLY VERIFIED chains:
+
+```text
+grooveSetStep / probability / accent / roll / micro
+Kotlin @JavascriptInterface
+→ nativeGroove*
+→ Java_com_vibecore_audio_NativeAudioBridge_nativeGroove*
+→ GrooveEngine
+→ GrooveNode command queue
+```
+
+```text
+bassSet* / bassNoteOn/Off
+Kotlin @JavascriptInterface
+→ nativeBass*
+→ jni_bass_bridge.cpp
+→ BassEngine
+→ BassNode command queue
+```
+
+```text
+voiceSet* / voiceNoteOn/Off / voiceLoadSample / live input
+Kotlin @JavascriptInterface
+→ nativeVoice*
+→ jni_voice_bridge.cpp
+→ VoiceEngine
+→ VoiceNode command queue
+```
+
+The C++ `GrooveEngine` project-load guard is implemented, but its Kotlin/JNI bridge hooks are not yet exposed. Automatic ProjectMirror hydration therefore remains intentionally DISABLED until this last marshalling hook exists; otherwise hydration would pollute Native undo history.
+
 ## Required implementation consequences
 
-1. Create a backend-neutral Runtime facade before migrating UI call sites.
-2. Add a browser runtime adapter around the existing WebAudio implementation; do not build a second browser engine.
-3. Extend the native adapter/runtime surface only where required by proven feature commands.
-4. Implement explicit Store → Native project mirroring for Pattern/Scene/Step/Notes/Routing if no existing caller is found.
-5. Route TopBar and Performance transport through the same RuntimeTransport API.
+1. Complete Kotlin/JNI exposure of `beginProjectLoad()` / `endProjectLoad()` and then wrap ProjectMirror replay in `try/finally`.
+2. Activate Current-Scene ProjectMirror during native startup only after the bulk-load guard is reachable from JS.
+3. Create a backend-neutral Runtime facade before migrating remaining UI call sites.
+4. Add a browser runtime adapter around the existing WebAudio implementation; do not build a second browser engine.
+5. Extend the native adapter/runtime surface only where required by proven feature commands.
 6. Route InstrumentKeyboard through PerformanceInput with explicit noteOn/noteOff/allNotesOff lifecycle.
 7. Route Sample Forge/Forge audible previews through RuntimePreview while leaving decode/offline transforms in AudioAssetService.
 8. Capability-route bRAINWAVEz, Spatial, granular and other audible auxiliary engines; they may not silently start WebAudio in Native mode.
-9. Introduce explicit timing unit types/converters for Beat, Clock24Tick, SixteenthStep and NativePpq1920Tick.
+9. Expand ProjectMirror only through explicit contracts for Pattern/Scene banks, sample asset IDs and parameter ownership.
 10. Add contract/null/timing tests before removing legacy direct paths.
 
 ## What remains UNKNOWN / NOT EXECUTED
