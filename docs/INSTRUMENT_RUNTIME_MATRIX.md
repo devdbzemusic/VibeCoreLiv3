@@ -16,63 +16,91 @@ It must **not** silently start an audible WebAudio renderer.
 
 ## Matrix
 
-| Instrument / command | Browser WebAudio | Android Native | Static evidence | Current status |
-|---|---|---|---|---|
-| 3D Bass noteOn | `triggerPart → trigger3DBass` | `NativeAudioBridge.bassNoteOn → JNI → BassEngine → BassNode` | source-correlated | STATICALLY VERIFIED |
-| 3D Bass noteOff | browser `triggerPart` currently uses scheduled gate | `bassNoteOff → JNI → BassEngine → BassNode` | native source-correlated | Native STATICALLY VERIFIED; browser explicit release GAP |
-| 3D Bass allNotesOff | no public live-performance panic boundary proven | `bassAllNotesOff → JNI → BassEngine → BassNode` | native source-correlated | Native STATICALLY VERIFIED; browser GAP |
-| 3D Synth noteOn | `triggerPart → trigger3DSynth` | no dedicated native 3D Synth renderer/bridge proven | native C++ top-level contains bass/groove/voice but no synth renderer module | Browser STATICALLY VERIFIED; Native UNSUPPORTED |
-| 3D Synth noteOff | scheduled WebAudio gate | no native route proven | no source-proven native synth note lifecycle | GAP / UNSUPPORTED |
-| Voice noteOn/off | browser voice paths exist separately | `voiceNoteOn/voiceNoteOff/voiceAllNotesOff → JNI → VoiceEngine → VoiceNode` | source-correlated | Native STATICALLY VERIFIED; UI caller migration incomplete |
-| Generic Part noteOn/off | `triggerPart` | generic `AudioBackend.noteOn` maps to **Voice**, not arbitrary Part/Bass/Synth | contract inspection | Native generic route MUST NOT be used |
+| Instrument / command | Browser WebAudio | Android Native | Current status |
+|---|---|---|---|
+| 3D Bass noteOn | `triggerPart → trigger3DBass → Bass3D voiceEngine` | `bassNoteOn → Kotlin → JNI → BassEngine → BassNode` | Source routes STATICALLY VERIFIED; execution NOT EXECUTED |
+| 3D Bass noteOff | `performanceInput → releaseNote3DBass → existing voice.steal(releaseSec)` | `bassNoteOff → Kotlin → JNI → BassEngine → BassNode` | Static route exists; browser async-registration race still OPEN |
+| 3D Bass allNotesOff | `killAllNotes3DBass(partId)` | `bassAllNotesOff → Kotlin → JNI → BassEngine → BassNode` | STATICALLY VERIFIED route |
+| 3D Synth noteOn | `triggerPart → trigger3DSynth → Synth3D voiceEngine` | no dedicated native 3D Synth renderer/bridge proven | Browser route STATICALLY VERIFIED; Native UNSUPPORTED |
+| 3D Synth noteOff | `performanceInput → releaseNote3D → existing voice.steal(releaseSec)` | no native route proven | Browser static route exists; Native UNSUPPORTED; async-registration race OPEN |
+| 3D Synth allNotesOff | `killAllNotes3D(partId)` | no native route proven | Browser STATICALLY VERIFIED route; Native UNSUPPORTED |
+| Voice noteOn/off | browser Voice paths exist separately | `voiceNoteOn/voiceNoteOff/voiceAllNotesOff → JNI → VoiceEngine → VoiceNode` | Native STATICALLY VERIFIED; frontend caller migration incomplete |
+| Generic Part noteOn/off | `triggerPart`, release generally gate-based | generic `AudioBackend.noteOn` maps to **Voice**, not arbitrary Part/Bass/Synth | Native generic route MUST NOT be used |
 
 ## Implemented frontend boundary
 
-`src/lib/runtime/performanceInput.ts` is now the live performance authority for migrated UI components.
+`src/lib/runtime/performanceInput.ts` is the live-performance authority for migrated UI components.
 
 ```text
 InstrumentKeyboard
   → performanceNoteOn / performanceNoteOff / performanceAllNotesOff
   → selected runtime
-     ├─ Browser: existing triggerPart path
-     └─ Native:
+     ├─ Browser
+     │   ├─ noteOn → existing triggerPart
+     │   ├─ Synth3D key-up → releaseNote3D
+     │   ├─ Bass3D key-up → releaseNote3DBass
+     │   └─ generic Part → scheduled gate
+     └─ Native
          ├─ Bass3D → bassNoteOn/off/allNotesOff
          ├─ Synth3D → unsupported
          └─ Generic Part → unsupported until explicitly mapped
 ```
 
-The keyboard derives the runtime instrument from the canonical `Part.synth.engine` when the caller does not provide an explicit route:
+The keyboard derives the runtime instrument from canonical `Part.synth.engine` when the caller does not provide an explicit route:
 
 - `3D Bass` → `bass3d`
 - `3D` → `synth3d`
 - anything else → `part`
 
-This lets the existing Synth page remain source-compatible while still preventing a silent Native→WebAudio audible fallback.
+This prevents silent Native→WebAudio audible fallback.
 
-## Release semantics
+## Keyboard lifecycle hardening
 
-### Native Bass
-
-Explicit release is source-proven:
+The keyboard now reserves pointer ownership **before** awaiting runtime activation. A pointer can therefore enter one of two states:
 
 ```text
-pointer down → performanceNoteOn → bassNoteOn
-pointer up/cancel/lost capture → performanceNoteOff → bassNoteOff
-component unmount → performanceAllNotesOff → bassAllNotesOff
+pointerDown
+→ reserve {midi, instrument, accepted=false, released=false}
+→ await performanceNoteOn
 ```
 
-### Browser instruments
+If `pointerUp`, `pointerCancel`, `lostPointerCapture` or component unmount occurs while note-on is still pending, `released=true` is retained. If note-on later succeeds, the keyboard immediately emits the matching Runtime note-off instead of leaving a late-starting note alive.
 
-The existing `triggerPart()` API does not return a public per-note release handle. It schedules finite note duration through `gateSec`.
+This fixes the UI-level async startup race.
 
-Therefore browser `noteOff` currently reports `releaseMode = gate`; this must not be described as an explicit note-off implementation.
+## Browser 3D release semantics
 
-Required later browser-runtime work:
+A source audit found that `Synth3DSynthVoice.noteOff()` and `Bass3DVoice.noteOff()` do not shorten the amp ADSR that was already scheduled at note-on. They mostly adjust cleanup timing. Therefore those methods are **not** used as proof of early key release.
 
-- introduce a reusable performance voice handle/token around existing browser engines,
-- implement explicit `noteOff(token|note)` without creating a second voice allocator,
-- expose a browser `allNotesOff` performance boundary,
-- preserve scheduler-triggered finite gates.
+Both voice types already contain a `steal(fadeSec)` primitive which:
+
+1. cancels scheduled amp-gain automation at current audio time,
+2. holds the current gain value,
+3. fades to silence,
+4. schedules cleanup.
+
+Live browser key-up reuses this existing primitive with the patch's amp-release duration. No second allocator or voice manager was created.
+
+## Remaining browser async-registration gap
+
+`triggerPart()` defines `playSynth()` as async and calls it without awaiting it. 3D Synth/Bass are loaded by dynamic import. Consequently:
+
+```text
+performanceNoteOn()
+→ triggerPart()
+→ playSynth() starts
+→ dynamic import pending
+→ triggerPart() may return
+→ 3D voice registers later
+```
+
+The keyboard's pending-pointer guard prevents a lost UI release, but the Browser Runtime still lacks a formal acknowledgement that a particular 3D voice has been registered before `performanceNoteOn()` resolves.
+
+Therefore the current browser 3D key-up path is classified:
+
+`STATICALLY WIRED / REGISTRATION ACK CONTRACT OPEN`
+
+Required follow-up is to expose an awaitable/tokenized 3D performance trigger **using the existing voice engines**, not create a second engine.
 
 ## Native 3D Synth gap
 
@@ -80,7 +108,7 @@ Required later browser-runtime work:
 
 Current native C++ modules include engine/platform/graph/groove/bass/voice infrastructure. A dedicated native 3D Synth engine/node and its Kotlin/JNI live-note bridge have not been source-proven.
 
-Until that changes, Native 3D Synth keyboard input is intentionally rejected by `performanceInput.ts` instead of starting WebAudio.
+Until that changes, Native 3D Synth keyboard input is intentionally rejected instead of starting WebAudio.
 
 ## Verification still required
 
@@ -91,6 +119,7 @@ All of the following remain NOT EXECUTED:
 - Android native build
 - JNI link
 - APK build/install/launch
+- browser keyboard rapid-tap test
 - Bass keyboard on a physical Android device
 - multitouch note-on/off stress
 - app-background all-notes-off
