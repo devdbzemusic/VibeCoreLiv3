@@ -134,7 +134,7 @@ function SecondaryPanel({ open, onClose }: { open: boolean; onClose: () => void 
 // ── Main component ────────────────────────────────────────────────────────────
 export function Synth3DPage() {
   const {
-    parts, selectedPart, selectPart, setSynthEngine, setPartSource,
+    parts, selectedPart, selectPart, setSynthEngine,
     setSynth3D, setSend, setChannel, fx,
   } = useGroove();
   const [secondaryOpen, setSecondaryOpen] = useState(false);
@@ -152,10 +152,9 @@ export function Synth3DPage() {
     }
     if (p && p.synth.engine !== "3D") {
       setSynthEngine(p.id, "3D");
-      setPartSource(p.id, "synth");
     }
     setLastDirection(null);
-  }, [parts, selectedPart, selectPart, setSynthEngine, setPartSource]);
+  }, [parts, selectedPart, selectPart, setSynthEngine]);
 
   const p = parts[selectedPart];
   const s3d = p?.synth3d ?? defaultSynth3D();
