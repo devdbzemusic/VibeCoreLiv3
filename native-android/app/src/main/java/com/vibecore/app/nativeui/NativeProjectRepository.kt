@@ -34,6 +34,11 @@ class NativeProjectRepository(context: Context) {
             bassResonance = prefs.getFloat("bass_resonance", default.bassResonance).coerceIn(0f, 1f),
             bassGlideMs = prefs.getFloat("bass_glide_ms", default.bassGlideMs).coerceIn(0f, 500f),
             bassWaveform = prefs.getInt("bass_waveform", default.bassWaveform).coerceIn(0, 5),
+            voiceVolume = prefs.getFloat("voice_volume", default.voiceVolume).coerceIn(0f, 1.5f),
+            voiceDryWet = prefs.getFloat("voice_dry_wet", default.voiceDryWet).coerceIn(0f, 1f),
+            voicePitchSemitones = prefs.getFloat("voice_pitch_st", default.voicePitchSemitones).coerceIn(-24f, 24f),
+            voiceFormantSemitones = prefs.getFloat("voice_formant_st", default.voiceFormantSemitones).coerceIn(-24f, 24f),
+            voiceGlideMs = prefs.getFloat("voice_glide_ms", default.voiceGlideMs).coerceIn(0f, 500f),
             selectedTrack = prefs.getInt("selected_track", default.selectedTrack).coerceIn(0, tracks.lastIndex),
             tracks = tracks,
         )
@@ -49,6 +54,11 @@ class NativeProjectRepository(context: Context) {
             .putFloat("bass_resonance", state.bassResonance.coerceIn(0f, 1f))
             .putFloat("bass_glide_ms", state.bassGlideMs.coerceIn(0f, 500f))
             .putInt("bass_waveform", state.bassWaveform.coerceIn(0, 5))
+            .putFloat("voice_volume", state.voiceVolume.coerceIn(0f, 1.5f))
+            .putFloat("voice_dry_wet", state.voiceDryWet.coerceIn(0f, 1f))
+            .putFloat("voice_pitch_st", state.voicePitchSemitones.coerceIn(-24f, 24f))
+            .putFloat("voice_formant_st", state.voiceFormantSemitones.coerceIn(-24f, 24f))
+            .putFloat("voice_glide_ms", state.voiceGlideMs.coerceIn(0f, 500f))
             .putInt("selected_track", state.selectedTrack)
 
         state.tracks.forEach { track ->
@@ -73,6 +83,6 @@ class NativeProjectRepository(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "vibecore_native_project_v1"
-        private const val SCHEMA_VERSION = 5
+        private const val SCHEMA_VERSION = 6
     }
 }

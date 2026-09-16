@@ -373,10 +373,12 @@ Offen:
 - DONE: Decode-/Native-Load-Fehler mit Stacktrace in Logcat schreiben.
 - DONE: Persisted-Sample-Restore-Teilfehler sichtbar machen statt stumm zu schlucken.
 - DONE: Bass Macro Controls fuer Volume/Cutoff/Resonance/Glide/Waveform direkt an Native Bass/Oboe angeschlossen.
+- DONE: Voice Macro Controls fuer Volume/DryWet/Pitch/Formant/Glide direkt an Native Voice/Oboe angeschlossen.
 - OPEN: Vollautomatische SAF-Dateiauswahl robust machen oder als manuellen Device-Testschritt behandeln.
 - OPEN: Hoerbares Sample-Playback-E2E mit echter Datei abschliessen.
 - OPEN: Persisted-Sample-URI-Restore mit echter Dateiauswahl ueber Force-Stop/Relaunch nachweisen.
 - OPEN: Bass3D Deep-Editor, Mod-Matrix und Klangvergleich gegen Golden Master abschliessen.
+- OPEN: Voice Sample-Slots, Recording/Permission, Live-Input, Takes und AI-Voice-Aktionen abschliessen.
 
 Geaendert:
 
@@ -417,6 +419,30 @@ Geprueft:
 - C2 gespielt; Engine startete und UI zeigte `Bass note 48 released.`.
 - Logcat: `BassNode: prepared`, Oboe/AAudio `Engine running`, keine `FATAL EXCEPTION`.
 - Beobachtung: Android-Systemlog meldet weiterhin `AppOps attributionTag not declared`; kein App-Crash, aber als spaetere Manifest-Hygiene vormerken.
+
+## Sprint 13 — Voice Macro Controls
+
+Commit-Ziel:
+
+- Native Voice nicht nur per Keyboard anspielbar machen, sondern erste echte Voice-Parameter in Compose bedienen.
+
+Geaendert:
+
+- `VibeCoreUiState` speichert Voice Volume, Dry/Wet, Pitch, Formant und Glide.
+- `NativeProjectRepository` persistiert diese Voice-Parameter mit Schema `6`.
+- `NativeRuntime` bietet direkte `setVoice*`-Methoden und bereitet den Voice Core nur einmal vor, damit Note-On keine Sliderwerte ueberschreibt.
+- `VibeCoreViewModel` hydriert Voice-Parameter beim Start und schreibt jede UI-Aenderung direkt in Native Voice.
+- `VibeCoreApp.kt` zeigt im Voice-Screen eine scrollbare Macro-Control-Spalte mit Slidern.
+
+Geprueft:
+
+- `native-android :app:assembleDebug` erfolgreich.
+- APK auf `RZCY91QYC9N` installiert und gestartet.
+- `VOICE` geoeffnet; Keyboard und scrollbare Macro-Control-Spalte sichtbar.
+- Control-Spalte gescrollt; `VOL`, `DRY`, `PIT`, `FMT`, `GLD` sichtbar.
+- Formant veraendert; UI zeigte `FMT 9,1st`.
+- C2 gespielt; Engine startete mit `VoiceNode`.
+- Logcat: `VoiceNode: prepared`, Oboe/AAudio `Engine running`, keine `FATAL EXCEPTION`.
 
 ## Compiler-first Regel
 

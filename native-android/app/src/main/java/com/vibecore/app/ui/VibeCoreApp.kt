@@ -196,6 +196,21 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                         onNoteOn = viewModel::performanceNoteOn,
                         onNoteOff = viewModel::performanceNoteOff,
                         onAllNotesOff = viewModel::allPerformanceNotesOff,
+                        extraControls = {
+                            VoiceMacroControls(
+                                volume = state.voiceVolume,
+                                dryWet = state.voiceDryWet,
+                                pitchSemitones = state.voicePitchSemitones,
+                                formantSemitones = state.voiceFormantSemitones,
+                                glideMs = state.voiceGlideMs,
+                                compact = compactLandscape,
+                                onVolume = viewModel::setVoiceVolume,
+                                onDryWet = viewModel::setVoiceDryWet,
+                                onPitch = viewModel::setVoicePitch,
+                                onFormant = viewModel::setVoiceFormant,
+                                onGlide = viewModel::setVoiceGlide,
+                            )
+                        },
                         modifier = Modifier.weight(1f),
                     )
                     NativeScreen.SETTINGS -> SettingsDiagnosticsPanel(
@@ -543,6 +558,30 @@ private fun BassWaveButton(text: String, selected: Boolean, compact: Boolean, on
         Box(modifier = Modifier.fillMaxSize().clickable(onClick = onClick), contentAlignment = Alignment.Center) {
             Text(text, fontWeight = FontWeight.Black, fontSize = if (compact) 8.sp else 9.sp)
         }
+    }
+}
+
+@Composable
+private fun VoiceMacroControls(
+    volume: Float,
+    dryWet: Float,
+    pitchSemitones: Float,
+    formantSemitones: Float,
+    glideMs: Float,
+    compact: Boolean,
+    onVolume: (Float) -> Unit,
+    onDryWet: (Float) -> Unit,
+    onPitch: (Float) -> Unit,
+    onFormant: (Float) -> Unit,
+    onGlide: (Float) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 7.dp)) {
+        Text("NATIVE VOICE MACROS", color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black, fontSize = if (compact) 8.sp else 9.sp)
+        BassSlider("VOL", "${(volume * 100f).toInt()}%", volume, 0f..1.5f, compact, onVolume)
+        BassSlider("DRY", "${(dryWet * 100f).toInt()}%", dryWet, 0f..1f, compact, onDryWet)
+        BassSlider("PIT", String.format("%.1fst", pitchSemitones), pitchSemitones, -24f..24f, compact, onPitch)
+        BassSlider("FMT", String.format("%.1fst", formantSemitones), formantSemitones, -24f..24f, compact, onFormant)
+        BassSlider("GLD", "${glideMs.toInt()}ms", glideMs, 0f..500f, compact, onGlide)
     }
 }
 

@@ -109,6 +109,18 @@ Sprint 12 (`Bass Macro Controls`) ist fuer den ersten Native-Bass-Parameter-Slic
 
 Weiterhin offen: komplette Bass3D-Deep-Editor-Paritaet, hoerbarer Klangvergleich gegen Golden Master, Automation/Mod-Matrix.
 
+Sprint 13 (`Voice Macro Controls`) ist fuer den ersten Native-Voice-Parameter-Slice `DEVICE VERIFIED`:
+
+- Voice Volume, Dry/Wet, Pitch, Formant und Glide sind als Touch-Controls erreichbar.
+- Parameter schreiben direkt ueber `NativeRuntime` in `NativeAudioBridge.voiceSet*`.
+- Voice-Parameter werden persistiert und beim Start wieder in den Native Voice Core hydriert.
+- `prepareVoiceInstrument()` setzt Defaults nur noch einmal, damit Note-On keine UI-Parameter ueberschreibt.
+- Device-Test auf `RZCY91QYC9N`: Voice-Screen geoeffnet, Control-Spalte gescrollt, Formant veraendert, C2 gespielt.
+- UI zeigte `PIT`, `FMT`, `GLD`, Formant `9,1st`, Engine `READY`, Diagnose `48kHz | 192fr | 5.5ms | CPU 6% | ✓`.
+- Logcat zeigte Oboe/AAudio-Start, `VoiceNode: prepared`, keinen `FATAL EXCEPTION`.
+
+Weiterhin offen: Sample-Slots, Recording/Permission, Live-Input, Takes-Liste, AI-Voice-Aktionen und hoerbarer Voice-E2E.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.
@@ -163,7 +175,7 @@ Statuswerte:
 | Sample Forge | `SmplTab.tsx` / `ForgeTab.tsx` | `SampleForgeScreen.kt` | SHELL | WIRED | WIRED | NATIVE ASSET CORE PARTIAL | PARTIAL | PARTIAL | WIRED |
 | Synth 3D | `Synth3DPage.tsx` / subtabs | `Synth3DScreen.kt` | SHELL | WIRED KEYBOARD UI | PARTIAL | NATIVE SYNTH GAP | OPEN | PARTIAL | GAP VISIBLE |
 | Bass 3D | `Bass3DPage.tsx` / subtabs | `Bass3DScreen.kt` | SHELL | WIRED KEYBOARD + MACROS | PARTIAL | WIRED BASS KEYBOARD + PARAMS | PARTIAL MACROS | PARTIAL | DEVICE VERIFIED SLICE |
-| Voice | `VoiceTab.tsx` | `VoiceScreen.kt` | SHELL | WIRED KEYBOARD | PARTIAL | WIRED VOICE KEYBOARD | OPEN | PARTIAL | DEVICE VERIFIED SLICE |
+| Voice | `VoiceTab.tsx` | `VoiceScreen.kt` | SHELL | WIRED KEYBOARD + MACROS | PARTIAL | WIRED VOICE KEYBOARD + PARAMS | PARTIAL MACROS | PARTIAL | DEVICE VERIFIED SLICE |
 | FX / Sends | FX tabs / channel sends | `FxScreen.kt` / Mixer | REFERENCE | OPEN | OPEN | PARTIAL CORE | OPEN | OPEN | REFERENCE |
 | Piano Roll | Web piano-roll controls | `PianoRollScreen.kt` | SHELL | WIRED ADD/CLEAR | PARTIAL | NATIVE GROOVE API WIRED | OPEN | PARTIAL | DEVICE VERIFIED SLICE |
 | Automation / Motion | `AutomationDrawer.tsx` etc. | Native Automation/Motion | REFERENCE | OPEN | OPEN | OPEN | OPEN | OPEN | REFERENCE |

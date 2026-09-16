@@ -15,6 +15,7 @@ class NativeRuntime(context: Context) {
     private val bridge = NativeAudioBridge(context.applicationContext)
     private val grooveAssets = NativeGrooveAssetBridge()
     private var bassPrepared = false
+    private var voicePrepared = false
 
     fun isAvailable(): Boolean = bridge.isAvailable()
     fun isEngineRunning(): Boolean = bridge.isEngineRunning()
@@ -166,7 +167,7 @@ class NativeRuntime(context: Context) {
     fun bassOutputLevel(): Float = bridge.bassOutputLevel()
 
     fun prepareVoiceInstrument() {
-        if (!bridge.isAvailable()) return
+        if (!bridge.isAvailable() || voicePrepared) return
         bridge.voiceSetGlobalMode(0)
         bridge.voiceSetPolyMode(1)
         bridge.voiceSetPlayMode(0)
@@ -177,6 +178,34 @@ class NativeRuntime(context: Context) {
         bridge.voiceSetActiveSlot(0)
         bridge.voiceSetStereoEnabled(true)
         bridge.voiceSetStereoWidth(1.0f)
+        voicePrepared = true
+    }
+
+    fun setVoiceVolume(value: Float) {
+        prepareVoiceInstrument()
+        bridge.voiceSetVolume(value.coerceIn(0f, 1.5f))
+    }
+
+    fun setVoiceDryWet(value: Float) {
+        prepareVoiceInstrument()
+        bridge.voiceSetDryWet(value.coerceIn(0f, 1f))
+    }
+
+    fun setVoicePitchSemitones(value: Float) {
+        prepareVoiceInstrument()
+        bridge.voiceSetPitchEnabled(value != 0f)
+        bridge.voiceSetPitchSemitones(value.coerceIn(-24f, 24f))
+    }
+
+    fun setVoiceFormantSemitones(value: Float) {
+        prepareVoiceInstrument()
+        bridge.voiceSetFormantEnabled(value != 0f)
+        bridge.voiceSetFormantSemitones(value.coerceIn(-24f, 24f))
+    }
+
+    fun setVoiceGlideMs(value: Float) {
+        prepareVoiceInstrument()
+        bridge.voiceSetGlideMs(value.coerceIn(0f, 500f))
     }
 
     fun voiceNoteOn(note: Int, velocity: Int = 108): Boolean {

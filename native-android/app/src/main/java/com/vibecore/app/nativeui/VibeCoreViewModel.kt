@@ -158,6 +158,41 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         persist()
     }
 
+    fun setVoiceVolume(value: Float) {
+        val next = value.coerceIn(0f, 1.5f)
+        runtime.setVoiceVolume(next)
+        _state.update { it.copy(voiceVolume = next, voiceStatus = "Voice volume ${(next * 100f).toInt()}% -> Native Voice.") }
+        persist()
+    }
+
+    fun setVoiceDryWet(value: Float) {
+        val next = value.coerceIn(0f, 1f)
+        runtime.setVoiceDryWet(next)
+        _state.update { it.copy(voiceDryWet = next, voiceStatus = "Voice dry/wet ${(next * 100f).toInt()}% -> Native Voice.") }
+        persist()
+    }
+
+    fun setVoicePitch(value: Float) {
+        val next = value.coerceIn(-24f, 24f)
+        runtime.setVoicePitchSemitones(next)
+        _state.update { it.copy(voicePitchSemitones = next, voiceStatus = "Voice pitch ${String.format("%.1f", next)} st -> Native Voice.") }
+        persist()
+    }
+
+    fun setVoiceFormant(value: Float) {
+        val next = value.coerceIn(-24f, 24f)
+        runtime.setVoiceFormantSemitones(next)
+        _state.update { it.copy(voiceFormantSemitones = next, voiceStatus = "Voice formant ${String.format("%.1f", next)} st -> Native Voice.") }
+        persist()
+    }
+
+    fun setVoiceGlide(value: Float) {
+        val next = value.coerceIn(0f, 500f)
+        runtime.setVoiceGlideMs(next)
+        _state.update { it.copy(voiceGlideMs = next, voiceStatus = "Voice glide ${next.toInt()} ms -> Native Voice.") }
+        persist()
+    }
+
     fun toggleMute(trackIndex: Int = _state.value.selectedTrack) {
         val state = _state.value
         if (trackIndex !in state.tracks.indices) return
@@ -390,6 +425,11 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         runtime.setBassResonance(state.bassResonance)
         runtime.setBassGlideMs(state.bassGlideMs)
         runtime.setBassWaveform(state.bassWaveform)
+        runtime.setVoiceVolume(state.voiceVolume)
+        runtime.setVoiceDryWet(state.voiceDryWet)
+        runtime.setVoicePitchSemitones(state.voicePitchSemitones)
+        runtime.setVoiceFormantSemitones(state.voiceFormantSemitones)
+        runtime.setVoiceGlideMs(state.voiceGlideMs)
         state.tracks.forEach { track ->
             runtime.setTrackMode(track.id, track.kind)
             runtime.setPatternLength(track.id, track.steps.size)
