@@ -10,6 +10,7 @@ import { useGroove } from "@/lib/store";
 import { probeRuntimeCapability } from "@/lib/capabilities/registry";
 import { asSixteenthStep, sixteenthToNativePpq } from "@/lib/runtime/timing";
 import { mirrorCurrentSceneToNative, type NativeMirrorReport } from "@/lib/runtime/projectMirror";
+import { nativeGrooveAssetReadiness } from "@/lib/runtime/nativeGrooveAssets";
 
 export interface NativeAudioStatus {
   available: boolean;
@@ -120,8 +121,18 @@ export async function activateNativeAudio(): Promise<boolean> {
     backend ??= createAudioBackend();
     if (!backend) return false;
     await backend.init();
-    await backend.startEngine();
+
     const state = useGroove.getState();
+    const assetReadiness = nativeGrooveAssetReadiness(state.parts);
+    if (!assetReadiness.ready) {
+      throw new Error(
+        `Native Groove assets not ready: ${assetReadiness.registeredSampleParts}/${assetReadiness.expectedSampleParts} registered; missing ${assetReadiness.missingPartNames.join(", ")}`,
+      );
+    }
+
+    // Asset hydration is a cold-load contract. Never start Oboe until every
+    // project-declared Groove sample has been acknowledged by Native.
+    await backend.startEngine();
     backend.setTempo(state.bpm);
     backend.setMasterGain(state.masterVolume / 100);
     hydrateCurrentScene(state);
