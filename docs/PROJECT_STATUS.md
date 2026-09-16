@@ -1,128 +1,101 @@
 # VibeCoreLiv3 — Project Status
 
 Stand: 2026-09-16  
-Branch: `revision/v4-runtime-consolidation`
+Branch: `revision/v4-runtime-consolidation`  
+PR: `#1` — Draft, not merged
 
 ## Canonical engineering source
 
-The normative engineering specification is:
+Normative engineering specification:
 
 `docs/VibeCore_Univers_SUPREME_MasterPrompt_UNIFIED_v4.0.md`
 
-Older prompts, handovers, statistics and validation reports are historical or supporting material unless explicitly marked otherwise.
+Older prompts/reports remain historical or supporting material unless explicitly marked otherwise.
 
 ## Current phase
 
-**RUNTIME CONSOLIDATION & UX PERFORMANCE REVISION**
+**RUNTIME CONSOLIDATION + LOCAL VERIFICATION HANDOVER**
 
-The project is no longer treated as a UI prototype. It contains a substantial React/Vite application, musical domain/state model, Android WebView/native bridge path and native C++/Oboe audio platform. Current work is consolidation, contract alignment, performance work and verification rather than broad feature expansion.
+The branch now contains substantial implementation, not only planning. The remaining immediate work is compile/test/device verification plus a deliberately small Sample Forge UI integration patch. Broad feature expansion is not authorized during this verification pass.
 
-## Runtime authority status
+## Verification language
 
-The original runtime call-graph stop-gate has progressed materially. The branch now contains explicit frontend runtime boundaries and source-correlated Native paths rather than only an architectural target.
+The branch is currently:
 
-Source-inspected chains include:
+**STATICALLY VERIFIED / NOT YET LOCALLY EXECUTED**
 
-`TypeScript → Native runtime/bridge → Kotlin → JNI → C++ engine → Oboe callback → graph/DSP → output`
+No successful local typecheck, lint, Vitest, Vite build, Gradle/NDK build, APK launch, Android E2E, latency, xRun, CPU, RAM or thermal evidence is claimed yet.
 
-and browser performance paths through the existing WebAudio engine/voice allocators.
+GitHub Actions remains unusable as application evidence because attempted runs received no runner (`runner_id: 0`, empty runner name, `steps: []`).
 
-This remains `STATICALLY VERIFIED`, not executed device proof.
+## Runtime authority
 
-## Implemented / source-proven in the revision branch
-
-Status terminology follows the v4.0 MasterPrompt.
-
-- `AudioBackend` interface exists — `STATICALLY VERIFIED`
-- `NativeOboeBackend implements AudioBackend` — `STATICALLY VERIFIED`
-- no concrete `WebAudioBackend implements AudioBackend` exists; browser fallback uses `engine.ts` directly — `STATICALLY VERIFIED`
-- `nativeAudioRuntime.ts` binds backend tempo/gain/transport/seek state and delegates Native availability to Capability Registry — `STATICALLY VERIFIED`
-- Android `MainActivity.kt` injects `NativeAudioBridge` as `window.VibeCoreNative` — `STATICALLY VERIFIED`
-- Kotlin → JNI → C++ lifecycle/transport/Groove/Bass/Voice mappings exist for inspected paths — `STATICALLY VERIFIED`
-- `VibeCoreAudioEngine::onAudioReady()` is the inspected Oboe callback — `STATICALLY VERIFIED`
-- native Groove step path reaches `StepSequencer → TriggerQueue → GrooveNode → voice targets` — `STATICALLY VERIFIED`
-- browser scheduler reaches `scheduleTickAt() → triggerPart() → voice allocation → WebAudio graph` — `STATICALLY VERIFIED`
-- central Zustand application/project state exists — `STATICALLY VERIFIED`
-- Capability Registry exists and owns side-effect-free runtime availability probes — `STATICALLY VERIFIED`
-- runtime selection delegates Native/Web availability to Capability Registry — `STATICALLY VERIFIED`
-- shared `InstrumentKeyboard` routes through Runtime PerformanceInput instead of direct WebAudio calls — `STATICALLY VERIFIED`
-- Browser 3D Synth/Bass note registration acknowledgement is wired through the existing voice engines — `STATICALLY VERIFIED`
-- Native Bass noteOn/noteOff/allNotesOff bridge is source-correlated — `STATICALLY VERIFIED`
-- Native 3D Synth is explicitly capability-gated unavailable until a renderer exists — `STATICALLY VERIFIED GAP`
-- Runtime Preview boundary exists; Native preview is explicitly unsupported rather than stealing a Voice sample slot — `STATICALLY VERIFIED`
-- Runtime Voice boundary exists for source-correlated Native Voice DSP/live-input controls — `STATICALLY VERIFIED`
-- canonical `ParameterHub` exists at `src/lib/parameters/hub.ts` as a stateless proxy over the existing store — `STATICALLY VERIFIED`
-- TopBar BPM, Tap Tempo and Master Volume now write through the canonical ParameterHub — `STATICALLY VERIFIED`
-- ChannelStrip Part Volume/Pan now write through ParameterHub — `STATICALLY VERIFIED`
-- unified Runtime diagnostics snapshot exists — `STATICALLY VERIFIED`
-- deterministic byte-budgeted/refcounted ResourceCache exists — `STATICALLY VERIFIED CORE`
-- AudioBuffer cache adapter exists — `STATICALLY VERIFIED CORE`
-- versioned Analysis Cache exists — `STATICALLY VERIFIED CORE`
-- Waveform min/max peak pyramid cache exists — `STATICALLY VERIFIED CORE`
-- AI learning consent/profile implementation exists — `STATICALLY VERIFIED`
-- AI Intent v1 exists for parameter-backed Mix volume/pan with validation, pure preview, apply, receipt-based revert and explain — `STATICALLY VERIFIED CORE`
-- current-Scene Store → Native Groove hydration runs after successful Native engine activation and reports mirror diagnostics separately from audio activation — `STATICALLY VERIFIED`
-- Sample/Synth ownership contract, v13 migration core, new-write policy, UI policy and runtime-source plan exist — `STATICALLY VERIFIED CORE`
-- live canonical Source Guard is bound before Native/clock/scheduler/parameter startup and re-canonicalizes recognized legacy Part source writes inside the existing Zustand authority — `STATICALLY VERIFIED`
-- Runtime diagnostics report canonical/invalid/legacy instrument source counts — `STATICALLY VERIFIED`
-- dedicated Synth3D and Bass3D pages no longer write the legacy `Part.source` switch when selecting their engines — `STATICALLY VERIFIED`
-- E2E simulation matrix exists — `STATICALLY VERIFIED`
-
-## Runtime capability authority
-
-Migrated Runtime paths now use the central Capability Registry for availability instead of inventing local environment rules.
-
-Covered probe families include:
-
-- Web/Native audio
-- Native low-latency path presence
-- Web input API presence
-- Browser/Native preview
-- Browser/Native 3D Synth
-- Browser/Native 3D Bass
-- Native Voice/live input
-- Web MIDI API presence
-- IndexedDB presence
-
-Runtime probes do not initialize audio, request permissions, open MIDI or create a renderer. Availability is not equivalent to executed verification.
-
-## Parameter authority
-
-`src/lib/parameters/hub.ts` is the single canonical ParameterHub implementation in the branch.
-
-Version 1 deliberately owns **no second parameter state**. It proxies the canonical Zustand store and currently covers:
-
-- `transport.bpm`
-- `master.volume`
-- `part.<id>.volume`
-- `part.<id>.pan`
-
-The Hub also owns range/unit/persistence/realtime descriptors and selective subscriptions. Gesture hooks remain stateless no-ops until one authoritative undo/automation batching model is selected.
-
-A transient duplicate implementation created during consolidation was detected by the branch diff and removed before verification; no second ParameterHub implementation remains intentionally.
-
-## AI Intent authority
-
-`src/lib/ai/intent.ts` provides the first validated v4-style flow:
+Source-inspected Native chain:
 
 ```text
-Suggestion
-→ Intent
-→ Validation
-→ Preview (no mutation)
-→ ParameterHub command
-→ Apply receipt
-→ Revert
-→ Explain
+TypeScript runtime boundary
+→ window.VibeCoreNative
+→ NativeAudioBridge.kt
+→ JNI
+→ VibeCoreAudioEngine
+→ Oboe callback
+→ VibeCoreSync
+→ AudioGraphManager
+→ Groove/Bass/Voice DSP
+→ output
 ```
 
-Version 1 deliberately supports only Mix `volume` and `pan` suggestions because those parameters already have canonical persisted ParameterHub routes. FX/master and other suggestion kinds remain rejected until explicit command adapters exist.
+Source-inspected browser sequencer chain:
 
-No hidden global AI history/store is created; apply receipts are caller-owned.
+```text
+Zustand project state
+→ browser scheduler
+→ AudioContext time/lookahead
+→ triggerPart
+→ voice allocation
+→ renderer
+→ part/FX/master WebAudio graph
+```
 
-## Sample/Synth ownership authority
+Native and browser remain separate runtime selections. The browser scheduler is gated on the Native path. Runtime authority is materially implemented but still requires device execution proof.
 
-The old v12 model still contains legacy `SourceMode = sample | synth | hybrid` and old helpers/UI that expose those modes too broadly. The revision branch now contains explicit v4 ownership modules:
+## Runtime/capability implementation present
+
+- `AudioBackend` contract exists.
+- `NativeOboeBackend` implements the Native backend.
+- browser still uses the existing WebAudio engine directly; there is no concrete `WebAudioBackend` adapter yet.
+- Capability Registry owns side-effect-free runtime availability probes.
+- Native availability is detected through `window.VibeCoreNative`.
+- `MainActivity.kt` injects the Native runtime bridge.
+- shared live keyboard/performance input no longer directly owns WebAudio triggering on Native.
+- Native Bass performance bridge is source-correlated.
+- Native Voice runtime/DSP bridge is source-correlated.
+- Native 3D Synth remains explicitly unsupported until a real Native renderer exists.
+- Runtime Preview keeps unsupported Native preview explicit rather than stealing Voice sample slots.
+- Runtime diagnostics snapshot exists.
+
+## Timing authority
+
+Known timing domains are explicit:
+
+- browser `masterClock`: 24 ticks/beat
+- browser scheduler song/global counters: sixteenth-note domain
+- Native `VibeCoreSync`: PPQ 1920, 480 ticks/sixteenth
+
+Conversions are centralized in runtime timing helpers. Generic cross-domain untyped `tick` interchange remains forbidden.
+
+Native musical scheduling is callback/sample-position driven. Browser musical scheduling uses `AudioContext.currentTime`; browser timers wake the scheduler but are not the musical clock.
+
+## Sample/Synth v13 authority
+
+Canonical v4 ownership:
+
+- kick/snare/perc/hat/sample → `sample-domain`
+- synth → `synth3d`
+- bass → `bass3d`
+- `hybrid` → compatibility metadata only
+
+Implemented modules include:
 
 - `src/lib/instruments/sourceBoundary.ts`
 - `src/lib/instruments/projectMigration.ts`
@@ -131,88 +104,178 @@ The old v12 model still contains legacy `SourceMode = sample | synth | hybrid` a
 - `src/lib/instruments/runtimeSourcePlan.ts`
 - `src/lib/instruments/sourceRuntimeGuard.ts`
 
-Canonical ownership is:
+Current behavior:
 
-- kick/snare/perc/hat/sample → `sample-domain`
-- synth → `synth3d`
-- bass → `bass3d`
-- `hybrid` → compatibility data only, not a valid new runtime source
+- live Zustand state is canonicalized before first React render.
+- persist middleware is promoted at runtime to schema **13** with the v13 migration function.
+- incompatible legacy source values are retained under `legacyInstrument.source`.
+- incompatible legacy Synth-engine values are retained under `legacyInstrument.engine`.
+- future `setPartSource()` writes are guarded.
+- future `setSynthEngine()` writes are guarded.
+- rejected legacy writes emit a visible `SourceBoundaryNotice` rather than silently becoming active authority.
+- Synth-category parts are canonicalized to `source: synth`, `engine: 3D`.
+- Bass-category parts are canonicalized to `source: synth`, `engine: 3D Bass`.
+- Web `engine.ts` already routes those engine selectors to `trigger3DSynth` / `trigger3DBass`.
+- live performance resolution uses category/runtime authority rather than a legacy engine string.
 
-The migration core preserves incompatible v12 source values under `legacyInstrument.source` instead of silently discarding them. The live Source Guard is now bound before audio/clock/scheduler startup, canonicalizes the authoritative Zustand `parts` state on application startup, and immediately repairs later recognized legacy source writes. It does not create a second state store.
+Still intentionally local-follow-up:
 
-The dedicated Synth3D and Bass3D pages have also been decoupled from `setPartSource(..., "synth")`; engine ownership now stands on its own in those pages.
+- `SmplTab.tsx` must be migrated to the new sample asset runtime service with compiler feedback.
+- legacy SoundTab presentation still exists as compatibility UI, although its writes are now guarded and explained.
+- `engine.ts` still contains legacy fallback branches for compatibility; canonical v13 state selects the 3D renderer paths for Synth/Bass.
 
-Still partial:
+## Native Groove project mirror
 
-- the Zustand persist declaration itself still says schema v12 rather than v13
-- `buildDefaultParts()` still contains legacy source defaults before the live guard runs
-- `SoundTab` still exposes the three-way legacy Source Mode UI
-- WebAudio `engine.ts` still contains the legacy audible `part.source` sample/synth/hybrid branch
+Current-scene Store → Native Groove mapping exists for:
 
-See `docs/SAMPLE_SYNTH_MIGRATION_CONTRACT.md`.
+- track mode
+- mute/solo/volume
+- pattern length
+- swing conversion
+- step active/velocity/note
+- probability
+- accent
+- ratchet conversion
+- microtiming conversion
+- piano-roll notes
+- sample assignment when Native registration is proven
 
-## Important remaining runtime-contract findings
+ProjectMirror intentionally remains current-scene v1; full Pattern/Scene-bank bulk load is deferred.
 
-### Backend asymmetry
+## Native Groove sample asset contract
 
-`AudioBackend.ts` describes WebAudio and native as backend concepts, but only `NativeOboeBackend` implements the interface. Browser operation still uses direct `engine.ts` runtime code instead of a concrete `WebAudioBackend` adapter.
+The previous sample-ID gap has been materially implemented.
 
-This is an architecture asymmetry, not authorization to build a second browser engine.
+Stable v1 rule:
 
-### Native Groove project mirroring remains partial
+```text
+Native Groove sampleId = Part.id
+```
 
-Current-scene Store→Native mapping and automatic post-activation hydration now exist, with explicit timing conversions and separate mirror diagnostics.
+only for Sample-domain parts and only inside Native `kMaxSamples` bounds.
 
-Still unresolved:
+Implemented path:
 
-- full Pattern/Scene-bank bulk loading
-- stable Web asset → Native sample-ID mapping
-- Kotlin/JNI marshalling for the C++ project-load undo-suppression guard (`beginProjectLoad/endProjectLoad`)
+```text
+encoded File
+→ OfflineAudioContext decode on Native
+→ deterministic mono Float32 PCM
+→ window.VibeCoreGrooveAssets
+→ NativeGrooveAssetBridge.kt
+→ JNI using the existing engine()/groove() singleton context
+→ GrooveEngine-owned PCM storage
+→ SampleBuffer view
+→ Groove VoicePool
+```
 
-The absence of those pieces means ProjectMirror is useful but not yet a full project-bank contract.
+Important properties:
 
-### Timing domains remain explicit
+- `VibeCoreGrooveAssets` is asset ingress only; it cannot control transport/DSP.
+- browsing/decoding a sample is separate from assigning it to a Part.
+- session registration truth is recorded only after Native confirms both `loadSample()` and `sampleLoaded()`.
+- ProjectMirror sets the track sample ID only for confirmed registrations.
+- missing/unregistered assets cause ProjectMirror to write `-1`, preventing stale sample reuse.
+- PCM load/clear is currently **cold-load only**.
+- Native JNI rejects sample load/clear while the Oboe engine is running.
+- `activateNativeAudio()` checks assigned Sample-domain asset readiness before `startEngine()`.
+- a project that references Sample-domain assets cannot silently start Native with those tracks missing PCM.
+- empty Sample-domain slots do not block startup.
 
-At least three timing units exist:
+Detailed contract:
 
-- Browser `masterClock.tick`: 24 ticks per beat
-- Browser scheduler `globalTick/songTicks`: sixteenth-note counters
-- Native `VibeCoreSync`: PPQ 1920 / 480 ticks per sixteenth
+`docs/NATIVE_GROOVE_ASSET_CONTRACT.md`
 
-They may coexist only through explicit conversion/domain ownership. Generic untyped `tick` interchange remains unsafe.
+## Sample-rate fix
 
-### Voice UI semantics are not yet equivalent to Native Voice DSP
+Native Groove `VoicePool` now incorporates:
 
-The Native Voice engine has real pitch/formant/monitor/dry-wet/live-input/DSP controls. Existing `VoiceTab` still primarily edits generic Part state.
+```text
+source sample rate / output sample rate
+× MIDI pitch ratio
+```
 
-Notable mismatch examples:
+into its Q16 read step.
 
-- UI `FORMANT` is not the dedicated Native Voice formant control
-- generic recording state is not proof Native Voice input opened
-- generic Part sends/drive are not equivalent to Native Voice DSP controls
+This fixes the source-level error where e.g. a 44.1 kHz sample on a 48 kHz output stream would otherwise play at the wrong speed/pitch.
 
-Migration must keep those semantics distinct.
+Device execution proof remains required.
 
-### WebAudio sample cache is still unbounded
+## Sample asset decode/runtime boundary
 
-The existing WebAudio engine still owns an unbounded `Map<SampleId, AudioBuffer>`.
+New modules:
 
-The new budgeted cache core is present but not yet connected to the ~77 KB engine module. This integration is intentionally deferred until it can be done with complete-file/build verification instead of a risky blind monolithic replacement.
+- `src/lib/audio/assetDecode.ts`
+- `src/lib/audio/sampleAssetRuntime.ts`
 
-## Known architecture gaps / conflicts
+On Native, sample decode uses `OfflineAudioContext`, not `ensureAudio()`. This prevents constructing the audible WebAudio renderer merely to obtain PCM for Native Groove.
+
+`sampleAssetRuntime.ts` separates:
+
+```text
+decodeSampleAsset(file)
+```
+
+from:
+
+```text
+assignSampleAssetToPart(part, asset)
+```
+
+so browsing a library item does not mutate Native sample state.
+
+The large Sample Forge UI still needs to adopt this boundary locally; exact instructions are in the Codex handover.
+
+## Parameter authority
+
+`src/lib/parameters/hub.ts` is the canonical ParameterHub core and owns no duplicate state. Current coverage includes:
+
+- transport BPM
+- master volume
+- per-part volume
+- per-part pan
+
+TopBar and ChannelStrip migrated callers exist. Full ParameterHub adoption/undo/automation gesture design remains partial.
+
+## AI Intent
+
+The branch contains validated AI Intent v1 for ParameterHub-backed Mix volume/pan:
+
+```text
+Suggestion
+→ Intent
+→ Validation
+→ Preview
+→ ParameterHub command
+→ Apply receipt
+→ Revert / Explain
+```
+
+Additional AI mutations remain blocked until explicit command adapters exist.
+
+## Cache architecture
+
+Implemented cores:
+
+- byte-budgeted/refcounted generic resource cache
+- AudioBuffer cache adapter
+- versioned Analysis Cache
+- waveform min/max peak pyramid cache
+
+The monolithic WebAudio engine still owns its historical unbounded maps. Integrating the budgeted cache there is deliberately deferred until complete local compile/test verification is available.
+
+## Known intentionally open architecture items
 
 - Native 3D Synth renderer — `UNSUPPORTED / GAP`
-- Native Preview buffer/region renderer — `UNSUPPORTED / GAP`
-- Native Groove full ProjectMirror/bulk-load/sample-asset contract — `PARTIAL`
-- full ParameterHub coverage and gesture/undo/automation integration — `PARTIAL`
-- Sample/Synth store/UI/runtime adoption — `PARTIAL`; live guard and dedicated-page decoupling implemented, legacy store declaration/SoundTab/engine branch remain
-- AI Intent adapters beyond Mix volume/pan — `PARTIAL`
-- Runtime backend access is not yet uniformly represented by one frontend backend interface — `PARTIAL`
-- Motion Step Recorder end-to-end contract — `PARTIAL / UNKNOWN`
-- bRAINWAVEz/granular/spatial Native audible-render ownership — `PARTIAL / UNKNOWN`
-- Remix live audio input / device playback capture — `PARTIAL / UNKNOWN`
-- Voice browser DSP parity — `PARTIAL / UNKNOWN`
-- cache-core integration into real asset/analysis callers — `PARTIAL`
+- Native arbitrary sample-region Preview renderer — `UNSUPPORTED / GAP`
+- full Native Pattern/Scene-bank bulk load — `PARTIAL`
+- Native Groove hot sample swap / epoch reclamation — `DEFERRED`
+- concrete browser `WebAudioBackend` adapter symmetry — `PARTIAL`
+- complete ParameterHub adoption — `PARTIAL`
+- Motion Step Recorder full end-to-end contract — `PARTIAL / UNKNOWN`
+- bRAINWAVEz/granular/spatial Native renderer ownership — `PARTIAL / UNKNOWN`
+- Remix live input/device capture — `PARTIAL / UNKNOWN`
+- Voice browser/native semantic parity — `PARTIAL / UNKNOWN`
+- bounded cache adoption in legacy WebAudio engine — `PARTIAL`
 
 ## Performance truth
 
@@ -222,60 +285,53 @@ No performance values are claimed before measurement.
 - RAM — `UNKNOWN`
 - XRuns — `UNKNOWN`
 - Jitter — `UNKNOWN`
-- Latency — `UNKNOWN`
-- Callback budget — `UNKNOWN`
+- latency — `UNKNOWN`
+- callback budget — `UNKNOWN`
 - thermal behavior — `UNKNOWN`
 - UI frame pacing — `UNKNOWN`
 
-Configured target values and transient UI-reported counters are not benchmark evidence.
+## Local verification handover
 
-## Verification status
+Canonical local continuation document:
 
-The presence of scripts, test files, workflows or test plans is not proof of successful execution.
+`docs/HANDOVER_CODEX_LOCAL_2026-09-16.md`
 
-A local clean-worktree verification attempt was blocked before checkout because the execution shell could not resolve `github.com`.
+The handover contains:
 
-A GitHub Actions verification workflow now exists and attempted run `35060578966` / job `104679844962`, but GitHub assigned no runner (`runner_id: 0`, empty runner name) and recorded `steps: []`. No `npm ci`, TypeScript, lint, Vitest or Vite command ran. This is a runner/workflow-start blocker, not application build-failure evidence.
+- real npm scripts from `package.json`
+- Native Gradle command from `native-android/README.md`
+- exact Sample Forge migration patch
+- Native asset E2E scenarios
+- typed-array bridge verification
+- sample-rate verification
+- evidence write-back rules
 
-Therefore these application gates remain `NOT EXECUTED`:
+## Required local gate order
 
-- typecheck
-- lint
-- unit tests
-- web build
-- Android web build
-- native/Gradle build
-- APK install and launch
-- live Android E2E matrix
-- Browser rapid-key test
-- Native Bass keyboard test
-- Native Voice live-input test
-- audio latency/xRun measurements
-- CPU/RAM/thermal profiling
-- UI frame-pacing profiling
-- reference-audio/DSP quality verification
+From `G:\Dev\VibeCoreLiv3`:
 
-See `docs/TEST_STATUS.md` for the verification ledger.
+```powershell
+npm ci
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run build:android
+```
 
-## Revision order from current branch state
+Then:
 
-1. Runtime/capability authority consolidation — **materially implemented / still expanding adoption**
-2. Sample/Synth v13 store/UI/runtime adoption — **live guard active; legacy store declaration/SoundTab/engine branch remain**
-3. Native Groove ProjectMirror bulk-load/sample-asset completion
-4. ParameterHub adoption and command-history design
-5. AI Intent caller migration / additional validated command adapters
-6. Cache integration into real asset/analysis callers
-7. Voice UI semantic migration
-8. Native 3D Synth renderer design/implementation
-9. remaining Native audible-render ownership gaps
-10. Motion Recorder consolidation
-11. Remix live-input path
-12. full typecheck/build/APK/device/performance verification
+```powershell
+cd G:\Dev\VibeCoreLiv3\native-android
+.\gradlew.bat :app:assembleDebug
+```
+
+After build success, run Android device E2E before changing PR #1 from Draft.
 
 ## Release rule
 
-Do not call the project `COMPLETE`, `VERIFIED` or production-ready until the applicable v4.0 Definition of Done and executed verification gates are satisfied.
+Do not call VibeCore v4 `COMPLETE`, `VERIFIED` or production-ready until applicable v4.0 Definition-of-Done gates have been executed and evidence recorded.
 
 Current release statement:
 
-**The revision branch contains substantial Runtime consolidation and stronger contracts, but VibeCore v4.0 is not yet release-verified.**
+**Runtime, Sample/Synth authority and Native Groove cold asset hydration are materially implemented on the revision branch. The branch is ready for local compile/test/device verification, but is not yet release-verified.**
