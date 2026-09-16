@@ -3,12 +3,32 @@ import { instrumentAuthorityForCategory } from "@/lib/instruments/sourceBoundary
 
 export const NATIVE_GROOVE_MAX_SAMPLES = 128;
 
+export interface NativeGrooveAssetBridge {
+  canLoad(): boolean;
+  loadSample(sampleId: number, data: Float32Array, sampleRate: number): boolean;
+  clearSample(sampleId: number): boolean;
+  sampleLoaded(sampleId: number): boolean;
+}
+
+declare global {
+  interface Window {
+    VibeCoreGrooveAssets?: NativeGrooveAssetBridge;
+  }
+}
+
 export interface NativeGrooveAssetRegistration {
   partId: number;
   sampleId: number;
   sampleRate: number;
   lengthFrames: number;
   registeredAtRevision: number;
+}
+
+export interface NativeGrooveAssetUploadResult {
+  accepted: boolean;
+  sampleId: number | null;
+  reason?: string;
+  registration?: NativeGrooveAssetRegistration;
 }
 
 /**
@@ -77,3 +97,57 @@ class NativeGrooveAssetRegistry {
 
 /** Session-only registration truth. Project/Zustand remains asset ownership truth. */
 export const nativeGrooveAssetRegistry = new NativeGrooveAssetRegistry();
+
+export function getNativeGrooveAssetBridge(): NativeGrooveAssetBridge | null {
+  if (typeof window === "undefined") return null;
+  return window.VibeCoreGrooveAssets ?? null;
+}
+
+/**
+ * Cold-load one mono PCM asset into the currently prepared Native Groove graph.
+ * Registration truth is recorded only after the native side confirms both the
+ * upload and the resulting loaded state.
+ */
+export function uploadNativeGrooveAsset(
+  part: Pick<Part, "id" | "category">,
+  monoPcm: Float32Array,
+  sampleRate: number,
+  bridge: NativeGrooveAssetBridge | null = getNativeGrooveAssetBridge(),
+): NativeGrooveAssetUploadResult {
+  const sampleId = nativeGrooveSampleIdForPart(part);
+  if (sampleId == null) {
+    return { accepted: false, sampleId: null, reason: "Part has no Native Groove sample-domain id" };
+  }
+  if (!bridge) {
+    return { accepted: false, sampleId, reason: "VibeCoreGrooveAssets bridge unavailable" };
+  }
+  if (monoPcm.length <= 0 || sampleRate <= 0) {
+    return { accepted: false, sampleId, reason: "PCM payload/sample rate invalid" };
+  }
+  if (!bridge.canLoad()) {
+    return { accepted: false, sampleId, reason: "Native Groove stream is running; cold-load unavailable" };
+  }
+  if (!bridge.loadSample(sampleId, monoPcm, Math.round(sampleRate))) {
+    return { accepted: false, sampleId, reason: "Native Groove loadSample rejected PCM payload" };
+  }
+  if (!bridge.sampleLoaded(sampleId)) {
+    return { accepted: false, sampleId, reason: "Native Groove did not acknowledge loaded sample" };
+  }
+
+  const registration = nativeGrooveAssetRegistry.markRegistered(part, sampleRate, monoPcm.length);
+  if (!registration) {
+    return { accepted: false, sampleId, reason: "Session registry rejected successful native load" };
+  }
+  return { accepted: true, sampleId, registration };
+}
+
+export function clearNativeGrooveAsset(
+  part: Pick<Part, "id" | "category">,
+  bridge: NativeGrooveAssetBridge | null = getNativeGrooveAssetBridge(),
+): boolean {
+  const sampleId = nativeGrooveSampleIdForPart(part);
+  if (sampleId == null || !bridge || !bridge.canLoad()) return false;
+  if (!bridge.clearSample(sampleId)) return false;
+  nativeGrooveAssetRegistry.markCleared(part);
+  return true;
+}
