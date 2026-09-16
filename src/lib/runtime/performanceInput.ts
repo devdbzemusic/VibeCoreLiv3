@@ -1,5 +1,6 @@
 import { ensureAudio, getCtx, triggerPart } from "@/lib/audio/engine";
 import { activateNativeAudio } from "@/lib/audio/nativeAudioRuntime";
+import { probeRuntimeCapability, type RuntimeCapabilityId } from "@/lib/capabilities/registry";
 import { killAllNotes3D, releaseNote3D, waitForNoteStart3D } from "@/lib/synth3d/voiceEngine";
 import { killAllNotes3DBass, releaseNote3DBass, waitForNoteStart3DBass } from "@/lib/bass3d/voiceEngine";
 import { useGroove } from "@/lib/store";
@@ -30,6 +31,19 @@ function clampVelocity(value: number): number {
   return Math.max(1, Math.min(127, Math.round(value)));
 }
 
+function instrumentCapability(
+  runtime: "webaudio" | "oboe-native",
+  instrument: PerformanceInstrument,
+): RuntimeCapabilityId | null {
+  if (instrument === "synth3d") {
+    return runtime === "oboe-native" ? "instrument.synth3d.native" : "instrument.synth3d.web";
+  }
+  if (instrument === "bass3d") {
+    return runtime === "oboe-native" ? "instrument.bass3d.native" : "instrument.bass3d.web";
+  }
+  return runtime === "webaudio" ? "audio.web" : null;
+}
+
 /** Resolve a live-performance route from the canonical Part model. */
 export function inferPerformanceInstrument(partId: number): PerformanceInstrument {
   const part = useGroove.getState().parts.find((candidate) => candidate.id === partId);
@@ -41,20 +55,39 @@ export function inferPerformanceInstrument(partId: number): PerformanceInstrumen
 /**
  * Backend-neutral live performance note-on.
  *
- * Authority rules:
- * - Native Android never falls through to an audible WebAudio renderer.
- * - Native Bass uses its source-proven bridge.
- * - Native 3D Synth remains unsupported until a real native synth path exists.
- * - Browser reuses triggerPart, but for 3D instruments does not report success
- *   until the existing voice engine acknowledges actual note registration.
+ * Capability availability is owned by the central registry. Runtime activation
+ * remains separate: a capability can be source-proven/available and activation
+ * can still fail at execution time.
  */
 export async function performanceNoteOn(note: PerformanceNote): Promise<PerformanceInputResult> {
   const midi = clampMidi(note.midiNote);
   const semitone = midi - 60;
   const velocity = clampVelocity(note.velocity ?? 110);
   const runtime = selectedRuntimeKind();
+  const capabilityId = instrumentCapability(runtime, note.instrument);
+
+  if (capabilityId) {
+    const capability = probeRuntimeCapability(capabilityId);
+    if (!capability.available) {
+      return {
+        accepted: false,
+        runtime,
+        releaseMode: "none",
+        reason: capability.reason ?? `${capabilityId} unavailable`,
+      };
+    }
+  }
 
   if (runtime === "oboe-native") {
+    if (note.instrument === "part") {
+      return {
+        accepted: false,
+        runtime,
+        releaseMode: "none",
+        reason: "Generic native Part performance routing is not defined yet",
+      };
+    }
+
     if (!await activateNativeAudio()) {
       return {
         accepted: false,
@@ -79,20 +112,14 @@ export async function performanceNoteOn(note: PerformanceNote): Promise<Performa
       return { accepted: true, runtime, releaseMode: "explicit" };
     }
 
-    if (note.instrument === "synth3d") {
-      return {
-        accepted: false,
-        runtime,
-        releaseMode: "none",
-        reason: "Native 3D Synth renderer is not source-proven yet",
-      };
-    }
-
+    // Synth3D currently cannot reach this branch because the registry reports
+    // the native capability unavailable. Keeping an explicit guard here makes
+    // the authority rule robust against future registry changes.
     return {
       accepted: false,
       runtime,
       releaseMode: "none",
-      reason: "Generic native Part performance routing is not defined yet",
+      reason: "No source-proven native renderer for this instrument",
     };
   }
 
@@ -107,9 +134,8 @@ export async function performanceNoteOn(note: PerformanceNote): Promise<Performa
     };
   }
 
-  // Arm the acknowledgement BEFORE triggerPart. triggerPart intentionally
-  // keeps its scheduler-friendly void API and starts 3D dynamic imports
-  // asynchronously; the voice engines provide the actual registration signal.
+  // Arm acknowledgement BEFORE triggerPart. triggerPart intentionally keeps its
+  // scheduler-friendly void API while 3D modules load asynchronously.
   const registration = note.instrument === "synth3d"
     ? waitForNoteStart3D(note.partId, semitone)
     : note.instrument === "bass3d"
@@ -142,6 +168,19 @@ export async function performanceNoteOn(note: PerformanceNote): Promise<Performa
 export function performanceNoteOff(note: PerformanceNote): PerformanceInputResult {
   const midi = clampMidi(note.midiNote);
   const runtime = selectedRuntimeKind();
+  const capabilityId = instrumentCapability(runtime, note.instrument);
+
+  if (capabilityId) {
+    const capability = probeRuntimeCapability(capabilityId);
+    if (!capability.available) {
+      return {
+        accepted: false,
+        runtime,
+        releaseMode: "none",
+        reason: capability.reason ?? `${capabilityId} unavailable`,
+      };
+    }
+  }
 
   if (runtime === "oboe-native") {
     const native = window.VibeCoreNative;
@@ -153,9 +192,7 @@ export function performanceNoteOff(note: PerformanceNote): PerformanceInputResul
       accepted: false,
       runtime,
       releaseMode: "none",
-      reason: note.instrument === "synth3d"
-        ? "Native 3D Synth renderer is not source-proven yet"
-        : "Generic native Part release routing is not defined yet",
+      reason: "No proven native release route for this instrument",
     };
   }
 
@@ -190,6 +227,20 @@ export function performanceNoteOff(note: PerformanceNote): PerformanceInputResul
 /** Panic/recovery boundary for live input. */
 export function performanceAllNotesOff(instrument: PerformanceInstrument, partId?: number): PerformanceInputResult {
   const runtime = selectedRuntimeKind();
+  const capabilityId = instrumentCapability(runtime, instrument);
+
+  if (capabilityId) {
+    const capability = probeRuntimeCapability(capabilityId);
+    if (!capability.available) {
+      return {
+        accepted: false,
+        runtime,
+        releaseMode: "none",
+        reason: capability.reason ?? `${capabilityId} unavailable`,
+      };
+    }
+  }
+
   if (runtime === "oboe-native") {
     const native = window.VibeCoreNative;
     if (instrument === "bass3d" && native) {
