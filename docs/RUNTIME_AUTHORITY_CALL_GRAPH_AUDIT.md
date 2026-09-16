@@ -208,6 +208,8 @@ The narrow `VibeCoreNativeBridge` interface aligns with corresponding Kotlin `@J
 
 The Kotlin bridge surface is much larger than the narrow TypeScript interface; Groove/Bass/Voice bridge methods require a separate caller inventory.
 
+A method-by-method narrow contract table now lives in `docs/BRIDGE_CONTRACT_MATRIX.md`.
+
 ## 9. Kotlin → JNI → C++ core
 
 `jni_bridge.cpp` proves:
@@ -409,7 +411,85 @@ command drain
 
 Then `AudioGraphManager` sums the leaf bus into the final Oboe output buffer.
 
-## 17. Timing API classification found so far
+## 17. Browser trigger/DSP/output path
+
+`engine.ts` proves the browser path:
+
+```text
+scheduleTickAt()
+→ triggerPart()
+→ central voiceAllocator request
+→ source branch
+   ├─ sample one-shot / granular stretch
+   ├─ 3D Synth
+   ├─ 3D Bass
+   ├─ legacy synth
+   └─ hybrid sample/synth/sub
+→ part chain.input
+→ HP
+→ LP
+→ drive
+→ channel EQ
+→ volume/pan
+→ dry + FX sends
+→ masterIn
+→ master EQ
+→ stereo width
+→ soft clip
+→ master gain
+→ limiter
+→ AudioContext.destination
+```
+
+The current browser implementation therefore remains a direct WebAudio runtime, not a concrete `WebAudioBackend` adapter implementing the same TypeScript contract as native.
+
+## 18. Critical unresolved edge — Store → Native Groove state
+
+This is now the highest-priority unresolved graph edge.
+
+Static facts:
+
+- Zustand `store.ts` owns Pattern/Scene/Step/Piano-Roll project state.
+- Kotlin exposes `grooveSetStep`, `grooveSetPatternLength`, `grooveSetTrack*`, scene and Piano-Roll methods.
+- JNI maps those calls into native `GrooveEngine/GrooveNode`.
+- `AudioBackend` / `nativeAudioRuntime` prove transport/tempo/gain/seek, but do not contain Groove project-state mirroring methods.
+- no dedicated Groove-native TypeScript bridge file appears in the current `src/lib` file inventory.
+- the inspected `store.ts` contains no `VibeCoreNative` or `grooveSetStep` call.
+
+Therefore the exact caller chain that synchronizes current Web/Zustand Groove state into the native Groove engine is not yet proven.
+
+### Status
+
+`P0 UNKNOWN`
+
+### Why this matters
+
+A valid native scheduler and Oboe callback do not prove correct song playback if the native sequencer has not received the current Pattern/Scene/Step data.
+
+Required proof:
+
+```text
+UI edit
+→ Zustand action
+→ TypeScript native state-transfer call
+→ Kotlin groove* bridge
+→ JNI nativeGroove*
+→ GrooveEngine/GrooveNode command queue
+→ native StepSequencer state
+→ trigger during native transport
+```
+
+If this edge does not exist, it becomes an implementation gap only after the audit confirms absence.
+
+## 19. Capability Registry correction
+
+`src/lib/capabilities/registry.ts` exists in the current HEAD and is therefore not a missing capability.
+
+Previous audit text that called Capability Registry absent/GAP is superseded.
+
+However adoption as the sole capability authority remains incomplete, and its previous `android.native-oboe = VERIFIED` classification was too strong without device evidence. The revision branch now classifies the native Oboe capability as `STATICALLY_VERIFIED` and keeps actual APK/device measurements `NOT_EXECUTED`.
+
+## 20. Timing API classification found so far
 
 ### `setInterval`
 
@@ -427,6 +507,10 @@ Then `AudioGraphManager` sums the leaf bus into the final Oboe output buffer.
 
 - `scheduler.ts`: fallback for UI playhead write throttling when `performance` is unavailable.
 
+### `setTimeout`
+
+- inspected `engine.ts` uses timeouts for cleanup/release bookkeeping such as delayed voice-gain unregister/release after audio events have already been timestamp-scheduled. These occurrences are not the beat-grid authority.
+
 ### Native time
 
 - Native musical time in the proven path is derived inside `VibeCoreSync::processCallback()` from audio callback sample position, callback frame count, BPM and PPQ.
@@ -436,16 +520,15 @@ Then `AudioGraphManager` sums the leaf bus into the final Oboe output buffer.
 
 Repository-wide classification remains incomplete because connected GitHub code search currently returns no matches for generic timing-token searches. Known timing-critical files are being inspected directly, but this limitation remains explicit.
 
-## 18. Important static finding: two timing representations
+## 21. Important static finding: multiple timing representations
 
-The project currently has at least two explicit timing representations:
+The project currently has at least three explicit timing representations:
 
 ```text
 Browser MasterClock: beat-based clock with tick = beat * 24
+Browser scheduler: globalTick/songTicks = sixteenth-note counters
 Native VibeCoreSync: PPQ-based sample-scheduled clock at 1920 PPQ
 ```
-
-The scheduler additionally tracks `globalTick` and `songTicks` as sixteenth-note counters.
 
 These can coexist only if their units and conversion boundaries are explicit. They must not be treated as one raw integer tick type.
 
@@ -458,58 +541,26 @@ Required tests:
 - BPM-change continuity
 - no tick-domain leakage across bridge APIs
 
-## 19. Tests to define against the observed graph
+## 22. Tests defined against the observed graph
 
-### Contract
+The concrete contract/null/timing/runtime plan now lives in:
 
-- `AudioBackend` method coverage by `NativeOboeBackend`
-- `VibeCoreNativeBridge` ↔ Kotlin `@JavascriptInterface`
-- Kotlin native declarations ↔ JNI exported symbols
-- JNI symbol ↔ C++ target method
-- tick-domain type/conversion tests
+`docs/RUNTIME_AUTHORITY_TEST_PLAN.md`
 
-### Null/failure
+It covers:
 
-- `window.VibeCoreNative` absent
-- bridge present but `isAvailable()` false
-- native library load failure
-- engine start failure
-- stream open failure
-- stream start failure
-- repeated start/stop
-- stop before start
-- device disconnect/restart
-- invalid voice slot/sample/note
+- AudioBackend coverage
+- TS ↔ Kotlin contract
+- Kotlin ↔ JNI symbol coverage
+- JNI ↔ C++ target mapping
+- Groove state-transfer proof
+- bridge/library/stream failure cases
+- browser/native scheduler exclusion
+- tick-domain conversions
+- trigger/voice paths
+- real-device evidence gate
 
-### Timing
-
-- native tick monotonicity
-- browser clock phase continuity
-- BPM change continuity
-- seek accuracy
-- bar/beat/tick consistency
-- no duplicate trigger when Native path active
-- browser scheduler timer remains unarmed on Native path
-- scheduler wake-up jitter vs scheduled audio timestamp
-- callback tick event sample offsets
-
-### Native runtime evidence
-
-Must eventually include executed proof for:
-
-- APK build/install/launch
-- bridge availability
-- selected Oboe API
-- actual sample rate
-- actual frames/burst and callback size
-- callback activity
-- xRuns
-- measured output latency
-- timing jitter
-- CPU/RAM
-- lifecycle/device recovery
-
-## 20. Performance truth
+## 23. Performance truth
 
 No measured values are claimed.
 
@@ -522,7 +573,7 @@ No measured values are claimed.
 
 Static configuration and code structure are not measurement results.
 
-## 21. Current static conclusion
+## 24. Current static conclusion
 
 The source now provides strong static evidence for this Native chain:
 
@@ -545,10 +596,13 @@ React Store / startup binding
 → Oboe stream
 ```
 
-It also provides static evidence that the WebAudio scheduler is skipped on a detected Native path.
+It also provides static evidence that the WebAudio scheduler is skipped on a detected Native path and that the browser WebAudio trigger/master path is real.
+
+The largest unresolved authority question is now not whether the Native engine exists, but whether the current Web project state is completely mirrored into the native Groove engine before native playback.
 
 What is NOT yet runtime proven:
 
+- complete Store → Native Groove data path
 - real-device bridge injection timing
 - real-device Native path selection
 - absence of every other musical timer elsewhere in the repository
