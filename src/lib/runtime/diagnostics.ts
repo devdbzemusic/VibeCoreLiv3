@@ -2,12 +2,14 @@ import { runtimeCapabilitySnapshot } from "@/lib/capabilities/registry";
 import { getNativeAudioStatus, getNativeProjectMirrorStatus } from "@/lib/audio/nativeAudioRuntime";
 import { useGroove } from "@/lib/store";
 import { sourceBoundaryDecision } from "@/lib/instruments/sourceBoundary";
+import { nativeGrooveAssetRegistry } from "./nativeGrooveAssets";
 import { runtimeSelectionInfo } from "./selection";
 
 export interface RuntimeDiagnosticsSnapshot {
   backend: ReturnType<typeof runtimeSelectionInfo>;
   native: ReturnType<typeof getNativeAudioStatus> | null;
   nativeProjectMirror: ReturnType<typeof getNativeProjectMirrorStatus> | null;
+  nativeGrooveAssets: ReturnType<typeof nativeGrooveAssetRegistry.snapshot>;
   capabilities: ReturnType<typeof runtimeCapabilitySnapshot>;
   project: {
     playing: boolean;
@@ -81,6 +83,7 @@ export function getRuntimeDiagnosticsSnapshot(): RuntimeDiagnosticsSnapshot {
     backend,
     native: nativeSelected ? getNativeAudioStatus() : null,
     nativeProjectMirror: nativeSelected ? getNativeProjectMirrorStatus() : null,
+    nativeGrooveAssets: nativeGrooveAssetRegistry.snapshot(),
     capabilities: runtimeCapabilitySnapshot(),
     project: {
       playing: state.transport.playing,
