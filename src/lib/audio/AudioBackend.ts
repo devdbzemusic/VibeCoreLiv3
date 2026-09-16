@@ -61,9 +61,7 @@ export interface VibeCoreNativeBridge {
   getLatencyMs(): number;
   getDiagnosticStatus(): string;
 
-  // Phase 3 Groove — current-scene project mirror surface. These methods are
-  // source-correlated Kotlin → JNI → GrooveEngine/GrooveNode. They are kept on
-  // the native bridge contract rather than the narrow generic AudioBackend.
+  // Phase 3 Groove — current-scene project mirror surface.
   grooveSetStep(track: number, step: number, active: boolean, velocity: number, note: number): void;
   grooveSetStepProbability(track: number, step: number, probability: number): void;
   grooveSetStepAccent(track: number, step: number, accent: boolean): void;
@@ -79,18 +77,46 @@ export interface VibeCoreNativeBridge {
   grooveClearPianoRoll(track: number): void;
   grooveAddPianoRollNote(track: number, startTick: number, endTick: number, note: number, velocity: number): void;
 
-  // Phase 5 Bass performance surface. Source-correlated all the way through
-  // NativeAudioBridge.kt → jni_bass_bridge.cpp → BassEngine → BassNode.
+  // Phase 5 Bass performance surface.
   bassNoteOn(note: number, velocity: number): void;
   bassNoteOff(note: number): void;
   bassAllNotesOff(): void;
 
-  // Phase 6 Voice/sample surface used by the existing NativeOboeBackend.
+  // Phase 6 Voice — source-correlated Kotlin → JNI → VoiceEngine → VoiceNode.
+  voiceSetGlobalMode(mode: number): void;
+  voiceSetPolyMode(mode: number): void;
+  voiceSetPlayMode(mode: number): void;
+  voiceSetVolume(value: number): void;
+  voiceSetDryWet(value: number): void;
+  voiceSetMonitor(value: number): void;
+  voiceSetGlideMs(value: number): void;
+  voiceSetActiveSlot(slot: number): void;
+  voiceSetRootNote(note: number): void;
+  voiceSetPitchSemitones(semitones: number): void;
+  voiceSetPitchEnabled(enabled: boolean): void;
+  voiceSetFormantSemitones(semitones: number): void;
+  voiceSetFormantEnabled(enabled: boolean): void;
+  voiceSetHarmonyVoice(index: number, semitones: number, level: number, pan: number): void;
+  voiceSetHarmonyMaster(level: number): void;
+  voiceSetHarmonyEnabled(enabled: boolean): void;
+  voiceSetDoubler(detuneCents: number, level: number, width: number, enabled: boolean): void;
+  voiceSetStereoWidth(width: number): void;
+  voiceSetStereoMidGain(gain: number): void;
+  voiceSetStereoSideGain(gain: number): void;
+  voiceSetStereoPan(pan: number): void;
+  voiceSetStereoEnabled(enabled: boolean): void;
+
   voiceLoadSample(slot: number, data: Float32Array, sampleRate: number, rootNote: number): boolean;
   voiceClearSample(slot: number): void;
   voiceNoteOn(note: number, velocity: number, slot: number, slice: number): void;
   voiceNoteOff(note: number): void;
   voiceAllNotesOff(): void;
+  voiceSetLiveInputEnabled(enabled: boolean): boolean;
+  voiceLiveInputEnabled(): boolean;
+  voiceActiveUnits(): number;
+  voiceOutputLevel(): number;
+  voiceInputLevel(): number;
+  voiceIsPlaying(): boolean;
 }
 
 declare global {
@@ -111,5 +137,5 @@ import { NativeOboeBackend } from "./NativeOboeBackend";
  */
 export function createAudioBackend(): AudioBackend | null {
   if (isNativeOboeAvailable()) return new NativeOboeBackend();
-  return null; // Fallback: Web-Audio-Engine bleibt unangetastet verantwortlich.
+  return null;
 }
