@@ -1,4 +1,4 @@
-import type { Part, SourceMode } from "@/lib/model";
+import type { Part, SourceMode, SynthEngine } from "@/lib/model";
 import { useGroove } from "@/lib/store";
 import {
   PROJECT_SCHEMA_VERSION,
@@ -7,11 +7,16 @@ import {
   type LegacyInstrumentCompatibility,
 } from "./projectMigration";
 import { resolveSourceWrite } from "./sourcePolicy";
+import {
+  canonicalSynthEngineForCategory,
+  instrumentAuthorityForCategory,
+} from "./sourceBoundary";
 
 let bound = false;
 let applying = false;
 
 export const SOURCE_BOUNDARY_REJECTED_EVENT = "vibecore:source-boundary-rejected";
+export const ENGINE_BOUNDARY_REJECTED_EVENT = "vibecore:engine-boundary-rejected";
 
 export interface SourceBoundaryRejectedDetail {
   partId: number;
@@ -20,6 +25,15 @@ export interface SourceBoundaryRejectedDetail {
   canonical: SourceMode;
   authority: "sample-domain" | "synth3d" | "bass3d";
   reason?: string;
+}
+
+export interface EngineBoundaryRejectedDetail {
+  partId: number;
+  partName: string;
+  requested: SynthEngine;
+  canonical: SynthEngine | null;
+  authority: "sample-domain" | "synth3d" | "bass3d";
+  reason: "sample-domain-has-no-synth-renderer" | "legacy-noncanonical-synth-engine" | "legacy-noncanonical-bass-engine";
 }
 
 type PartWithLegacy = Part & { legacyInstrument?: LegacyInstrumentCompatibility };
@@ -71,6 +85,20 @@ export function applyCanonicalSourceWrite(part: Part, requested: SourceMode): Pa
 }
 
 /**
+ * Pure compatibility adapter for legacy SynthEngine selectors.
+ * Sample-domain parts reject synthesis entirely. Synth/Bass authority accepts
+ * only the canonical 3D renderer and keeps rejected legacy choices reversible.
+ */
+export function applyCanonicalEngineWrite(part: Part, requested: SynthEngine): Part {
+  const canonical = canonicalSynthEngineForCategory(part.category);
+  if (!canonical) return part;
+  if (requested === canonical) {
+    return part.synth.engine === canonical ? part : { ...part, synth: { ...part.synth, engine: canonical } };
+  }
+  return migratePartToV13({ ...part, synth: { ...part.synth, engine: requested } }) as Part;
+}
+
+/**
  * Promote the existing Zustand persist middleware to the v13 compatibility
  * contract without creating a second store. `setOptions` is a runtime bridge
  * until the monolithic store declaration itself can be edited safely.
@@ -105,7 +133,7 @@ export function migrateLiveProjectSourcesToV13(): boolean {
   return true;
 }
 
-function publishRejectedWrite(part: Part, requested: SourceMode): void {
+function publishRejectedSourceWrite(part: Part, requested: SourceMode): void {
   if (typeof window === "undefined" || typeof CustomEvent === "undefined") return;
   const write = resolveSourceWrite(part, requested);
   if (write.accepted) return;
@@ -121,11 +149,32 @@ function publishRejectedWrite(part: Part, requested: SourceMode): void {
   window.dispatchEvent(new CustomEvent<SourceBoundaryRejectedDetail>(SOURCE_BOUNDARY_REJECTED_EVENT, { detail }));
 }
 
+function publishRejectedEngineWrite(part: Part, requested: SynthEngine): void {
+  if (typeof window === "undefined" || typeof CustomEvent === "undefined") return;
+  const authority = instrumentAuthorityForCategory(part.category);
+  const canonical = canonicalSynthEngineForCategory(part.category);
+  const reason: EngineBoundaryRejectedDetail["reason"] = canonical == null
+    ? "sample-domain-has-no-synth-renderer"
+    : part.category === "bass"
+      ? "legacy-noncanonical-bass-engine"
+      : "legacy-noncanonical-synth-engine";
+
+  const detail: EngineBoundaryRejectedDetail = {
+    partId: part.id,
+    partName: part.name,
+    requested,
+    canonical,
+    authority,
+    reason,
+  };
+  window.dispatchEvent(new CustomEvent<EngineBoundaryRejectedDetail>(ENGINE_BOUNDARY_REJECTED_EVENT, { detail }));
+}
+
 /**
- * Guard future legacy writes such as old UI code calling setPartSource(...,
- * "hybrid"). The existing Zustand store remains authoritative; this adapter
- * replaces only the action entry point while the migration subscription catches
- * any remaining direct/legacy Part-array mutations.
+ * Guard future legacy source/engine writes from old UI surfaces. The existing
+ * Zustand store remains authoritative; only its legacy action entry points are
+ * wrapped while a migration subscription catches any remaining direct Part
+ * mutations.
  */
 export function bindCanonicalSourceGuard(): void {
   if (bound) return;
@@ -143,6 +192,8 @@ export function bindCanonicalSourceGuard(): void {
   }
 
   const originalSetPartSource = useGroove.getState().setPartSource;
+  const originalSetSynthEngine = useGroove.getState().setSynthEngine;
+
   useGroove.setState({
     setPartSource: (id: number, requested: SourceMode) => {
       const state = useGroove.getState();
@@ -158,7 +209,34 @@ export function bindCanonicalSourceGuard(): void {
         return;
       }
 
-      publishRejectedWrite(part, requested);
+      publishRejectedSourceWrite(part, requested);
+      applying = true;
+      try {
+        useGroove.setState({
+          parts: state.parts.map((candidate) => candidate.id === id ? nextPart : candidate),
+        });
+      } finally {
+        applying = false;
+      }
+    },
+
+    setSynthEngine: (id: number, requested: SynthEngine) => {
+      const state = useGroove.getState();
+      const part = state.parts.find((candidate) => candidate.id === id);
+      if (!part) return;
+
+      const canonical = canonicalSynthEngineForCategory(part.category);
+      if (canonical == null) {
+        publishRejectedEngineWrite(part, requested);
+        return;
+      }
+      if (requested === canonical) {
+        originalSetSynthEngine(id, canonical);
+        return;
+      }
+
+      publishRejectedEngineWrite(part, requested);
+      const nextPart = applyCanonicalEngineWrite(part, requested);
       applying = true;
       try {
         useGroove.setState({
