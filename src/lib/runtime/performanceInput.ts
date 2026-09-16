@@ -1,5 +1,6 @@
 import { ensureAudio, getCtx, triggerPart } from "@/lib/audio/engine";
 import { activateNativeAudio } from "@/lib/audio/nativeAudioRuntime";
+import { useGroove } from "@/lib/store";
 import { selectedRuntimeKind } from "./selection";
 
 export type PerformanceInstrument = "synth3d" | "bass3d" | "part";
@@ -25,6 +26,14 @@ function clampMidi(value: number): number {
 
 function clampVelocity(value: number): number {
   return Math.max(1, Math.min(127, Math.round(value)));
+}
+
+/** Resolve a live-performance route from the canonical Part model. */
+export function inferPerformanceInstrument(partId: number): PerformanceInstrument {
+  const part = useGroove.getState().parts.find((candidate) => candidate.id === partId);
+  if (part?.synth.engine === "3D Bass") return "bass3d";
+  if (part?.synth.engine === "3D") return "synth3d";
+  return "part";
 }
 
 /**
