@@ -10,6 +10,8 @@
  *     · mUIBanks per track     — full copy of all pattern banks
  *     · UndoStack              — fixed-depth (kMaxUndoDepth = 64) snapshot ring
  *     · mClipboard             — copy/paste pattern buffer
+ *     · mSampleStorage         — UI-thread-owned PCM backing for cold-loaded
+ *                               Groove SampleBuffer views
  *
  *   EVERY user mutation:
  *     1. Updates mUITracks (UI Thread — immediately consistent)
@@ -29,6 +31,7 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 
 namespace vibecore {
 
@@ -139,6 +142,16 @@ public:
     void removePianoRollNote(int t, int32_t index);
     void clearPianoRoll     (int t);
 
+    /**
+     * Cold-load PCM into Groove-owned storage and publish a read-only view to
+     * VoicePool. PRECONDITION: native audio stream is stopped. Hot replacement
+     * requires the later epoch/deferred-free protocol and must not call this.
+     */
+    bool loadSample(int32_t id, const float* monoData, int32_t lengthFrames, int32_t sampleRate);
+    void clearSample(int32_t id);
+    bool sampleLoaded(int32_t id) const noexcept;
+
+    /** Low-level view registration retained for native tests/bootstrap only. */
     void registerSample(int32_t id, const SampleBuffer& buf) {
         mNode.registerSample(id, buf);
     }
@@ -165,6 +178,9 @@ private:
     int32_t      mProjectLoadDepth = 0;
 
     std::array<UITrack, kMaxTracks> mUITracks = {};
+    std::array<std::unique_ptr<float[]>, kMaxSamples> mSampleStorage = {};
+    std::array<int32_t, kMaxSamples> mSampleLengths = {};
+    std::array<int32_t, kMaxSamples> mSampleRates = {};
 
     bool validTrack(int t) const noexcept { return t >= 0 && t < kMaxTracks; }
     bool validStep (int s) const noexcept { return s >= 0 && s < kMaxSteps;  }
