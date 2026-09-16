@@ -97,6 +97,18 @@ Sprint 11 (`Settings / Diagnostics Entry`) ist fuer den Native-Settings-/Diagnos
 
 Weiterhin offen: vollstaendige Settings-Paritaet, exportierbarer Diagnosebericht, Audio-Device-/MIDI-/Projektoptionen.
 
+Sprint 12 (`Bass Macro Controls`) ist fuer den ersten Native-Bass-Parameter-Slice `DEVICE VERIFIED`:
+
+- Bass Volume, Cutoff, Resonance, Glide und Waveform sind als Touch-Controls erreichbar.
+- Parameter schreiben direkt ueber `NativeRuntime` in `NativeAudioBridge.bassSet*`.
+- Bass-Parameter werden persistiert und beim Start wieder in den Native Bass Core hydriert.
+- `prepareBassInstrument()` setzt Defaults nur noch einmal, damit Sliderwerte beim Note-On nicht zurueckspringen.
+- Device-Test auf `RZCY91QYC9N`: Bass-Screen geoeffnet, Control-Spalte gescrollt, Waveform/Volume betaetigt, C2 gespielt.
+- UI zeigte `VOL 110%`, `Bass note 48 released.`, Engine `READY`, Diagnose `48kHz | 192fr | 5.7ms | CPU 3% | ✓`.
+- Logcat zeigte Oboe/AAudio-Start, `BassNode: prepared`, keinen `FATAL EXCEPTION`.
+
+Weiterhin offen: komplette Bass3D-Deep-Editor-Paritaet, hoerbarer Klangvergleich gegen Golden Master, Automation/Mod-Matrix.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.
@@ -150,7 +162,7 @@ Statuswerte:
 | Mixer | `MixTab` / `ChannelStrip` | `MixerScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE CORE PARTIAL | OPEN | OPEN | REFERENCE |
 | Sample Forge | `SmplTab.tsx` / `ForgeTab.tsx` | `SampleForgeScreen.kt` | SHELL | WIRED | WIRED | NATIVE ASSET CORE PARTIAL | PARTIAL | PARTIAL | WIRED |
 | Synth 3D | `Synth3DPage.tsx` / subtabs | `Synth3DScreen.kt` | SHELL | WIRED KEYBOARD UI | PARTIAL | NATIVE SYNTH GAP | OPEN | PARTIAL | GAP VISIBLE |
-| Bass 3D | `Bass3DPage.tsx` / subtabs | `Bass3DScreen.kt` | SHELL | WIRED KEYBOARD | PARTIAL | WIRED BASS KEYBOARD | OPEN | PARTIAL | DEVICE VERIFIED SLICE |
+| Bass 3D | `Bass3DPage.tsx` / subtabs | `Bass3DScreen.kt` | SHELL | WIRED KEYBOARD + MACROS | PARTIAL | WIRED BASS KEYBOARD + PARAMS | PARTIAL MACROS | PARTIAL | DEVICE VERIFIED SLICE |
 | Voice | `VoiceTab.tsx` | `VoiceScreen.kt` | SHELL | WIRED KEYBOARD | PARTIAL | WIRED VOICE KEYBOARD | OPEN | PARTIAL | DEVICE VERIFIED SLICE |
 | FX / Sends | FX tabs / channel sends | `FxScreen.kt` / Mixer | REFERENCE | OPEN | OPEN | PARTIAL CORE | OPEN | OPEN | REFERENCE |
 | Piano Roll | Web piano-roll controls | `PianoRollScreen.kt` | SHELL | WIRED ADD/CLEAR | PARTIAL | NATIVE GROOVE API WIRED | OPEN | PARTIAL | DEVICE VERIFIED SLICE |

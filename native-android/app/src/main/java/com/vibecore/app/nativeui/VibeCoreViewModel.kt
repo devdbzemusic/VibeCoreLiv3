@@ -123,6 +123,41 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         persist()
     }
 
+    fun setBassVolume(value: Float) {
+        val next = value.coerceIn(0f, 1.5f)
+        runtime.setBassVolume(next)
+        _state.update { it.copy(bassVolume = next, performanceStatus = "Bass volume ${(next * 100f).toInt()}% -> Native Bass.") }
+        persist()
+    }
+
+    fun setBassCutoff(value: Float) {
+        val next = value.coerceIn(40f, 12000f)
+        runtime.setBassCutoff(next)
+        _state.update { it.copy(bassCutoffHz = next, performanceStatus = "Bass cutoff ${next.toInt()} Hz -> Native Bass filter.") }
+        persist()
+    }
+
+    fun setBassResonance(value: Float) {
+        val next = value.coerceIn(0f, 1f)
+        runtime.setBassResonance(next)
+        _state.update { it.copy(bassResonance = next, performanceStatus = "Bass resonance ${(next * 100f).toInt()}% -> Native Bass filter.") }
+        persist()
+    }
+
+    fun setBassGlide(value: Float) {
+        val next = value.coerceIn(0f, 500f)
+        runtime.setBassGlideMs(next)
+        _state.update { it.copy(bassGlideMs = next, performanceStatus = "Bass glide ${next.toInt()} ms -> Native Bass.") }
+        persist()
+    }
+
+    fun setBassWaveform(value: Int) {
+        val next = value.coerceIn(0, 5)
+        runtime.setBassWaveform(next)
+        _state.update { it.copy(bassWaveform = next, performanceStatus = "Bass waveform ${next + 1} -> Native Bass oscillator.") }
+        persist()
+    }
+
     fun toggleMute(trackIndex: Int = _state.value.selectedTrack) {
         val state = _state.value
         if (trackIndex !in state.tracks.indices) return
@@ -350,6 +385,11 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
     private fun hydrateProjectToNative(state: VibeCoreUiState) {
         runtime.setTempo(state.bpm)
         runtime.setMasterGain(state.masterGain)
+        runtime.setBassVolume(state.bassVolume)
+        runtime.setBassCutoff(state.bassCutoffHz)
+        runtime.setBassResonance(state.bassResonance)
+        runtime.setBassGlideMs(state.bassGlideMs)
+        runtime.setBassWaveform(state.bassWaveform)
         state.tracks.forEach { track ->
             runtime.setTrackMode(track.id, track.kind)
             runtime.setPatternLength(track.id, track.steps.size)

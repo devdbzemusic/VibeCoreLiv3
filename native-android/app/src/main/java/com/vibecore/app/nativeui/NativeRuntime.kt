@@ -14,6 +14,7 @@ import com.vibecore.audio.NativeGrooveAssetBridge
 class NativeRuntime(context: Context) {
     private val bridge = NativeAudioBridge(context.applicationContext)
     private val grooveAssets = NativeGrooveAssetBridge()
+    private var bassPrepared = false
 
     fun isAvailable(): Boolean = bridge.isAvailable()
     fun isEngineRunning(): Boolean = bridge.isEngineRunning()
@@ -109,7 +110,7 @@ class NativeRuntime(context: Context) {
     }
 
     fun prepareBassInstrument() {
-        if (!bridge.isAvailable()) return
+        if (!bridge.isAvailable() || bassPrepared) return
         bridge.bassSetVoiceMode(2) // Poly4 keeps the on-screen keyboard forgiving.
         bridge.bassSetWaveform(2)
         bridge.bassSetVolume(0.85f)
@@ -118,6 +119,32 @@ class NativeRuntime(context: Context) {
         bridge.bassSetGlideMs(35f)
         bridge.bassSetStereoEnabled(true)
         bridge.bassSetStereoWidth(1.1f)
+        bassPrepared = true
+    }
+
+    fun setBassVolume(value: Float) {
+        prepareBassInstrument()
+        bridge.bassSetVolume(value.coerceIn(0f, 1.5f))
+    }
+
+    fun setBassCutoff(value: Float) {
+        prepareBassInstrument()
+        bridge.bassSetCutoff(value.coerceIn(40f, 12000f))
+    }
+
+    fun setBassResonance(value: Float) {
+        prepareBassInstrument()
+        bridge.bassSetResonance(value.coerceIn(0f, 1f))
+    }
+
+    fun setBassGlideMs(value: Float) {
+        prepareBassInstrument()
+        bridge.bassSetGlideMs(value.coerceIn(0f, 500f))
+    }
+
+    fun setBassWaveform(value: Int) {
+        prepareBassInstrument()
+        bridge.bassSetWaveform(value.coerceIn(0, 5))
     }
 
     fun bassNoteOn(note: Int, velocity: Int = 108): Boolean {

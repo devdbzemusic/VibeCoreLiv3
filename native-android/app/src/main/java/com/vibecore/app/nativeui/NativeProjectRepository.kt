@@ -29,6 +29,11 @@ class NativeProjectRepository(context: Context) {
         return default.copy(
             bpm = prefs.getFloat("bpm", default.bpm.toFloat()).toDouble().coerceIn(20.0, 300.0),
             masterGain = prefs.getFloat("master_gain", default.masterGain).coerceIn(0f, 1f),
+            bassVolume = prefs.getFloat("bass_volume", default.bassVolume).coerceIn(0f, 1.5f),
+            bassCutoffHz = prefs.getFloat("bass_cutoff_hz", default.bassCutoffHz).coerceIn(40f, 12000f),
+            bassResonance = prefs.getFloat("bass_resonance", default.bassResonance).coerceIn(0f, 1f),
+            bassGlideMs = prefs.getFloat("bass_glide_ms", default.bassGlideMs).coerceIn(0f, 500f),
+            bassWaveform = prefs.getInt("bass_waveform", default.bassWaveform).coerceIn(0, 5),
             selectedTrack = prefs.getInt("selected_track", default.selectedTrack).coerceIn(0, tracks.lastIndex),
             tracks = tracks,
         )
@@ -39,6 +44,11 @@ class NativeProjectRepository(context: Context) {
             .putInt("schema", SCHEMA_VERSION)
             .putFloat("bpm", state.bpm.toFloat())
             .putFloat("master_gain", state.masterGain.coerceIn(0f, 1f))
+            .putFloat("bass_volume", state.bassVolume.coerceIn(0f, 1.5f))
+            .putFloat("bass_cutoff_hz", state.bassCutoffHz.coerceIn(40f, 12000f))
+            .putFloat("bass_resonance", state.bassResonance.coerceIn(0f, 1f))
+            .putFloat("bass_glide_ms", state.bassGlideMs.coerceIn(0f, 500f))
+            .putInt("bass_waveform", state.bassWaveform.coerceIn(0, 5))
             .putInt("selected_track", state.selectedTrack)
 
         state.tracks.forEach { track ->
@@ -63,6 +73,6 @@ class NativeProjectRepository(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "vibecore_native_project_v1"
-        private const val SCHEMA_VERSION = 4
+        private const val SCHEMA_VERSION = 5
     }
 }

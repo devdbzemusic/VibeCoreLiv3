@@ -372,9 +372,11 @@ Offen:
 - Weitere Engine-/Projektoptionen: Audio-Device-Auswahl, MIDI, Reset/Import/Export, Privacy/AI-Schalter.
 - DONE: Decode-/Native-Load-Fehler mit Stacktrace in Logcat schreiben.
 - DONE: Persisted-Sample-Restore-Teilfehler sichtbar machen statt stumm zu schlucken.
+- DONE: Bass Macro Controls fuer Volume/Cutoff/Resonance/Glide/Waveform direkt an Native Bass/Oboe angeschlossen.
 - OPEN: Vollautomatische SAF-Dateiauswahl robust machen oder als manuellen Device-Testschritt behandeln.
 - OPEN: Hoerbares Sample-Playback-E2E mit echter Datei abschliessen.
 - OPEN: Persisted-Sample-URI-Restore mit echter Dateiauswahl ueber Force-Stop/Relaunch nachweisen.
+- OPEN: Bass3D Deep-Editor, Mod-Matrix und Klangvergleich gegen Golden Master abschliessen.
 
 Geaendert:
 
@@ -390,6 +392,31 @@ Geprueft:
 - Sample-Tab geoeffnet, `CHOOSE AUDIO` gestartet, Picker per Back abgebrochen.
 - UI zeigt danach `Audio selection cancelled. No sample was changed.`
 - Transport bleibt idle, App bleibt fokussiert als `com.vibecore.app/.MainActivity`.
+
+## Sprint 12 — Bass Macro Controls
+
+Commit-Ziel:
+
+- Native Bass nicht nur per Keyboard anspielbar machen, sondern erste echte Klangparameter in Compose bedienen.
+
+Geaendert:
+
+- `VibeCoreUiState` speichert Bass Volume, Cutoff, Resonance, Glide und Waveform.
+- `NativeProjectRepository` persistiert diese Bass-Parameter mit Schema `5`.
+- `NativeRuntime` bietet direkte `setBass*`-Methoden und bereitet den Bass Core nur einmal vor, damit Note-On keine Sliderwerte ueberschreibt.
+- `VibeCoreViewModel` hydriert Bass-Parameter beim Start und schreibt jede UI-Aenderung direkt in Native Bass.
+- `VibeCoreApp.kt` zeigt im Bass-Screen eine scrollbare Macro-Control-Spalte mit Waveform-Toggles und Slidern.
+
+Geprueft:
+
+- `native-android :app:assembleDebug` erfolgreich.
+- APK auf `RZCY91QYC9N` installiert und gestartet.
+- `BASS` geoeffnet; Keyboard und scrollbare Macro-Control-Spalte sichtbar.
+- Control-Spalte gescrollt; `SAW/SQR/SUB/FM`, `VOL`, `CUT` und Werte sichtbar.
+- Waveform/Volume betaetigt; UI zeigte `VOL 110%`.
+- C2 gespielt; Engine startete und UI zeigte `Bass note 48 released.`.
+- Logcat: `BassNode: prepared`, Oboe/AAudio `Engine running`, keine `FATAL EXCEPTION`.
+- Beobachtung: Android-Systemlog meldet weiterhin `AppOps attributionTag not declared`; kein App-Crash, aber als spaetere Manifest-Hygiene vormerken.
 
 ## Compiler-first Regel
 

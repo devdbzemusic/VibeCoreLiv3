@@ -140,6 +140,21 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                         onNoteOn = viewModel::performanceNoteOn,
                         onNoteOff = viewModel::performanceNoteOff,
                         onAllNotesOff = viewModel::allPerformanceNotesOff,
+                        extraControls = {
+                            BassMacroControls(
+                                volume = state.bassVolume,
+                                cutoffHz = state.bassCutoffHz,
+                                resonance = state.bassResonance,
+                                glideMs = state.bassGlideMs,
+                                waveform = state.bassWaveform,
+                                compact = compactLandscape,
+                                onVolume = viewModel::setBassVolume,
+                                onCutoff = viewModel::setBassCutoff,
+                                onResonance = viewModel::setBassResonance,
+                                onGlide = viewModel::setBassGlide,
+                                onWaveform = viewModel::setBassWaveform,
+                            )
+                        },
                         modifier = Modifier.weight(1f),
                     )
                     NativeScreen.SYNTH -> PerformanceKeyboardPanel(
@@ -458,6 +473,75 @@ private fun SettingsDiagnosticsPanel(
                 Text(status, color = VibeCoreColors.Lime, fontFamily = FontFamily.Monospace, fontSize = 10.sp, maxLines = 1)
                 Text(diagnostic, color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 10.sp, maxLines = 3)
             }
+        }
+    }
+}
+
+@Composable
+private fun BassMacroControls(
+    volume: Float,
+    cutoffHz: Float,
+    resonance: Float,
+    glideMs: Float,
+    waveform: Int,
+    compact: Boolean,
+    onVolume: (Float) -> Unit,
+    onCutoff: (Float) -> Unit,
+    onResonance: (Float) -> Unit,
+    onGlide: (Float) -> Unit,
+    onWaveform: (Int) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 7.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            BassWaveButton("SAW", selected = waveform == 0, compact = compact, onClick = { onWaveform(0) }, modifier = Modifier.weight(1f))
+            BassWaveButton("SQR", selected = waveform == 1, compact = compact, onClick = { onWaveform(1) }, modifier = Modifier.weight(1f))
+            BassWaveButton("SUB", selected = waveform == 2, compact = compact, onClick = { onWaveform(2) }, modifier = Modifier.weight(1f))
+            BassWaveButton("FM", selected = waveform == 3, compact = compact, onClick = { onWaveform(3) }, modifier = Modifier.weight(1f))
+        }
+        BassSlider("VOL", "${(volume * 100f).toInt()}%", volume, 0f..1.5f, compact, onVolume)
+        BassSlider("CUT", "${cutoffHz.toInt()}Hz", cutoffHz, 40f..12000f, compact, onCutoff)
+        BassSlider("RES", "${(resonance * 100f).toInt()}%", resonance, 0f..1f, compact, onResonance)
+        BassSlider("GLD", "${glideMs.toInt()}ms", glideMs, 0f..500f, compact, onGlide)
+    }
+}
+
+@Composable
+private fun BassSlider(
+    label: String,
+    valueLabel: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    compact: Boolean,
+    onValueChange: (Float) -> Unit,
+) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black, fontSize = if (compact) 8.sp else 9.sp, modifier = Modifier.width(28.dp))
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
+            colors = SliderDefaults.colors(
+                thumbColor = VibeCoreColors.Primary,
+                activeTrackColor = VibeCoreColors.Primary,
+                inactiveTrackColor = VibeCoreColors.SurfaceElevated,
+            ),
+            modifier = Modifier.weight(1f).height(if (compact) 28.dp else 34.dp),
+        )
+        Text(valueLabel, color = VibeCoreColors.Foreground, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black, fontSize = if (compact) 8.sp else 9.sp, textAlign = TextAlign.End, modifier = Modifier.width(if (compact) 58.dp else 70.dp))
+    }
+}
+
+@Composable
+private fun BassWaveButton(text: String, selected: Boolean, compact: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        color = if (selected) VibeCoreColors.Primary else VibeCoreColors.Surface3,
+        contentColor = if (selected) Color.Black else VibeCoreColors.Foreground,
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, if (selected) VibeCoreColors.Primary else VibeCoreColors.Border),
+        modifier = modifier.height(if (compact) 28.dp else 32.dp),
+    ) {
+        Box(modifier = Modifier.fillMaxSize().clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+            Text(text, fontWeight = FontWeight.Black, fontSize = if (compact) 8.sp else 9.sp)
         }
     }
 }
@@ -899,6 +983,7 @@ private fun PerformanceKeyboardPanel(
     onNoteOn: (Int, NativeScreen) -> Unit,
     onNoteOff: (Int, NativeScreen) -> Unit,
     onAllNotesOff: () -> Unit,
+    extraControls: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val notes = listOf(
@@ -922,7 +1007,10 @@ private fun PerformanceKeyboardPanel(
                 modifier = Modifier.fillMaxSize().padding(10.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Column(modifier = Modifier.width(520.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                val infoModifier = Modifier
+                    .width(if (extraControls == null) 520.dp else 380.dp)
+                    .then(if (extraControls == null) Modifier else Modifier.verticalScroll(rememberScrollState()))
+                Column(modifier = infoModifier, verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(title, color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 18.sp)
@@ -947,6 +1035,7 @@ private fun PerformanceKeyboardPanel(
                         fontSize = 8.sp,
                         maxLines = 2,
                     )
+                    extraControls?.invoke()
                 }
                 Column(modifier = Modifier.fillMaxHeight().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     repeat(2) { row ->
@@ -1001,6 +1090,8 @@ private fun PerformanceKeyboardPanel(
                     fontSize = 10.sp,
                     maxLines = 1,
                 )
+
+                extraControls?.invoke()
 
                 Column(modifier = Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     repeat(2) { row ->
