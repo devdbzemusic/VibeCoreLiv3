@@ -18,6 +18,7 @@ data class TrackState(
     val soloed: Boolean = false,
     val volume: Int = 100,
     val sampleName: String? = null,
+    val sampleUri: String? = null,
 )
 
 data class VibeCoreUiState(
@@ -30,6 +31,8 @@ data class VibeCoreUiState(
     val latencyMs: Double = -1.0,
     val diagnostic: String = "native:unknown",
     val screen: NativeScreen = NativeScreen.PATTERN,
+    val sampleBusy: Boolean = false,
+    val sampleStatus: String = "Select a Sample-domain track and choose an audio file.",
     val tracks: List<TrackState> = defaultTracks(),
 )
 
