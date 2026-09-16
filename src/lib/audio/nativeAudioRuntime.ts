@@ -5,8 +5,9 @@
  * native backend, and a native startup error is reported instead of silently
  * activating a second WebAudio transport.
  */
-import { createAudioBackend, isNativeOboeAvailable, type AudioBackend } from "./AudioBackend";
+import { createAudioBackend, type AudioBackend } from "./AudioBackend";
 import { useGroove } from "@/lib/store";
+import { probeRuntimeCapability } from "@/lib/capabilities/registry";
 import { asSixteenthStep, sixteenthToNativePpq } from "@/lib/runtime/timing";
 
 export interface NativeAudioStatus {
@@ -29,8 +30,12 @@ function reportError(error: unknown) {
   console.error("[native-audio]", lastError);
 }
 
+/**
+ * Side-effect-free runtime-path check. Capability Registry is the single
+ * frontend owner for Native availability; activation remains separate.
+ */
 export function isNativeAudioPath(): boolean {
-  return isNativeOboeAvailable();
+  return probeRuntimeCapability("audio.native").available;
 }
 
 export function getNativeAudioBackend(): AudioBackend | null {
@@ -38,16 +43,23 @@ export function getNativeAudioBackend(): AudioBackend | null {
 }
 
 export function getNativeAudioStatus(): NativeAudioStatus {
-  const available = isNativeOboeAvailable();
-  if (!available) {
-    return { available: false, active: false, engineRunning: false, latencyMs: -1, diagnostic: "browser:webaudio", error: null };
+  const capability = probeRuntimeCapability("audio.native");
+  if (!capability.available) {
+    return {
+      available: false,
+      active: false,
+      engineRunning: false,
+      latencyMs: -1,
+      diagnostic: capability.reason ?? "browser:webaudio",
+      error: null,
+    };
   }
   return {
     available: true,
     active: backend?.kind === "oboe-native",
     engineRunning: backend?.isEngineRunning() ?? false,
     latencyMs: backend?.getOutputLatencyMs() ?? -1,
-    diagnostic: backend?.getDiagnosticStatus() ?? "native:ready",
+    diagnostic: backend?.getDiagnosticStatus() ?? capability.reason ?? "native:ready",
     error: lastError,
   };
 }
