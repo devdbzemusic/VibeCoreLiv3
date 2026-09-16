@@ -1,463 +1,282 @@
 # VibeCoreLiv3 — Runtime Entry-Point Inventory
 
-Stand: 2026-09-16
-Basis-HEAD: `308ae3849ca5bbce9142252f660e4bc2bc870672`
-Status: `STATIC AUDIT / IN PROGRESS`
+Stand: 2026-09-16  
+Status: `STATIC AUDIT + INCREMENTAL MIGRATION / RUNTIME NOT EXECUTED`
 
 ## Purpose
 
-This inventory classifies every inspected frontend action that can initialize, schedule, modify or render audio.
-
-The goal is not to ban WebAudio. The goal is to prove which operations are allowed to remain browser-side and which audible operations must pass through the selected authoritative Runtime.
+This inventory classifies frontend actions that can initialize, schedule, modify or render audio. The rule is not “ban WebAudio”; it is “one authoritative **audible** runtime per platform”. Browser-side decode, offline transform, analysis and caching may remain browser-side when they do not create a competing audible graph.
 
 ## Categories
 
-### A — AUDIBLE_RUNTIME_COMMAND
-Can create or change audible real-time output.
-
-On Native Android this must ultimately route through the selected Native runtime unless an explicit capability contract says otherwise.
-
-### B — AUDIO_DECODE_ANALYSIS
-File decoding, PCM conversion, offline analysis/edit preparation.
-
-May remain browser-side if it does not become an audible competing output graph.
-
-### C — CONTROL_RATE
-Parameter/modulation updates. FREE control may be local; synchronized control must derive musical phase from authority.
-
-### D — UI_DIAGNOSTIC
-Visuals, gesture timers, diagnostics, debouncing. No musical authority.
-
-### E — UNKNOWN
-Caller/ownership incomplete. Gate B0 remains open.
+- `A — AUDIBLE_RUNTIME_COMMAND`: can create/change audible realtime output.
+- `B — AUDIO_DECODE_ANALYSIS`: decode, PCM conversion, offline analysis/edit preparation.
+- `C — CONTROL_RATE`: parameter/modulation updates. Synced control must derive phase from authority.
+- `D — UI_DIAGNOSTIC`: visuals, gesture timers, diagnostics, debouncing.
+- `E — UNKNOWN`: ownership/caller proof incomplete.
 
 ---
 
-## 1. Global transport — TopBar
+## 1. Global transport — TopBar + Performance
 
-File: `src/components/groovebox/TopBar.tsx`
-
-Observed play path:
+Both migrated surfaces now route through:
 
 ```text
-handlePlay()
-├ Native detected
-│  → activateNativeAudio()
-│  → togglePlay()
-│  → nativeAudioRuntime subscriber
-│  → Native backend play
-└ Browser
-   → ensureAudio()
-   → resume AudioContext if needed
-   → togglePlay()
-   → browser scheduler
+UI
+→ toggleRuntimePlay()
+→ selectedRuntimeKind()
+   ├ oboe-native → activateNativeAudio()
+   └ webaudio    → ensureAudio()
+→ store transport transition
+→ selected runtime subscriber
 ```
 
-Classification: `A — AUDIBLE_RUNTIME_COMMAND`
+Classification: `A`  
+Status: `STATICALLY VERIFIED — FRONTEND ENTRY CONSOLIDATED`
 
-Status: `STATICALLY VERIFIED / BACKEND-AWARE ENTRY`
-
-This is currently the clearest frontend example of the intended runtime-selection pattern.
-
-### Master volume caveat
-
-The same TopBar master control performs both:
-
-```text
-store.setMasterVolume(v)
-engine.setMasterVolume(v)
-```
-
-The Store change is mirrored into the Native backend by `nativeAudioRuntime` when Native is active, while the direct engine setter targets WebAudio.
-
-The direct setter may be a no-op when no browser graph exists, but this must be tested; it is not yet safe to call the master path fully authority-clean.
+Runtime execution remains `NOT EXECUTED`.
 
 ---
 
-## 2. Performance transport — inconsistent with TopBar
+## 2. Shared InstrumentKeyboard — migrated
 
-File: `src/components/groovebox/PerformanceTab.tsx`
+File: `src/components/groovebox/InstrumentKeyboard.tsx`
 
-Observed play path:
+Old direct path:
 
 ```text
-handlePlay()
+InstrumentKeyboard
 → ensureAudio()
 → getCtx()
-→ resume browser AudioContext
-→ togglePlay()
+→ triggerPart()
 ```
 
-Unlike TopBar, this code does not check `isNativeAudioPath()` and does not call `activateNativeAudio()` directly.
+has been removed from the component.
 
-The Store transport change will still be observed by `nativeAudioRuntime`, so Native may subsequently start too.
-
-### Static consequence
-
-On Native Android the action can initialize/resume WebAudio before starting Native transport.
-
-This does not prove two audible transports because the browser scheduler has a Native exclusion guard, but it does prove an inconsistent runtime entry policy.
-
-Classification: `A — AUDIBLE_RUNTIME_COMMAND`
-
-Status: `P0/P1 ARCHITECTURE INCONSISTENCY`
-
-Required future rule:
+Current path:
 
 ```text
-all transport UI
-→ RuntimeTransport.play/stop/seek
-→ selected backend
+InstrumentKeyboard
+→ performanceNoteOn / performanceNoteOff / performanceAllNotesOff
+→ selected runtime
 ```
 
-No UI surface may decide startup semantics independently.
+The component now tracks pointer→note ownership. Pointer up, pointer cancel and lost pointer capture issue a Runtime release command. Component unmount issues an all-notes-off recovery command for the active instrument route.
+
+Classification: `A`  
+Status: `STATICALLY VERIFIED — UI BYPASS REMOVED`
+
+### Browser release caveat
+
+The existing browser `triggerPart()` API schedules a finite `gateSec` but does not expose a reusable per-note release handle. Therefore the Runtime reports browser release as `gate`, not `explicit`.
+
+### Native authority rule
+
+Native mode never falls through from PerformanceInput to audible WebAudio.
 
 ---
 
-## 3. 3D Synth live keyboard
+## 3. 3D Bass live keyboard
 
-Files:
+`Bass3DPage` declares `instrument="bass3d"`.
 
-- `src/components/groovebox/Synth3DPage.tsx`
-- `src/components/groovebox/InstrumentKeyboard.tsx`
-
-Observed path:
+Native path:
 
 ```text
-Synth3DPage
-→ InstrumentKeyboard
-→ pointerDown
-→ ensureAudio()
-→ getCtx()
-→ triggerPart(partId, ctx.currentTime, ...)
-→ WebAudio 3D Synth path
+InstrumentKeyboard
+→ performanceNoteOn
+→ activateNativeAudio
+→ window.VibeCoreNative.bassNoteOn
+→ NativeAudioBridge.kt
+→ JNI jni_bass_bridge.cpp
+→ BassEngine
+→ BassNode command queue
+→ audio graph
 ```
 
-No `AudioBackend`/`nativeAudioRuntime` decision occurs.
+Release:
 
-Classification: `A — AUDIBLE_RUNTIME_COMMAND`
+```text
+pointer up/cancel/lost capture
+→ performanceNoteOff
+→ bassNoteOff
+```
 
-Status: `P0 AUTHORITY CONFLICT ON NATIVE`
+Recovery:
+
+```text
+unmount
+→ performanceAllNotesOff
+→ bassAllNotesOff
+```
+
+Status: `STATICALLY VERIFIED`  
+Runtime/audio result: `NOT EXECUTED`
 
 ---
 
-## 4. 3D Bass live keyboard
+## 4. 3D Synth live keyboard
 
-Files:
+Browser source path exists through `triggerPart → trigger3DSynth`.
 
-- `src/components/groovebox/Bass3DPage.tsx`
-- `src/components/groovebox/InstrumentKeyboard.tsx`
+No dedicated Native 3D Synth engine/node/JNI live-note route is source-proven. The Native C++ top-level currently exposes dedicated `bass`, `groove` and `voice` modules; `TrackMode::Synth` alone is routing metadata and is not proof of a synth renderer.
 
-Same shared keyboard path as Synth3D.
+The keyboard can infer the route from canonical Part state:
 
-Classification: `A — AUDIBLE_RUNTIME_COMMAND`
+- engine `3D` → `synth3d`
+- engine `3D Bass` → `bass3d`
+- otherwise → `part`
 
-Status: `P0 AUTHORITY CONFLICT ON NATIVE`
+On Native, `synth3d` returns unsupported. It does **not** silently start WebAudio.
 
-Additional contract gap: the shared keyboard currently treats pointer-up/cancel mainly as UI state release; the audited component does not expose an explicit backend-neutral `noteOff` call. The future Input Runtime must define note-on/note-off lifecycle centrally.
-
----
-
-## 5. Sample Forge file decode/edit
-
-File: `src/components/groovebox/SmplTab.tsx`
-
-Observed operations include:
-
-```text
-ensureAudio()
-decodeSampleFile
-AudioBuffer transforms
-normalize/reverse/trim/fade/pitch/stretch/freeze
-assignBufferToPart
-```
-
-Classification: predominantly `B — AUDIO_DECODE_ANALYSIS/EDIT`.
-
-These operations do not need to be pushed through Oboe merely to satisfy runtime authority. They need a clean service boundary so browser decode/edit cannot accidentally imply browser audible ownership.
+Status: Browser `STATICALLY VERIFIED`; Native `UNSUPPORTED / IMPLEMENTATION GAP`.
 
 ---
 
-## 6. Sample Forge audition
+## 5. Current-scene Native Groove project mirror
 
-Observed paths:
+A first frontend ProjectMirror exists for the current Pattern/Scene and up to 16 native tracks. It maps pattern length, swing, track mute/solo/volume/mode, steps, probability, accent, ratchet/roll, microtiming and piano-roll notes.
+
+Important semantic conversions are explicit:
+
+- Web swing `50 = straight` → Native swing `0 = straight`
+- Web ratchet = total hits → Native roll count = additional hits
+- Web micro percentage domain → Native PPQ tick domain
+
+The Native `GrooveEngine` now has a project-load guard so bulk hydration can avoid polluting undo history.
+
+Open gate: Kotlin/JNI begin/end project-load marshalling is not yet committed because the large Kotlin bridge cannot safely be replaced from truncated connector output. The mirror therefore is **not yet bound as automatic runtime hydration**.
+
+Status: mirror/conversions `STATICALLY VERIFIED`; complete Store→Native runtime transfer `NOT EXECUTED / INCOMPLETE`.
+
+---
+
+## 6. Sample Forge decode/edit
+
+Predominantly:
 
 ```text
-preview
-→ ensureAudio()
-→ previewBuffer(...)
-→ WebAudio output
-
-slice audition
-→ ensureAudio()
-→ triggerSampleRegion(...)
-→ WebAudio output
+file/buffer
+→ decode
+→ AudioBuffer transforms
+→ normalize/reverse/trim/fade/pitch/stretch/freeze
+→ assign buffer
 ```
 
-Classification: `A — AUDIBLE_RUNTIME_COMMAND`
+Classification: `B`.
 
-Status: `P0/P1 AUTHORITY CONFLICT ON NATIVE`
+These operations do not need to be moved through Oboe merely to satisfy audible runtime authority.
 
-Future path:
+---
+
+## 7. Sample Forge / Forge audition
+
+Preview and region audition still create audible WebAudio output.
+
+Classification: `A`  
+Status on Native: `P0/P1 AUTHORITY GAP`
+
+Target:
 
 ```text
-Sample Forge UI
+UI
 → RuntimePreview.playBuffer / playRegion
-→ Web adapter OR Native adapter
+→ selected renderer
 ```
 
----
-
-## 7. Forge rendering vs audition
-
-File: `src/components/groovebox/ForgeTab.tsx`
-
-Observed render-to-buffer path:
-
-```text
-ensureAudio()
-→ renderPresetToAudioBuffer(ctx, draft)
-→ AudioBuffer
-```
-
-Sending the rendered buffer to a Part:
-
-```text
-renderPresetToAudioBuffer
-→ assignBufferToPart
-→ store sample name
-```
-
-Classification: `B — AUDIO_DECODE_ANALYSIS/EDIT` / offline synthesis-to-buffer.
-
-Observed audition path:
-
-```text
-renderPresetToAudioBuffer
-→ previewBuffer
-→ WebAudio output
-```
-
-Classification: `A — AUDIBLE_RUNTIME_COMMAND`.
-
-Status on Native: audition requires runtime routing; render-to-buffer may remain browser/offline if deterministic and performant enough.
+Offline render/decode stays in `AudioAssetService`.
 
 ---
 
 ## 8. Remix file analysis
 
-File: `src/components/groovebox/RemixTab.tsx`
+File analysis uses browser decode/PCM analysis.
 
-Observed path:
+Classification: `B`.
 
-```text
-file.arrayBuffer()
-→ ensureAudio()
-→ decodeAudioData()
-→ bufferToPCM()
-→ analyzeRemixAudioInput()
-```
-
-Classification: `B — AUDIO_DECODE_ANALYSIS`.
-
-No competing audible renderer is proven by this path alone.
-
-`Date.now()` is used as an AI/generative seed, not playback timing.
-
-Long-press `setTimeout` is UI gesture timing.
+No competing audible renderer is proven by decode alone. Realtime input/remix ownership remains separate work.
 
 ---
 
-## 9. Voice UI
+## 9. Voice
 
-File: `src/components/groovebox/VoiceTab.tsx`
+Native Voice bridge is source-proven through Kotlin → JNI → `VoiceEngine` → `VoiceNode`, including note lifecycle, sample management, live-input enablement and DSP parameters.
 
-The inspected UI primarily performs:
+The complete frontend Voice UI → Runtime → Native caller mapping is still incomplete.
 
-- Store recording toggle,
-- note/take editing,
-- AI transformations,
-- store parameter writes.
-
-The file does not itself prove calls into Native `voiceSet*`, `voiceLoadSample` or `voiceSetLiveInputEnabled`.
-
-Classification: `E — UNKNOWN` for actual live Voice runtime ownership.
-
-Required caller proof remains:
-
-```text
-Voice UI / input
-→ TS runtime/bridge
-→ Kotlin Voice bridge
-→ JNI Voice
-→ native VoiceEngine
-```
+Classification: native backend `STATICALLY VERIFIED`; frontend ownership `E / PARTIAL`.
 
 ---
 
 ## 10. bRAINWAVEz
 
-File: `src/lib/audio/brainwave.ts`
+Current implementation builds an audible WebAudio graph. SYNC/HYBRID rates derive from MasterClock, so timing intent is clearer than render ownership.
 
-Observed:
-
-```text
-ensureAudio()
-→ build WebAudio oscillator graph
-→ masterInput()
-→ audible WebAudio output
-```
-
-Timing modes:
-
-- FREE — intentionally independent rates,
-- SYNC — rates derived from MasterClock division,
-- HYBRID — selected phase behavior derived from MasterClock.
-
-Timing contract is comparatively clear, but render authority remains browser-side.
-
-Classification:
-
-- timing: `C — CONTROL_RATE`, mostly explicit,
-- output: `A — AUDIBLE_RUNTIME_COMMAND/ENGINE`.
-
-Status on Native: `P1 — RENDER AUTHORITY NOT RESOLVED`.
+Classification: timing `C`; renderer `A`.  
+Native status: `P1 — RENDER AUTHORITY GAP`.
 
 ---
 
-## 11. Modulation
+## 11. Modulation / Granular
 
-File: `src/lib/audio/modulation.ts`
+`modulation.ts` uses a control-rate `requestAnimationFrame` loop and WebAudio time. FREE control is plausible; synchronized phase contract and Native translation remain incomplete.
 
-Observed:
+Granular/freeze uses direct browser audio scheduling/processing.
 
-```text
-requestAnimationFrame loop
-→ AudioContext.currentTime
-→ calculate LFO/ENV/mod offsets
-→ write WebAudio AudioParams / trigger offsets
-```
-
-Classification: `C — CONTROL_RATE`.
-
-FREE behavior is plausible; synchronized phase is not yet proven authoritative.
-
-Native adoption/translation is also not proven.
+Classification: `C/A`.  
+Native status: unresolved.
 
 ---
 
-## 12. Granular/freeze
+## 12. Startup bindings
 
-File: `src/lib/audio/granular.ts`
+Startup installs Native runtime binding and Browser scheduler binding. The browser scheduler contains a Native exclusion guard, so it does not intentionally start on Native.
 
-Observed direct WebAudio/AudioWorklet scheduling and freeze-loop rendering.
-
-Classification:
-
-- scheduling: `C/A — AUDIO TEXTURE CONTROL + AUDIBLE RENDER`,
-- Native ownership: unresolved.
-
-Status: `P1 RENDER AUTHORITY NOT RESOLVED`.
+This proves scheduler exclusion logic statically; it does **not** prove that no other browser audible graph starts on Native.
 
 ---
 
-## 13. Startup bindings
+## 13. Current runtime boundary
 
-File: `src/pages/Index.tsx`
-
-Installed once:
+Implemented frontend pieces now include:
 
 ```text
-bindNativeAudioRuntime()
-bindInternalSource()
-initSchedulerBindings()
-bindParamUpdates()
-startQualityManager()
+VibeCoreRuntime boundary
+├ Transport              ← TopBar + Performance migrated
+├ PerformanceInput       ← shared InstrumentKeyboard migrated
+├ ProjectMirror          ← current-scene v1 exists, auto-hydration gate open
+├ Timing units           ← branded Beat/Clock24/Sixteenth/PPQ conversion
+├ Preview                ← not yet migrated
+├ Parameters             ← not yet centralized
+└ Diagnostics            ← partial
 ```
 
-The transport scheduler contains Native exclusion.
-
-`bindParamUpdates()` remains a browser-engine binding installed on all platforms.
-
-Classification: `C/E — CONTROL BINDING / NATIVE BEHAVIOR REQUIRES TEST`.
-
----
-
-## 14. Current architecture truth
-
-The current frontend does NOT have one universal audio command entry point.
-
-Instead it has a mixture of:
+Separate service boundary remains required:
 
 ```text
-backend-aware UI
-  TopBar transport
-
-store-only actions later observed by runtime
-  many transport/state operations
-
-direct browser audio commands
-  InstrumentKeyboard
-  Sample Forge preview/slices
-  Forge audition
-  bRAINWAVEz
-  granular
-  modulation WebAudio params
-
-decode/analysis operations
-  Remix file analysis
-  Sample/Forge buffer processing
-
-native-specialized bridge surface
-  Groove/Bass/Voice methods in Kotlin/JNI
-```
-
-Therefore the future Runtime Contract must be narrower and more precise than "put everything behind AudioBackend".
-
-## 15. Proposed contract split after Gate B0
-
-No implementation yet. Candidate architecture for ADR decision:
-
-```text
-VibeCoreRuntime
-├ Transport
-│  ├ play / stop / seek / tempo
-├ PerformanceInput
-│  ├ noteOn / noteOff / allNotesOff
-│  ├ triggerSample / triggerRegion
-├ ProjectMirror
-│  ├ pattern / scene / step / notes / routing
-├ Parameters
-│  └ authoritative parameter writes
-├ Preview
-│  └ audition buffer/region through selected renderer
-└ Diagnostics
-   └ backend/runtime state
-
 AudioAssetService
-├ decode file
-├ transform/render offline buffer
-├ waveform/analysis cache
+├ decode
+├ offline transform/render
+├ analysis
+├ waveform/cache
 └ PCM conversion
 ```
 
-This preserves useful browser-side decoding/editing while enforcing one audible runtime authority.
+---
 
-## 16. Gate B0 remaining work
+## 14. Next authority work
 
-Before ADR-0002 can be decided:
-
-1. prove or disprove Store → Native Groove project mirror,
-2. inventory TS callers of Kotlin Groove/Bass/Voice methods,
-3. inspect Voice live input caller path,
-4. inspect direct audio entry points in remaining Performance/Prod/FX/Spatial modules,
-5. finish timer/native-clock classification,
-6. define contract/null/timing tests against the completed inventory,
-7. execute no migration until this is complete.
+1. Finish Kotlin/JNI `beginProjectLoad/endProjectLoad` marshalling safely and bind Current-Scene ProjectMirror after native activation.
+2. Provide a real browser performance voice handle so `noteOff/allNotesOff` can be explicit rather than gate-only.
+3. Decide/implement Native 3D Synth renderer rather than using WebAudio fallback.
+4. Migrate Sample Forge / Forge audible preview to RuntimePreview.
+5. Migrate/capability-gate bRAINWAVEz, Spatial and granular audible paths.
+6. Complete Voice frontend caller mapping.
+7. Execute typecheck/unit/native/APK/device verification.
 
 ## Performance truth
 
-Still no measurements:
+No measurements are claimed:
 
 - CPU `UNKNOWN`
 - RAM `UNKNOWN`
