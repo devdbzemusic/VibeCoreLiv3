@@ -14,6 +14,7 @@ import android.webkit.WebViewClient
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.vibecore.audio.NativeAudioBridge
+import com.vibecore.audio.NativeGrooveAssetBridge
 
 /**
  * MainActivity — WebView-Host für die VibeCore-Web-App + native Oboe-Engine.
@@ -21,7 +22,11 @@ import com.vibecore.audio.NativeAudioBridge
  * Verbindlicher Bridge-Vertrag (ADR-005, Decision C):
  *   webView.addJavascriptInterface(bridge, "VibeCoreNative")
  * `window.VibeCoreNative` ist der einzige Erkennungspunkt der Web-Seite
- * (src/lib/audio/AudioBackend.ts). KEIN anderer Name.
+ * (src/lib/audio/AudioBackend.ts). KEIN anderer Name entscheidet über Runtime.
+ *
+ * Asset ingress is deliberately separate as `window.VibeCoreGrooveAssets`.
+ * It cannot start/stop audio or control transport and therefore is not a second
+ * runtime/audio authority.
  *
  * Web-App-Auslieferung: das Vite-Build (dist/) muss nach
  * app/src/main/assets/webapp/ kopiert werden (index.html + assets/).
@@ -31,6 +36,7 @@ class MainActivity : Activity() {
 
     private lateinit var webView: WebView
     private lateinit var bridge: NativeAudioBridge
+    private lateinit var grooveAssets: NativeGrooveAssetBridge
     private var audioFocusRequest: AudioFocusRequest? = null
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -38,6 +44,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         bridge = NativeAudioBridge(applicationContext)
+        grooveAssets = NativeGrooveAssetBridge()
 
         webView = WebView(this)
         webView.settings.apply {
@@ -50,8 +57,10 @@ class MainActivity : Activity() {
         }
         webView.webViewClient = WebViewClient()
 
-        // ADR-005 Decision C — verbindlicher Interface-Name.
+        // ADR-005 Decision C — authoritative runtime/transport interface.
         webView.addJavascriptInterface(bridge, "VibeCoreNative")
+        // Narrow PCM asset ingress. No transport/DSP control lives here.
+        webView.addJavascriptInterface(grooveAssets, "VibeCoreGrooveAssets")
         // Host-Funktionen (Permissions), bewusst getrennt von der Audio-Bridge:
         webView.addJavascriptInterface(HostBridge(), "VibeCoreHost")
 
