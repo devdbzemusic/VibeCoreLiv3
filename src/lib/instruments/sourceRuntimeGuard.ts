@@ -5,7 +5,7 @@ import { migratePartToV13 } from "./projectMigration";
 let bound = false;
 let applying = false;
 
-function migrateParts(parts: Part[]): { parts: Part[]; changed: boolean } {
+export function canonicalizeRuntimeParts(parts: Part[]): { parts: Part[]; changed: boolean } {
   let changed = false;
   const next = parts.map((part) => {
     const migrated = migratePartToV13(part) as Part;
@@ -28,7 +28,7 @@ function migrateParts(parts: Part[]): { parts: Part[]; changed: boolean } {
  */
 export function migrateLiveProjectSourcesToV13(): boolean {
   const state = useGroove.getState();
-  const migrated = migrateParts(state.parts);
+  const migrated = canonicalizeRuntimeParts(state.parts);
   if (!migrated.changed) return false;
   applying = true;
   try {
