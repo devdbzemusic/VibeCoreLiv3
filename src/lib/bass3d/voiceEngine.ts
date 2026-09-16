@@ -30,7 +30,53 @@ interface ActiveNote {
   cleanupTimer: ReturnType<typeof setTimeout> | null;
 }
 
+type NoteStartWaiter = () => void;
+
 const _engines = new Map<number, { notes: ActiveNote[]; lastMidi: number }>();
+const _noteStartWaiters = new Map<string, Set<NoteStartWaiter>>();
+
+function noteKey(partId: number, semitone: number): string {
+  return `${partId}:${semitone}`;
+}
+
+function notifyNoteStarted(partId: number, semitone: number): void {
+  const key = noteKey(partId, semitone);
+  const waiters = _noteStartWaiters.get(key);
+  if (!waiters?.size) return;
+  _noteStartWaiters.delete(key);
+  for (const resolve of waiters) resolve();
+}
+
+export function waitForNoteStart3DBass(
+  partId: number,
+  semitone: number,
+  timeoutMs = 1000,
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    const key = noteKey(partId, semitone);
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const finish = (started: boolean) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      const set = _noteStartWaiters.get(key);
+      set?.delete(onStarted);
+      if (set && set.size === 0) _noteStartWaiters.delete(key);
+      resolve(started);
+    };
+    const onStarted = () => finish(true);
+
+    let set = _noteStartWaiters.get(key);
+    if (!set) {
+      set = new Set();
+      _noteStartWaiters.set(key, set);
+    }
+    set.add(onStarted);
+    timer = setTimeout(() => finish(false), Math.max(50, timeoutMs));
+  });
+}
 
 function getEngine(partId: number) {
   let e = _engines.get(partId);
@@ -95,6 +141,12 @@ export function triggerNote3DBass(
       engine.lastMidi = opts.semitone;
       const releaseDelayMs = Math.max(50, (newNoteOffTime + params.ampEnv.release + 0.3 - ctx.currentTime) * 1000);
       oldNote.cleanupTimer = setTimeout(() => cleanupNote(part.id, oldNote), releaseDelayMs + 50);
+
+      // This trigger reuses the existing legato voice, so the newly requested
+      // allocator handle is not needed. Release it before returning; otherwise
+      // every glide transition leaks one global voice-allocation slot.
+      handle.release();
+      notifyNoteStarted(part.id, opts.semitone);
       return;
     } else {
       const oldNote = engine.notes[0];
@@ -143,6 +195,7 @@ export function triggerNote3DBass(
   const note: ActiveNote = { midi: opts.semitone, voices, handle, startTime: when, cleanupTimer: null };
   engine.notes.push(note);
   engine.lastMidi = opts.semitone;
+  notifyNoteStarted(part.id, opts.semitone);
 
   const releaseDelayMs = Math.max(50, (noteOffTime + params.ampEnv.release + 0.3 - ctx.currentTime) * 1000);
   note.cleanupTimer = setTimeout(() => cleanupNote(part.id, note), releaseDelayMs + 50);
