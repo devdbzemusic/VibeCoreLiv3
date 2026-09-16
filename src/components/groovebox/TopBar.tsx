@@ -3,19 +3,18 @@ import { Cpu, Pause, Play, Square, Circle, ChevronDown, ChevronUp, Disc3, Volume
 import { useGroove, type QualityMode } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { GithubSyncDialog } from "./GithubSyncDialog";
-import { ensureAudio, getCtx, setMasterVolume } from "@/lib/audio/engine";
+import { setMasterVolume } from "@/lib/audio/engine";
 import { tapTempo } from "@/lib/clock/tapTempo";
 import { DiagnosticsModal } from "./DiagnosticsModal";
 import { useDiagnosticsTrigger } from "@/hooks/useDiagnosticsTrigger";
 import { useMeter } from "@/hooks/useMeter";
-import { activateNativeAudio, isNativeAudioPath } from "@/lib/audio/nativeAudioRuntime";
-
+import { toggleRuntimePlay } from "@/lib/runtime/transport";
 
 const QUALITY_CYCLE: QualityMode[] = ["AUTO", "HIGH", "MEDIUM", "LOW"];
 
 export function TopBar() {
   const {
-    bpm, setBpm, cpu, activeVoices, voices, transport, recording, togglePlay, toggleRec,
+    bpm, setBpm, cpu, activeVoices, voices, transport, recording, toggleRec,
     selectedPattern, patterns,
     audioReady, masterVolume, setMasterVolume: setMV,
     showDiag, toggleDiag,
@@ -23,9 +22,8 @@ export function TopBar() {
     resetTransport,
   } = useGroove();
   // ARP controls (mode/complexity) have been moved to the ARP module tab (GROOVE → ARP).
-  // They are intentionally not rendered in the TopBar per MASTERPROMPT v5.0 One-Touch principle.
+  // They are intentionally not rendered in the TopBar per the canonical one-touch workflow.
   const playheads = useGroove((s) => s.playheads);
-  const selectedPart = useGroove((s) => s.selectedPart);
   // Meters subscribe to the non-React meter bus → no rerender of TopBar
   // when other UI parts update; only on actual peakL/peakR change @ 10 Hz.
   const peakL = useMeter((s) => s.peakL);
@@ -54,17 +52,7 @@ export function TopBar() {
   const patternLen = pat?.scenes[currentScene]?.length ?? 0;
 
   const handlePlay = async () => {
-    if (isNativeAudioPath()) {
-      if (!await activateNativeAudio()) return;
-      togglePlay();
-      return;
-    }
-    await ensureAudio();
-    const ctx = getCtx();
-    if (ctx && ctx.state === "suspended") {
-      try { await ctx.resume(); } catch { /* ignore */ }
-    }
-    togglePlay();
+    await toggleRuntimePlay();
   };
 
   const onMaster = (v: number) => { setMV(v); setMasterVolume(v); };
@@ -111,7 +99,6 @@ export function TopBar() {
           </div>
         </div>
 
-
         {/* BPM — LCD screen */}
         <div className="hw-screen px-2.5 py-1.5 flex items-center gap-2 min-w-[88px]">
           <div className="font-mono text-[9px] opacity-70">BPM</div>
@@ -126,8 +113,7 @@ export function TopBar() {
           </div>
         </div>
 
-
-        {/* VibeCore-Sync · Tap-Tempo (Phase 2) — median of recent taps → store.bpm */}
+        {/* VibeCore-Sync · Tap-Tempo — median of recent taps → store.bpm */}
         <button
           onClick={() => { const v = tapTempo(); if (v) setBpm(v); }}
           className="hw-screen h-9 min-w-[2.75rem] px-2 grid place-items-center font-display text-[10px] tracking-wider touch-none active:scale-95 transition-transform select-none"
@@ -211,7 +197,6 @@ export function TopBar() {
             <div className="font-display text-[10px] tabular-nums">{fps} FPS</div>
           </div>
         </button>
-
 
         {/* Diagnostics */}
         <button
