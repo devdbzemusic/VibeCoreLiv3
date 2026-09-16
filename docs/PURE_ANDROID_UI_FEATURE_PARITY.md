@@ -25,6 +25,15 @@ Sprint 2 (`Device Runtime & First E2E`) ist fuer den ersten Runtime-Slice `DEVIC
 
 Nicht enthalten: Sample-Playback, vollstaendige Persistenzrunde, Bass/Voice/Synth/FX/AI-Parity.
 
+Sprint 3 (`Pattern/Mixer Persistenz & Restart-E2E`) ist fuer den ersten Pattern-/Mixer-Slice `DEVICE VERIFIED`:
+
+- Snare-Track-Auswahl persistiert ueber Force-Stop/Relaunch.
+- Snare Steps `01` und `09` persistieren ueber Force-Stop/Relaunch.
+- Mixer Kick-Volume `46` persistiert ueber Force-Stop/Relaunch.
+- Mixer bleibt nach Relaunch erreichbar und touch-/scroll-bedienbar.
+
+Weiterhin offen: Sample-Datei-Import, Sample-Playback, Sample-Restore und vollstaendige Screen-Parity.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.

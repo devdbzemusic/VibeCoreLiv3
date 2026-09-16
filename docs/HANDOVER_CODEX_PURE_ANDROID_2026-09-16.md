@@ -126,6 +126,31 @@ Offen:
 - Vollstaendige Parity-Matrix fuer alle Screens.
 - Hoerbare musikalische Abnahme mit geladenem Sample.
 
+## Sprint 3 Pattern-/Mixer-Persistenz
+
+Status: `DEVICE VERIFIED` fuer Pattern- und Mixer-Slice.
+
+Evidence:
+
+```text
+evidence\2026-09-16_11-33-43-pure-android-sprint3-persistence\
+```
+
+Geprueft:
+
+- Pattern-State gesetzt und nach `am force-stop` + Relaunch wiederhergestellt.
+- Snare blieb als ausgewaehlter Track erhalten.
+- Snare Steps `01` und `09` blieben aktiv.
+- Mixer-State gesetzt und nach Relaunch wiederhergestellt.
+- Kick Volume blieb bei `46`.
+- Mixer-Screen blieb erreichbar und scroll-/touch-bedienbar.
+- Keine App-Fatal-/ANR-/JNI-Crash-Zeilen im Logcat.
+
+Hinweis:
+
+- Der Test nutzte wegen bereits persistierter Track-Auswahl den Snare-Track, nicht Kick.
+- Sample-Persistenz ist weiterhin offen, bis eine reale Audiodatei ueber den Android-Dateipicker geladen wurde.
+
 Optional installieren:
 
 ```powershell
