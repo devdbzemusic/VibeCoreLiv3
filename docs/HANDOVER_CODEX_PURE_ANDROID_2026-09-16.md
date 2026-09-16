@@ -236,6 +236,49 @@ Optional installieren:
 adb install -r .\app\build\outputs\apk\debug\app-debug.apk
 ```
 
+## Sprint 7 Sample Import Failure Handling
+
+Status: `DEVICE VERIFIED` fuer den Android-SAF-Abbruchpfad, `PARTIAL` fuer vollstaendiges Sample-Playback-E2E.
+
+Evidence:
+
+```text
+evidence\20260916-124006-sample-playback\
+```
+
+Simulation / Befund:
+
+- Sample Forge ist im Querformat erreichbar.
+- `CHOOSE AUDIO` startet den Android-Dateipicker.
+- Ein kurzer Test-WAV wurde nach `/sdcard/Download/VibeCoreTestKick.wav` gepusht, damit kuenftige SAF-Tests nicht von langen Songs abhaengen.
+- Automatisierte Dateiauswahl im externen DocumentsUI-Picker war instabil; der Picker kehrte ohne Dateizuweisung in die App zurueck.
+- Vor der Revision blieb der Picker-Abbruch fuer den User stumm sichtbar.
+
+Failure/Error Handling Revision Todo:
+
+- DONE: Picker-Start als sichtbaren UI-Status melden.
+- DONE: Picker-Abbruch als sichtbaren UI-Status melden.
+- DONE: Decode-/Native-Load-Fehler mit Stacktrace in Logcat schreiben.
+- DONE: Persisted-Sample-Restore-Teilfehler sichtbar machen statt stumm zu schlucken.
+- OPEN: Vollautomatische SAF-Dateiauswahl robust machen oder als manuellen Device-Testschritt behandeln.
+- OPEN: Hoerbares Sample-Playback-E2E mit echter Datei abschliessen.
+- OPEN: Persisted-Sample-URI-Restore mit echter Dateiauswahl ueber Force-Stop/Relaunch nachweisen.
+
+Geaendert:
+
+- `VibeCoreViewModel.beginSamplePick()` prueft Tracktyp/Busy-State und setzt Picker-Startstatus.
+- `VibeCoreViewModel.cancelSamplePick()` setzt den sichtbaren Abbruchstatus.
+- `VibeCoreApp.kt` behandelt `OpenDocument()`-Rueckgabe `null` explizit.
+- Sample-Load- und Restore-Fehler werden in Logcat unter `VibeCoreNativeUi` protokolliert.
+
+Geprueft:
+
+- Debug-APK erfolgreich gebaut.
+- APK auf `RZCY91QYC9N` installiert.
+- Sample-Tab geoeffnet, `CHOOSE AUDIO` gestartet, Picker per Back abgebrochen.
+- UI zeigt danach `Audio selection cancelled. No sample was changed.`
+- Transport bleibt idle, App bleibt fokussiert als `com.vibecore.app/.MainActivity`.
+
 ## Compiler-first Regel
 
 Keine Architektur neu erfinden. Compilerfehler in den neuen Compose-Dateien zuerst minimal beheben.

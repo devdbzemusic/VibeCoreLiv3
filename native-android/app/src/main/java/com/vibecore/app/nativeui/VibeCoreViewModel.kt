@@ -3,6 +3,7 @@ package com.vibecore.app.nativeui
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class VibeCoreViewModel(application: Application) : AndroidViewModel(application) {
+    private val logTag = "VibeCoreNativeUi"
     private val app = application
     private val runtime = NativeRuntime(application)
     private val repository = NativeProjectRepository(application)
@@ -138,6 +140,25 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         persist()
     }
 
+    fun beginSamplePick(): Boolean {
+        val track = _state.value.tracks.getOrNull(_state.value.selectedTrack) ?: return false
+        if (track.kind != TrackKind.DRUM && track.kind != TrackKind.SAMPLE) {
+            _state.update { it.copy(sampleStatus = "${track.name} is ${track.kind}; audio-file assignment is only valid for Drum/Sample tracks.") }
+            return false
+        }
+        if (_state.value.sampleBusy) {
+            _state.update { it.copy(sampleStatus = "Sample assets are still loading; wait for the current load to finish.") }
+            return false
+        }
+        _state.update { it.copy(sampleStatus = "Waiting for Android file picker for ${track.name}...") }
+        return true
+    }
+
+    fun cancelSamplePick() {
+        if (_state.value.sampleBusy) return
+        _state.update { it.copy(sampleStatus = "Audio selection cancelled. No sample was changed.") }
+    }
+
     fun loadSampleForSelected(uri: Uri) {
         val trackIndex = _state.value.selectedTrack
         val track = _state.value.tracks.getOrNull(trackIndex) ?: return
@@ -179,6 +200,7 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
                 }
                 persist()
             } catch (error: Exception) {
+                Log.e(logTag, "Sample load failed for ${track.name}", error)
                 _state.update {
                     it.copy(
                         sampleBusy = false,
@@ -234,14 +256,19 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
                         runtime.setTrackSample(track.id, track.id)
                         restored += 1
                     }
-                } catch (_: Exception) {
+                } catch (error: Exception) {
+                    Log.w(logTag, "Persisted sample restore failed for ${track.name}", error)
                     // Missing/revoked assets remain visible by sampleName and can be reselected.
                 }
             }
             _state.update {
                 it.copy(
                     sampleBusy = false,
-                    sampleStatus = "Restored $restored/${assets.size} persisted native sample asset(s).",
+                    sampleStatus = if (restored == assets.size) {
+                        "Restored $restored/${assets.size} persisted native sample asset(s)."
+                    } else {
+                        "Restored $restored/${assets.size} persisted native sample asset(s); reselect missing files."
+                    },
                 )
             }
         }

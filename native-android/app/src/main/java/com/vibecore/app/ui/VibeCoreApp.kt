@@ -53,7 +53,7 @@ private val StepShape = RoundedCornerShape(9.dp)
 fun VibeCoreApp(viewModel: VibeCoreViewModel) {
     val state by viewModel.state.collectAsState()
     val samplePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) viewModel.loadSampleForSelected(uri)
+        if (uri != null) viewModel.loadSampleForSelected(uri) else viewModel.cancelSamplePick()
     }
 
     VibeCoreTheme {
@@ -110,7 +110,11 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                         status = state.sampleStatus,
                         compact = compactLandscape,
                         onSelect = viewModel::selectTrack,
-                        onChooseAudio = { samplePicker.launch(arrayOf("audio/*")) },
+                        onChooseAudio = {
+                            if (viewModel.beginSamplePick()) {
+                                samplePicker.launch(arrayOf("audio/*"))
+                            }
+                        },
                         modifier = Modifier.weight(1f),
                     )
                     NativeScreen.SYNTH -> MigrationPlaceholder(

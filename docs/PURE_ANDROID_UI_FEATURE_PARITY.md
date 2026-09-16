@@ -47,6 +47,15 @@ Sprint 6 (`Landscape Mixer/Sample Fit`) ist fuer Mixer und Sample im Querformat 
 - Sample Forge zeigt Track-Auswahl, Status und `CHOOSE AUDIO` im ersten Landscape-Viewport.
 - Beide Screens bleiben im VibeCore-Stil und ohne aktive WebView/WebAudio-Oberflaeche.
 
+Sprint 7 (`Sample Import Failure Handling`) ist fuer den Android-SAF-Abbruchpfad `DEVICE VERIFIED`:
+
+- `CHOOSE AUDIO` startet den Android-Dateipicker sichtbar.
+- Picker-Abbruch per Back wird im Sample-Status sichtbar gemeldet.
+- Decode-/Native-Load-Fehler werden mit Stacktrace in Logcat geschrieben.
+- Persisted-Sample-Restore meldet Teilfehler sichtbar und fordert Re-Select statt stummem Erfolg.
+
+Weiterhin offen: vollautomatischer SAF-Dateiauswahl-Nachweis, hoerbarer Sample-Playback-E2E und Sample-Restore mit echter persistierter URI.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.
@@ -98,7 +107,7 @@ Statuswerte:
 | Mute / Solo | Channel/Pattern controls | Compose PatternPanel | SHELL | WIRED | WIRED | WIRED | OPEN | OPEN | WIRED |
 | Scene / Pattern Banks | Web Scene/Pattern workflow | Native Scene/Pattern screen | REFERENCE | OPEN | OPEN | PARTIAL CORE | OPEN | OPEN | REFERENCE |
 | Mixer | `MixTab` / `ChannelStrip` | `MixerScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE CORE PARTIAL | OPEN | OPEN | REFERENCE |
-| Sample Forge | `SmplTab.tsx` / `ForgeTab.tsx` | `SampleForgeScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE ASSET CORE PARTIAL | OPEN | OPEN | REFERENCE |
+| Sample Forge | `SmplTab.tsx` / `ForgeTab.tsx` | `SampleForgeScreen.kt` | SHELL | WIRED | WIRED | NATIVE ASSET CORE PARTIAL | PARTIAL | PARTIAL | WIRED |
 | Synth 3D | `Synth3DPage.tsx` / subtabs | `Synth3DScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE SYNTH GAP | OPEN | OPEN | REFERENCE |
 | Bass 3D | `Bass3DPage.tsx` / subtabs | `Bass3DScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE BASS CORE EXISTS | OPEN | OPEN | REFERENCE |
 | Voice | `VoiceTab.tsx` | `VoiceScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE VOICE CORE EXISTS | OPEN | OPEN | REFERENCE |
