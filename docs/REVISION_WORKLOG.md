@@ -63,13 +63,26 @@ Branch: `revision/v4-runtime-consolidation`
 - added cache unit-test sources
 - legacy WebAudio `engine.ts` AudioBuffer Map remains unbounded and is not yet replaced because the monolithic engine requires complete-file/build verification before safe integration
 
+### Sample / Synth boundary
+
+- freshly confirmed the legacy model still permits `sample`, `synth` and `hybrid` for almost every non-generic sample category
+- freshly confirmed `buildDefaultParts()` initializes kick/snare/perc/hat as `source: "synth"`
+- freshly confirmed the v12 persistence migration returns v12+ state unchanged and therefore does not repair legacy ownership
+- added `src/lib/instruments/sourceBoundary.ts` as a pure canonical ownership contract
+- canonical ownership now resolves drum/sample categories to `sample-domain`, synth to `synth3d`, and bass to `bass3d`
+- `hybrid` is classified as legacy compatibility data rather than a valid new v4 runtime source
+- added reversible v12 → v13 source migration semantics that preserve the original invalid source value instead of silently discarding it
+- added source-level tests for ownership, invalid transitions and legacy preservation
+- documented the integration contract in `docs/SAMPLE_SYNTH_MIGRATION_CONTRACT.md`
+- Store/UI/runtime adoption remains pending; no large whole-file Store replacement was attempted through the connector
+
 ### Current
 
 Runtime consolidation continues with three main open implementation fronts:
 
-1. complete Native ProjectMirror bulk-load/sample-asset contract
-2. continue safe ParameterHub/AI Intent caller adoption
-3. enforce the v4 Sample/Synth semantic migration without breaking legacy project deserialization
+1. adopt the new Sample/Synth ownership contract in Zustand persistence/defaults/UI/runtime routing
+2. complete Native ProjectMirror bulk-load/sample-asset contract
+3. continue safe ParameterHub/AI Intent caller adoption
 
 ### Verification
 
