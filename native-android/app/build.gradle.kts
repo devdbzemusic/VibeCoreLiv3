@@ -1,5 +1,4 @@
-// app/build.gradle.kts — NDK/CMake + Oboe (Prefab) für VibeCore-Android.
-// Wird außerhalb von Base44 in ein natives Android-App-Modul eingebunden.
+// app/build.gradle.kts — Native Android + Jetpack Compose + NDK/CMake/Oboe for VibeCore.
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -11,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.vibecore.app"
-        minSdk = 21            // Oboe fällt unter API 27 auf OpenSL ES zurück
+        minSdk = 21
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -35,7 +34,12 @@ android {
     }
 
     buildFeatures {
-        prefab = true   // aktiviert Oboe-AAR-Prefab-Verlinkung
+        prefab = true
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 
     compileOptions {
@@ -46,9 +50,19 @@ android {
 }
 
 dependencies {
-    // Oboe (Google) — native C++-Bibliothek als Prefab-AAR.
+    // Native low-latency audio
     implementation("com.google.oboe:oboe:1.9.0")
 
-    implementation("androidx.webkit:webkit:1.11.0")
+    // Pure Android UI/runtime host. WebView is intentionally not part of the active app shell.
+    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
+    implementation("androidx.activity:activity-compose:1.9.0")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.3")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.3")
     implementation("androidx.core:core-ktx:1.13.1")
+
+    debugImplementation("androidx.compose.ui:ui-tooling")
 }
