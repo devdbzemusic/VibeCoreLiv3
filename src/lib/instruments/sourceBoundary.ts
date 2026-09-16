@@ -1,4 +1,4 @@
-import type { PartCategory, SourceMode } from "@/lib/model";
+import type { PartCategory, SourceMode, SynthEngine } from "@/lib/model";
 
 /**
  * Canonical v4 instrument ownership.
@@ -43,6 +43,13 @@ export function instrumentAuthorityForCategory(category: PartCategory): Instrume
   if (category === "bass") return "bass3d";
   if (category === "synth") return "synth3d";
   return "sample-domain";
+}
+
+/** Canonical audible synth-engine selector for instrument-authority categories. */
+export function canonicalSynthEngineForCategory(category: PartCategory): SynthEngine | null {
+  if (category === "synth") return "3D";
+  if (category === "bass") return "3D Bass";
+  return null;
 }
 
 /**
