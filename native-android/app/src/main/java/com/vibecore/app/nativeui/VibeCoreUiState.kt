@@ -1,5 +1,7 @@
 package com.vibecore.app.nativeui
 
+enum class NativeScreen { PATTERN, MIXER, SAMPLE, SYNTH, VOICE }
+
 data class StepState(
     val active: Boolean = false,
     val velocity: Int = 100,
@@ -24,6 +26,7 @@ data class VibeCoreUiState(
     val currentStep: Int = 0,
     val latencyMs: Double = -1.0,
     val diagnostic: String = "native:unknown",
+    val screen: NativeScreen = NativeScreen.PATTERN,
     val tracks: List<TrackState> = defaultTracks(),
 )
 
