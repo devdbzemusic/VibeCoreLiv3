@@ -11,7 +11,7 @@
 
 import { requestVoice, partVoiceClass, type VoiceHandle } from "@/lib/audio/voiceAllocator";
 import { recordVoiceCreated, recordVoiceDestroyed } from "@/lib/audio/audioPerf";
-import { mulberry32, hashSeed, type Rng } from "@/lib/utils/random";
+import { mulberry32, hashSeed } from "@/lib/utils/random";
 import { useGroove } from "@/lib/store";
 import { getSpatialChain } from "./spatialEngine";
 import { createVoice3D, computeUnisonOffsets, type Synth3DSynthVoice, type VoiceOpts3D } from "./voice";
@@ -23,6 +23,7 @@ interface ActiveNote {
   voices: Synth3DSynthVoice[];
   handle: VoiceHandle;
   startTime: number;
+  cleanupTimer: ReturnType<typeof setTimeout> | null;
 }
 
 // Per-part voice engines
@@ -32,6 +33,19 @@ function getEngine(partId: number) {
   let e = _engines.get(partId);
   if (!e) { e = { notes: [], lastMidi: -1 }; _engines.set(partId, e); }
   return e;
+}
+
+function cleanupNote(partId: number, note: ActiveNote): void {
+  const engine = _engines.get(partId);
+  if (!engine) return;
+  if (note.cleanupTimer) {
+    clearTimeout(note.cleanupTimer);
+    note.cleanupTimer = null;
+  }
+  note.handle.release();
+  const idx = engine.notes.indexOf(note);
+  if (idx >= 0) engine.notes.splice(idx, 1);
+  recordVoiceDestroyed();
 }
 
 /** Trigger a 3D Synth note. Called from the engine's triggerPart path. */
@@ -72,11 +86,8 @@ export function triggerNote3D(
 
   // ── Mono / Legato: retrigger existing voices ──────────────────────────
   if (perf.mode !== "poly" && engine.notes.length > 0) {
-    // For mono/legato, we steal the existing note's voices and create new ones
-    // with the new pitch. Glide is handled by the oscillator frequency ramp.
-    // For simplicity, we fast-fade old voices and create new ones — true
-    // legato glide would re-pitch existing oscillators.
     const oldNote = engine.notes[0];
+    if (oldNote.cleanupTimer) { clearTimeout(oldNote.cleanupTimer); oldNote.cleanupTimer = null; }
     oldNote.voices.forEach((v) => v.steal(0.03));
     oldNote.handle.release();
     engine.notes = [];
@@ -110,7 +121,7 @@ export function triggerNote3D(
   });
 
   // ── Track active note ──────────────────────────────────────────────────
-  const note: ActiveNote = { midi: opts.semitone, voices, handle, startTime: when };
+  const note: ActiveNote = { midi: opts.semitone, voices, handle, startTime: when, cleanupTimer: null };
   engine.notes.push(note);
   engine.lastMidi = opts.semitone;
 
@@ -118,14 +129,31 @@ export function triggerNote3D(
   const noteOffTime = when + opts.gateSec;
   voices.forEach((v) => v.noteOff(noteOffTime));
 
-  // Release the allocator handle after the note completes
   const releaseDelayMs = Math.max(50, (noteOffTime + params.ampEnv.release + 0.3 - ctx.currentTime) * 1000);
-  window.setTimeout(() => {
-    handle.release();
-    const idx = engine.notes.indexOf(note);
-    if (idx >= 0) engine.notes.splice(idx, 1);
-    recordVoiceDestroyed();
-  }, releaseDelayMs + 50);
+  note.cleanupTimer = window.setTimeout(() => cleanupNote(part.id, note), releaseDelayMs + 50);
+}
+
+/**
+ * Release one live-performance 3D Synth note using the existing voice engine.
+ * `semitone` uses the same MIDI-60 domain as triggerNote3D/triggerPart.
+ */
+export function releaseNote3D(partId: number, semitone: number, when: number): boolean {
+  const engine = _engines.get(partId);
+  if (!engine) return false;
+  // For duplicate pitches, release the most recently started matching note.
+  const note = [...engine.notes].reverse().find((candidate) => candidate.midi === semitone);
+  if (!note) return false;
+
+  if (note.cleanupTimer) { clearTimeout(note.cleanupTimer); note.cleanupTimer = null; }
+  note.voices.forEach((voice) => voice.noteOff(when));
+
+  const part = useGroove.getState().parts.find((candidate) => candidate.id === partId);
+  const releaseSec = (part?.synth3d ?? defaultSynth3D()).ampEnv.release;
+  note.cleanupTimer = window.setTimeout(
+    () => cleanupNote(partId, note),
+    Math.max(50, (releaseSec + 0.35) * 1000),
+  );
+  return true;
 }
 
 /** Stop all notes for a part immediately (used on transport stop / audio restart). */
@@ -133,6 +161,7 @@ export function killAllNotes3D(partId: number): void {
   const engine = _engines.get(partId);
   if (!engine) return;
   engine.notes.forEach((note) => {
+    if (note.cleanupTimer) { clearTimeout(note.cleanupTimer); note.cleanupTimer = null; }
     note.voices.forEach((v) => v.kill());
     note.handle.release();
   });
@@ -143,6 +172,7 @@ export function killAllNotes3D(partId: number): void {
 export function clearAll3D(): void {
   _engines.forEach((e) => {
     e.notes.forEach((n) => {
+      if (n.cleanupTimer) { clearTimeout(n.cleanupTimer); n.cleanupTimer = null; }
       n.voices.forEach((v) => v.kill());
       n.handle.release();
     });
