@@ -107,13 +107,13 @@ export function InstrumentKeyboard({
     removeActive(activeNote.midi);
   };
 
-  // A tab switch/unmount must never leave native sustained notes behind.
+  // A tab switch/unmount must never leave sustained performance notes behind.
   useEffect(() => () => {
     const instruments = new Set<PerformanceInstrument>();
     for (const activeNote of activePointers.current.values()) instruments.add(activeNote.instrument);
     if (instruments.size === 0) instruments.add(resolvedInstrument());
     activePointers.current.clear();
-    for (const route of instruments) performanceAllNotesOff(route);
+    for (const route of instruments) performanceAllNotesOff(route, partId);
   }, [instrument, partId]);
 
   return (
