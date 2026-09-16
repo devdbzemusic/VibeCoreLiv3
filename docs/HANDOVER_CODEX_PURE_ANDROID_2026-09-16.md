@@ -62,6 +62,32 @@ APK erwartet unter:
 native-android\app\build\outputs\apk\debug\app-debug.apk
 ```
 
+## Sprint 1 lokaler Build-Status
+
+Status: `BUILD VERIFIED`
+
+Am 2026-09-16 wurde der lokale Pure-Android-Debug-Build auf Branch
+`revision/pure-android-compose` mit JDK 17 erfolgreich gebaut:
+
+```powershell
+$env:JAVA_HOME="C:\Program Files\Microsoft\jdk-17.0.19.10-hotspot"
+.\gradlew.bat :app:assembleDebug
+```
+
+Ergebnis:
+
+```text
+BUILD SUCCESSFUL
+APK: native-android\app\build\outputs\apk\debug\app-debug.apk
+```
+
+Gefixter Build-Blocker:
+
+- `VibeCoreApp.kt`: fehlerhaften Compose-`weight`-Import entfernt.
+- `VibeCoreApp.kt`: positionalen `Text(...)`-Aufruf im Mixer auf benannte Parameter umgestellt.
+
+Noch nicht behaupten: `DEVICE VERIFIED`, `PARITY VERIFIED` oder hörbare Sample-/Transport-Abnahme.
+
 Optional installieren:
 
 ```powershell

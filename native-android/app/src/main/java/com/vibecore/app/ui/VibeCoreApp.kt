@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -303,7 +302,14 @@ private fun MixerRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {
-            Text(track.name, Modifier.width(72.dp), if (selected) VibeCoreColors.PrimaryGlow else VibeCoreColors.Foreground, 10.sp, FontWeight.Bold, maxLines = 1)
+            Text(
+                text = track.name,
+                modifier = Modifier.width(72.dp),
+                color = if (selected) VibeCoreColors.PrimaryGlow else VibeCoreColors.Foreground,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
             Slider(
                 value = track.volume.toFloat(),
                 onValueChange = { onVolume(it.toInt()) },

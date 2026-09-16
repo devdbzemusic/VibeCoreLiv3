@@ -3,6 +3,17 @@
 Stand: 2026-09-16  
 Branch: `revision/pure-android-compose`
 
+## Aktueller Verifikationsstand
+
+Sprint 1 (`Pure Android Build & Runtime Bootstrap`) ist lokal `BUILD VERIFIED`:
+
+- JDK 17 aktiv fuer Gradle.
+- `native-android :app:assembleDebug` erfolgreich.
+- APK erzeugt unter `native-android/app/build/outputs/apk/debug/app-debug.apk`.
+- Compose-Kotlin-Blocker in `VibeCoreApp.kt` minimal behoben.
+
+Noch offen: `DEVICE VERIFIED`, `PARITY VERIFIED`, Live-Audio-/Sample-Abnahme und vollstaendige E2E-Matrix auf echtem Android-Geraet.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.
