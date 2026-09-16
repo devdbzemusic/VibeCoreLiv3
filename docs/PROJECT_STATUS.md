@@ -36,7 +36,7 @@ Status terminology follows the v4.0 MasterPrompt.
 - `AudioBackend` interface exists — `STATICALLY VERIFIED`
 - `NativeOboeBackend implements AudioBackend` — `STATICALLY VERIFIED`
 - no concrete `WebAudioBackend implements AudioBackend` exists; browser fallback uses `engine.ts` directly — `STATICALLY VERIFIED`
-- `nativeAudioRuntime.ts` binds backend tempo/gain/transport/seek state — `STATICALLY VERIFIED`
+- `nativeAudioRuntime.ts` binds backend tempo/gain/transport/seek state and now delegates Native availability to Capability Registry — `STATICALLY VERIFIED`
 - Android `MainActivity.kt` injects `NativeAudioBridge` as `window.VibeCoreNative` — `STATICALLY VERIFIED`
 - Kotlin → JNI → C++ lifecycle/transport/Groove/Bass/Voice mappings exist for inspected paths — `STATICALLY VERIFIED`
 - `VibeCoreAudioEngine::onAudioReady()` is the inspected Oboe callback — `STATICALLY VERIFIED`
@@ -51,13 +51,15 @@ Status terminology follows the v4.0 MasterPrompt.
 - Native 3D Synth is explicitly capability-gated unavailable until a renderer exists — `STATICALLY VERIFIED GAP`
 - Runtime Preview boundary exists; Native preview is explicitly unsupported rather than stealing a Voice sample slot — `STATICALLY VERIFIED`
 - Runtime Voice boundary exists for source-correlated Native Voice DSP/live-input controls — `STATICALLY VERIFIED`
-- `ParameterHub` v1 exists as a stateless proxy over the existing store — `STATICALLY VERIFIED`
+- canonical `ParameterHub` exists at `src/lib/parameters/hub.ts` as a stateless proxy over the existing store — `STATICALLY VERIFIED`
+- TopBar BPM, Tap Tempo and Master Volume now write through the canonical ParameterHub — `STATICALLY VERIFIED`
 - unified Runtime diagnostics snapshot exists — `STATICALLY VERIFIED`
 - deterministic byte-budgeted/refcounted ResourceCache exists — `STATICALLY VERIFIED CORE`
 - AudioBuffer cache adapter exists — `STATICALLY VERIFIED CORE`
 - versioned Analysis Cache exists — `STATICALLY VERIFIED CORE`
 - Waveform min/max peak pyramid cache exists — `STATICALLY VERIFIED CORE`
 - AI learning consent/profile implementation exists — `STATICALLY VERIFIED`
+- AI Intent v1 exists for parameter-backed Mix volume/pan with validation, pure preview, apply, receipt-based revert and explain — `STATICALLY VERIFIED CORE`
 - E2E simulation matrix exists — `STATICALLY VERIFIED`
 
 ## Runtime capability authority
@@ -80,7 +82,7 @@ Runtime probes do not initialize audio, request permissions, open MIDI or create
 
 ## Parameter authority
 
-`src/lib/runtime/parameterHub.ts` now exists in the branch.
+`src/lib/parameters/hub.ts` is the single canonical ParameterHub implementation in the branch.
 
 Version 1 deliberately owns **no second parameter state**. It proxies the canonical Zustand store and currently covers:
 
@@ -89,7 +91,28 @@ Version 1 deliberately owns **no second parameter state**. It proxies the canoni
 - `part.<id>.volume`
 - `part.<id>.pan`
 
-Gesture tokens are correlation metadata only; they do not create a hidden undo or automation stack.
+The Hub also owns range/unit/persistence/realtime descriptors and selective subscriptions. Gesture hooks remain stateless no-ops until one authoritative undo/automation batching model is selected.
+
+A transient duplicate implementation created during consolidation was detected by the branch diff and removed before verification; no second ParameterHub implementation remains intentionally.
+
+## AI Intent authority
+
+`src/lib/ai/intent.ts` now provides the first validated v4-style flow:
+
+```text
+Suggestion
+→ Intent
+→ Validation
+→ Preview (no mutation)
+→ ParameterHub command
+→ Apply receipt
+→ Revert
+→ Explain
+```
+
+Version 1 deliberately supports only Mix `volume` and `pan` suggestions because those parameters already have canonical persisted ParameterHub routes. FX/master and other suggestion kinds remain rejected until explicit command adapters exist.
+
+No hidden global AI history/store is created; apply receipts are caller-owned.
 
 ## Important remaining runtime-contract findings
 
@@ -140,7 +163,7 @@ The new budgeted cache core is present but not yet connected to the ~77 KB engin
 - Native Groove ProjectMirror bulk-load completion — `PARTIAL`
 - full ParameterHub coverage and gesture/undo/automation integration — `PARTIAL`
 - Sample/Synth instrument boundary migration — `CONFLICT / INCOMPLETE`
-- AI Intent → Validation → Command/Parameter boundary — `PARTIAL`
+- AI Intent adapters beyond Mix volume/pan — `PARTIAL`
 - Runtime backend access is not yet uniformly represented by one frontend backend interface — `PARTIAL`
 - Motion Step Recorder end-to-end contract — `PARTIAL / UNKNOWN`
 - bRAINWAVEz/granular/spatial Native audible-render ownership — `PARTIAL / UNKNOWN`
@@ -196,14 +219,15 @@ See `docs/TEST_STATUS.md` for the verification ledger.
 1. Runtime/capability authority consolidation — **in progress, materially implemented**
 2. Native Groove ProjectMirror bulk-load completion
 3. ParameterHub adoption and command-history design
-4. Cache integration into real asset/analysis callers
-5. Sample/Synth versioned semantic migration
-6. Voice UI semantic migration
-7. Native 3D Synth renderer design/implementation
-8. remaining Native audible-render ownership gaps
-9. AI Intent + Motion Recorder consolidation
-10. Remix live-input path
-11. full typecheck/build/APK/device/performance verification
+4. AI Intent caller migration / additional validated command adapters
+5. Cache integration into real asset/analysis callers
+6. Sample/Synth versioned semantic migration
+7. Voice UI semantic migration
+8. Native 3D Synth renderer design/implementation
+9. remaining Native audible-render ownership gaps
+10. Motion Recorder consolidation
+11. Remix live-input path
+12. full typecheck/build/APK/device/performance verification
 
 ## Release rule
 
