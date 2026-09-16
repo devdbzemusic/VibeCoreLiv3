@@ -1,11 +1,19 @@
-import type { Part, PartCategory, SourceMode } from "@/lib/model";
+import type { Part, PartCategory, SourceMode, SynthEngine } from "@/lib/model";
 import { migratePersistedSource, type LegacySourceSnapshot } from "./sourceBoundary";
 
 export const PROJECT_SCHEMA_VERSION = 13 as const;
 
+export interface LegacyEngineSnapshot {
+  engine: SynthEngine;
+  reason: "legacy-noncanonical-synth-engine" | "legacy-noncanonical-bass-engine";
+  migratedBySchema: 13;
+}
+
 export interface LegacyInstrumentCompatibility {
   /** Original v12 source value retained for reversible compatibility. */
   source?: LegacySourceSnapshot;
+  /** Original v12 synth-engine selector retained for reversible compatibility. */
+  engine?: LegacyEngineSnapshot;
 }
 
 /**
@@ -30,34 +38,70 @@ function isSourceMode(value: unknown): value is SourceMode {
   return value === "sample" || value === "synth" || value === "hybrid";
 }
 
+function isSynthEngine(value: unknown): value is SynthEngine {
+  return value === "Kick" || value === "Snare" || value === "Hat" || value === "Bass"
+    || value === "Synth" || value === "3D" || value === "3D Bass";
+}
+
+function canonicalInstrumentEngine(category: PartCategory): SynthEngine | null {
+  if (category === "synth") return "3D";
+  if (category === "bass") return "3D Bass";
+  return null;
+}
+
 /**
  * Migrate one persisted Part to the v4 ownership boundary.
  *
- * Deliberately conservative: malformed/unknown values are not invented here;
- * the caller keeps the original object so a higher-level validation layer can
- * decide whether to reject or repair the project.
+ * Deliberately conservative for malformed data: unknown categories/sources are
+ * not invented here. Recognized Synth/Bass parts additionally move their legacy
+ * engine selector to the canonical 3D renderer while retaining the old choice
+ * under compatibility metadata.
  */
 export function migratePartToV13(part: unknown): unknown {
   if (!part || typeof part !== "object") return part;
   const record = part as Record<string, unknown>;
   if (!isPartCategory(record.category) || !isSourceMode(record.source)) return part;
 
-  const migrated = migratePersistedSource(record.category, record.source);
+  const migratedSource = migratePersistedSource(record.category, record.source);
   const previousLegacy = record.legacyInstrument && typeof record.legacyInstrument === "object"
     ? { ...(record.legacyInstrument as Record<string, unknown>) }
     : undefined;
 
   const next: Record<string, unknown> = {
     ...record,
-    source: migrated.source,
+    source: migratedSource.source,
   };
 
-  if (migrated.legacy) {
-    next.legacyInstrument = {
-      ...(previousLegacy ?? {}),
-      source: migrated.legacy,
+  let nextLegacy = previousLegacy ? { ...previousLegacy } : undefined;
+
+  if (migratedSource.legacy) {
+    nextLegacy = {
+      ...(nextLegacy ?? {}),
+      source: migratedSource.legacy,
     };
   }
+
+  const canonicalEngine = canonicalInstrumentEngine(record.category);
+  const synth = record.synth;
+  if (canonicalEngine && synth && typeof synth === "object") {
+    const synthRecord = synth as Record<string, unknown>;
+    if (isSynthEngine(synthRecord.engine) && synthRecord.engine !== canonicalEngine) {
+      const legacyEngine: LegacyEngineSnapshot = {
+        engine: synthRecord.engine,
+        reason: record.category === "bass"
+          ? "legacy-noncanonical-bass-engine"
+          : "legacy-noncanonical-synth-engine",
+        migratedBySchema: 13,
+      };
+      next.synth = { ...synthRecord, engine: canonicalEngine };
+      nextLegacy = {
+        ...(nextLegacy ?? {}),
+        engine: legacyEngine,
+      };
+    }
+  }
+
+  if (nextLegacy) next.legacyInstrument = nextLegacy;
 
   return next as PersistedPartV13;
 }
@@ -66,8 +110,10 @@ export function migratePartToV13(part: unknown): unknown {
  * Pure v12 -> v13 compatibility migration.
  *
  * - keeps the complete persisted project shape intact
- * - canonicalizes only recognized Part.source values
- * - preserves every non-canonical old value in `legacyInstrument.source`
+ * - canonicalizes recognized Part.source values
+ * - promotes Synth/Bass engine ownership to 3D / 3D Bass when a recognized
+ *   legacy engine selector exists
+ * - preserves incompatible old source/engine values in `legacyInstrument`
  * - never mutates the input object/part array
  */
 export function migrateProjectToV13(persisted: unknown): unknown {
