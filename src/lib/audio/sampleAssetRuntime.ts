@@ -4,56 +4,75 @@ import { decodeMonoAsset } from "./assetDecode";
 import { decodeSampleFile, assignBufferToPart } from "./engine";
 import { uploadNativeGrooveAsset, type NativeGrooveAssetUploadResult } from "@/lib/runtime/nativeGrooveAssets";
 
-export interface PreparedSampleAsset {
+export interface DecodedSampleAsset {
   buffer: AudioBuffer;
+  native: boolean;
+  monoPcm: Float32Array | null;
+  sampleRate: number;
+}
+
+export interface SampleAssetAssignmentResult {
+  assigned: boolean;
   native: boolean;
   nativeUpload: NativeGrooveAssetUploadResult | null;
 }
 
 /**
- * Runtime-aware sample preparation boundary.
+ * Decode a library/editor asset without implicitly assigning it to a Part.
  *
- * Browser/WebAudio:
- *   decode through the existing audible engine cache.
- * Native/Oboe:
- *   decode through OfflineAudioContext, downmix to mono Float32 PCM and cold-load
- *   the authoritative Native Groove sample store. No audible WebAudio graph is
- *   created merely to decode/upload a sample.
+ * Browser/WebAudio uses the existing decoder/cache. Native/Oboe uses the
+ * renderer-independent OfflineAudioContext path and keeps mono PCM alongside
+ * the editor AudioBuffer for a later explicit Part assignment.
  */
-export async function prepareSampleAsset(
-  part: Part,
+export async function decodeSampleAsset(
   file: File,
   preferredSampleRate = 48000,
-): Promise<PreparedSampleAsset> {
+): Promise<DecodedSampleAsset> {
   if (!isNativeAudioPath()) {
+    const buffer = await decodeSampleFile(file);
     return {
-      buffer: await decodeSampleFile(file),
+      buffer,
       native: false,
-      nativeUpload: null,
+      monoPcm: null,
+      sampleRate: buffer.sampleRate,
     };
   }
 
   const decoded = await decodeMonoAsset(file, preferredSampleRate);
-  const nativeUpload = uploadNativeGrooveAsset(part, decoded.monoPcm, decoded.sampleRate);
-  if (!nativeUpload.accepted) {
-    throw new Error(nativeUpload.reason ?? `Native Groove sample upload failed for part ${part.id}`);
-  }
-
   return {
     buffer: decoded.buffer,
     native: true,
-    nativeUpload,
+    monoPcm: decoded.monoPcm,
+    sampleRate: decoded.sampleRate,
   };
 }
 
 /**
- * Assign an already-decoded buffer to the browser editor/cache only.
- *
- * This helper intentionally does not claim Native registration. Native PCM must
- * pass prepareSampleAsset()/uploadNativeGrooveAsset first. On Native this keeps
- * the AudioBuffer available to editor/waveform code without creating a second
- * renderer; assignBufferToPart itself is safe before WebAudio graph creation.
+ * Explicit assignment boundary. Merely browsing/loading a library item does not
+ * mutate Native state. On Native, PCM must be cold-loaded and acknowledged
+ * before the editor buffer is associated with the Part. On Browser, the current
+ * WebAudio buffer assignment behavior is retained.
  */
-export function retainSampleBufferForEditor(partId: number, buffer: AudioBuffer): void {
-  assignBufferToPart(partId, buffer);
+export function assignSampleAssetToPart(
+  part: Part,
+  asset: DecodedSampleAsset,
+): SampleAssetAssignmentResult {
+  if (!asset.native) {
+    assignBufferToPart(part.id, asset.buffer);
+    return { assigned: true, native: false, nativeUpload: null };
+  }
+
+  if (!asset.monoPcm) {
+    return { assigned: false, native: true, nativeUpload: null };
+  }
+
+  const nativeUpload = uploadNativeGrooveAsset(part, asset.monoPcm, asset.sampleRate);
+  if (!nativeUpload.accepted) {
+    return { assigned: false, native: true, nativeUpload };
+  }
+
+  // Keep the decoded AudioBuffer available to waveform/editor code. This does
+  // not create an audible WebAudio graph when no AudioContext/PartChain exists.
+  assignBufferToPart(part.id, asset.buffer);
+  return { assigned: true, native: true, nativeUpload };
 }
