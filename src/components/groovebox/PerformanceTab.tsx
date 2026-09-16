@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useMeter, useVisibleParts } from "@/hooks/useMeter";
 import { ensureAudio, getCtx } from "@/lib/audio/engine";
+import { activateNativeAudio, isNativeAudioPath } from "@/lib/audio/nativeAudioRuntime";
 
 export function PerformanceTab() {
   const {
@@ -24,6 +25,11 @@ export function PerformanceTab() {
   useVisibleParts(visibleIds);
 
   const handlePlay = async () => {
+    if (isNativeAudioPath()) {
+      if (!await activateNativeAudio()) return;
+      togglePlay();
+      return;
+    }
     await ensureAudio();
     const ctx = getCtx();
     if (ctx?.state === "suspended") await ctx.resume();
