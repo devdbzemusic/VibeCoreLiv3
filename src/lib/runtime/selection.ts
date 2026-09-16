@@ -1,23 +1,25 @@
-import { isNativeAudioPath } from "@/lib/audio/nativeAudioRuntime";
+import { probeRuntimeCapability } from "@/lib/capabilities/registry";
 import type { RuntimeBackendInfo, RuntimeKind } from "./types";
 
 /**
- * Single frontend owner for runtime-kind selection.
+ * Single frontend owner for audible runtime selection.
  *
- * This does not activate audio and intentionally has no side effects. It is the
- * only place new runtime-facing UI code should ask which audible renderer is
- * selected. Adapter creation/activation is layered on top in the next slice.
+ * Selection is side-effect free and now delegates environment availability to
+ * the Capability Registry. Actual activation still belongs to the runtime
+ * backend and may fail independently; selection must never be treated as proof
+ * that audio has started successfully.
  */
 export function selectedRuntimeKind(): RuntimeKind {
-  return isNativeAudioPath() ? "oboe-native" : "webaudio";
+  return probeRuntimeCapability("audio.native").available ? "oboe-native" : "webaudio";
 }
 
 export function runtimeSelectionInfo(): RuntimeBackendInfo {
   const kind = selectedRuntimeKind();
+  const capability = probeRuntimeCapability(kind === "oboe-native" ? "audio.native" : "audio.web");
   return {
     kind,
-    available: true,
+    available: capability.available,
     active: false,
-    diagnostic: kind === "oboe-native" ? "selected:native-oboe" : "selected:browser-webaudio",
+    diagnostic: capability.reason ?? (kind === "oboe-native" ? "selected:native-oboe" : "selected:browser-webaudio"),
   };
 }
