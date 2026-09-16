@@ -25,6 +25,7 @@ import { Synth3DPage }     from "@/components/groovebox/Synth3DPage";
 import { Bass3DPage }      from "@/components/groovebox/Bass3DPage";
 import { DiagPanel }       from "@/components/groovebox/DiagPanel";
 import { SettingsPage }    from "@/components/groovebox/SettingsPage";
+import { SourceBoundaryNotice } from "@/components/groovebox/SourceBoundaryNotice";
 import { useGroove, type TabKey } from "@/lib/store";
 import { initSchedulerBindings } from "@/lib/audio/scheduler";
 import { bindParamUpdates }      from "@/lib/audio/engine";
@@ -135,6 +136,7 @@ const Index = () => {
         {tab === "LIB"   && <ModulePage tab="LIB"><LibTab /></ModulePage>}
       </main>
 
+      <SourceBoundaryNotice />
       <TabBar />
       {/* DiagPanel floating overlay (triggered from TopBar diagnostics button) */}
       <DiagPanel />
