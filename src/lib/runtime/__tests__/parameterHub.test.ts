@@ -4,9 +4,10 @@ import {
   beginParameterGesture,
   endParameterGesture,
   getParameter,
+  getParameterDescriptor,
   setParameter,
   subscribeParameter,
-} from "@/lib/runtime/parameterHub";
+} from "@/lib/parameters/hub";
 
 let baseline: ReturnType<typeof useGroove.getState>;
 
@@ -20,6 +21,17 @@ describe("ParameterHub v1", () => {
     expect(getParameter("master.volume")).toBe(useGroove.getState().masterVolume);
   });
 
+  it("describes persistent realtime parameter domains", () => {
+    expect(getParameterDescriptor("transport.bpm")).toMatchObject({
+      min: 20,
+      max: 300,
+      unit: "BPM",
+      persistent: true,
+      realtime: true,
+    });
+    expect(getParameterDescriptor("part.0.pan")).toMatchObject({ min: -50, max: 50 });
+  });
+
   it("writes through existing canonical actions and clamps domains", () => {
     expect(setParameter("transport.bpm", 999)).toBe(true);
     expect(useGroove.getState().bpm).toBe(300);
@@ -27,7 +39,6 @@ describe("ParameterHub v1", () => {
     expect(setParameter("master.volume", -20)).toBe(true);
     expect(useGroove.getState().masterVolume).toBe(0);
 
-    // restore values used by the surrounding suite
     useGroove.getState().setBpm(baseline.bpm);
     useGroove.getState().setMasterVolume(baseline.masterVolume);
   });
@@ -46,17 +57,15 @@ describe("ParameterHub v1", () => {
     const nextBpm = baseline.bpm === 121 ? 122 : 121;
     useGroove.getState().setBpm(nextBpm);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenLastCalledWith(nextBpm);
+    expect(listener).toHaveBeenLastCalledWith(nextBpm, baseline.bpm);
 
     unsub();
     useGroove.getState().setBpm(baseline.bpm);
     useGroove.getState().setMasterVolume(baseline.masterVolume);
   });
 
-  it("uses gesture tokens as correlation metadata only", () => {
-    const gesture = beginParameterGesture("master.volume");
-    expect(gesture.parameter).toBe("master.volume");
-    expect(gesture.id).toBeGreaterThan(0);
-    expect(() => endParameterGesture(gesture)).not.toThrow();
+  it("keeps gesture hooks stateless in v1", () => {
+    expect(beginParameterGesture("master.volume")).toBeUndefined();
+    expect(endParameterGesture("master.volume")).toBeUndefined();
   });
 });
