@@ -14,7 +14,7 @@
 
 import { requestVoice, partVoiceClass, type VoiceHandle } from "@/lib/audio/voiceAllocator";
 import { recordVoiceCreated, recordVoiceDestroyed } from "@/lib/audio/audioPerf";
-import { mulberry32, hashSeed, type Rng } from "@/lib/utils/random";
+import { mulberry32, hashSeed } from "@/lib/utils/random";
 import { useGroove } from "@/lib/store";
 import { getSpatialChain } from "@/lib/synth3d/spatialEngine";
 import { computeUnisonOffsets, type VoiceOpts3D } from "@/lib/synth3d/voice";
@@ -39,6 +39,19 @@ function getEngine(partId: number) {
   return e;
 }
 
+function cleanupNote(partId: number, note: ActiveNote): void {
+  const engine = _engines.get(partId);
+  if (!engine) return;
+  if (note.cleanupTimer) {
+    clearTimeout(note.cleanupTimer);
+    note.cleanupTimer = null;
+  }
+  note.handle.release();
+  const idx = engine.notes.indexOf(note);
+  if (idx >= 0) engine.notes.splice(idx, 1);
+  recordVoiceDestroyed();
+}
+
 /** Trigger a 3D Bass note. Called from the engine's triggerPart path. */
 export function triggerNote3DBass(
   ctx: AudioContext,
@@ -58,10 +71,8 @@ export function triggerNote3DBass(
 
   // ── Spatial chain (shared per-part, reused from synth3d) ────────────────
   const spatial = getSpatialChain(ctx, part.id, params.spatial);
-  // Ensure spatial chain output → chainInput (part's chain.input)
   try { spatial.output.connect(chainInput); } catch { /* already connected */ }
 
-  // Collect modulatable AudioParams from the spatial chain for the mod matrix
   const spatialModParams: VoiceOpts3D["spatialModParams"] = {
     width: spatial.widthGain?.gain,
     azimuth: spatial.panner && "pan" in spatial.panner ? (spatial.panner as StereoPannerNode).pan : undefined,
@@ -69,18 +80,14 @@ export function triggerNote3DBass(
     elevation: spatial.panner && "positionY" in spatial.panner ? (spatial.panner as PannerNode).positionY : undefined,
   };
 
-  // ── Unison ──────────────────────────────────────────────────────────────
   const uni = params.unison;
-  const count = uni.enabled ? Math.max(1, Math.min(5, uni.count)) : 1; // bass: 1..5
+  const count = uni.enabled ? Math.max(1, Math.min(5, uni.count)) : 1;
   const rng = mulberry32(hashSeed(hashSeed(part.id, opts.semitone), Math.floor(when * 1000)));
   const bpm = useGroove.getState().bpm;
 
-  // ── Mono / Legato: glide existing voices or fast-fade ──────────────
+  // ── Mono / Legato: glide existing voices or fast-fade ─────────────────
   if (perf.mode !== "poly" && engine.notes.length > 0) {
     if (perf.glideMode !== "off" && perf.glideTime > 0) {
-      // REVIEW FIX R2: True legato glide — re-pitch existing oscillators via
-      // detune ramp, extend the gate, no new attack. The voice stays alive
-      // seamlessly. The amp env remains in sustain; only pitch glides.
       const oldNote = engine.notes[0];
       if (oldNote.cleanupTimer) { clearTimeout(oldNote.cleanupTimer); oldNote.cleanupTimer = null; }
       const newNoteOffTime = when + opts.gateSec;
@@ -91,17 +98,10 @@ export function triggerNote3DBass(
       oldNote.midi = opts.semitone;
       oldNote.startTime = when;
       engine.lastMidi = opts.semitone;
-      // Reschedule engine-level cleanup for the extended note
       const releaseDelayMs = Math.max(50, (newNoteOffTime + params.ampEnv.release + 0.3 - ctx.currentTime) * 1000);
-      oldNote.cleanupTimer = setTimeout(() => {
-        oldNote.handle.release();
-        const idx = engine.notes.indexOf(oldNote);
-        if (idx >= 0) engine.notes.splice(idx, 1);
-        recordVoiceDestroyed();
-      }, releaseDelayMs + 50);
-      return; // don't create new voices — the existing note continues
+      oldNote.cleanupTimer = setTimeout(() => cleanupNote(part.id, oldNote), releaseDelayMs + 50);
+      return;
     } else {
-      // No glide: fast-fade + new note
       const oldNote = engine.notes[0];
       if (oldNote.cleanupTimer) { clearTimeout(oldNote.cleanupTimer); oldNote.cleanupTimer = null; }
       oldNote.voices.forEach((v) => v.steal(0.03));
@@ -110,10 +110,7 @@ export function triggerNote3DBass(
     }
   }
 
-  // REVIEW FIX R3: Enforce per-part polyphony limit in poly mode.
-  // Without this, rapid triggering could exceed the intended polyphony and
-  // consume the entire global voice budget. Steal the oldest note when the
-  // per-part limit is reached (same fast-fade as allocator stealing).
+  // Enforce per-part polyphony limit in poly mode.
   if (perf.mode === "poly" && engine.notes.length >= perf.polyphony) {
     const oldest = engine.notes[0];
     if (oldest.cleanupTimer) { clearTimeout(oldest.cleanupTimer); oldest.cleanupTimer = null; }
@@ -123,7 +120,6 @@ export function triggerNote3DBass(
     recordVoiceDestroyed();
   }
 
-  // ── Create unison voices ────────────────────────────────────────────────
   const voices: Bass3DVoice[] = [];
   for (let i = 0; i < count; i++) {
     const offsets = computeUnisonOffsets(
@@ -140,34 +136,46 @@ export function triggerNote3DBass(
       bpm,
       spatialModParams,
     };
-    // Bass voice: harmonic path → spatial.input, sub path → chainInput (direct mono)
     const voice = createVoice3DBass(ctx, spatial.input, chainInput, params, when, voiceOpts, rng);
     voices.push(voice);
     recordVoiceCreated();
   }
 
-  // ── Register with allocator for stealing ────────────────────────────────
   handle.steal((fadeSec) => {
     voices.forEach((v) => v.steal(fadeSec));
   });
 
-  // ── Schedule note-off ────────────────────────────────────────────────────
   const noteOffTime = when + opts.gateSec;
   voices.forEach((v) => v.noteOff(noteOffTime));
 
-  // ── Track active note ──────────────────────────────────────────────────
   const note: ActiveNote = { midi: opts.semitone, voices, handle, startTime: when, cleanupTimer: null };
   engine.notes.push(note);
   engine.lastMidi = opts.semitone;
 
-  // ── Schedule engine-level cleanup ────────────────────────────────────────
   const releaseDelayMs = Math.max(50, (noteOffTime + params.ampEnv.release + 0.3 - ctx.currentTime) * 1000);
-  note.cleanupTimer = setTimeout(() => {
-    handle.release();
-    const idx = engine.notes.indexOf(note);
-    if (idx >= 0) engine.notes.splice(idx, 1);
-    recordVoiceDestroyed();
-  }, releaseDelayMs + 50);
+  note.cleanupTimer = setTimeout(() => cleanupNote(part.id, note), releaseDelayMs + 50);
+}
+
+/**
+ * Release one live-performance 3D Bass note using the existing voice engine.
+ * `semitone` uses the same MIDI-60 domain as triggerPart.
+ */
+export function releaseNote3DBass(partId: number, semitone: number, when: number): boolean {
+  const engine = _engines.get(partId);
+  if (!engine) return false;
+  const note = [...engine.notes].reverse().find((candidate) => candidate.midi === semitone);
+  if (!note) return false;
+
+  if (note.cleanupTimer) { clearTimeout(note.cleanupTimer); note.cleanupTimer = null; }
+  note.voices.forEach((voice) => voice.noteOff(when));
+
+  const part = useGroove.getState().parts.find((candidate) => candidate.id === partId);
+  const releaseSec = (part?.bass3d ?? defaultBass3D()).ampEnv.release;
+  note.cleanupTimer = setTimeout(
+    () => cleanupNote(partId, note),
+    Math.max(50, (releaseSec + 0.35) * 1000),
+  );
+  return true;
 }
 
 /** Stop all notes for a part immediately (transport stop / audio restart). */
