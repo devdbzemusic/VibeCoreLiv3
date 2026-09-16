@@ -14,6 +14,17 @@ Sprint 1 (`Pure Android Build & Runtime Bootstrap`) ist lokal `BUILD VERIFIED`:
 
 Noch offen: `DEVICE VERIFIED`, `PARITY VERIFIED`, Live-Audio-/Sample-Abnahme und vollstaendige E2E-Matrix auf echtem Android-Geraet.
 
+Sprint 2 (`Device Runtime & First E2E`) ist fuer den ersten Runtime-Slice `DEVICE VERIFIED`:
+
+- Compose-Shell bootet auf Geraet `RZCY91QYC9N`.
+- Kein weisser Screen / keine aktive WebView-Oberflaeche im Launcher.
+- Native `VibeCoreAudioEngine` und `GrooveNode` initialisieren.
+- Oboe/AAudio laeuft mit 48 kHz.
+- Transport Start/Stop ist per Logcat nachgewiesen.
+- Mixer-Screen ist erreichbar.
+
+Nicht enthalten: Sample-Playback, vollstaendige Persistenzrunde, Bass/Voice/Synth/FX/AI-Parity.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.

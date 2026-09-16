@@ -63,6 +63,7 @@ void GrooveNode::onTransportStop(int32_t /*sampleOffset*/) noexcept {
     for (auto& seq : mSequencers) seq.onTransportStop();
     mSceneEngine.onTransportStop();
     mTriggerQueue.clear();
+    VLOG_D("GrooveNode: transport stop");
 }
 
 void GrooveNode::onTick(int64_t absoluteTick,

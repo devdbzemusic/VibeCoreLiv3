@@ -137,6 +137,17 @@ private fun TransportPanel(
     onTempoDown: () -> Unit,
     onTempoUp: () -> Unit,
 ) {
+    val runtimeLabel = when {
+        playing -> "TRANSPORT PLAYING"
+        engineRunning -> "ENGINE READY"
+        else -> "ENGINE IDLE"
+    }
+    val runtimeColor = when {
+        playing -> VibeCoreColors.Lime
+        engineRunning -> VibeCoreColors.Primary
+        else -> VibeCoreColors.Muted
+    }
+
     Panel {
         Column {
             Row(
@@ -174,8 +185,8 @@ private fun TransportPanel(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    if (engineRunning) "ENGINE RUNNING" else "ENGINE IDLE",
-                    color = if (engineRunning) VibeCoreColors.Lime else VibeCoreColors.Muted,
+                    runtimeLabel,
+                    color = runtimeColor,
                     fontSize = 9.sp,
                     fontFamily = FontFamily.Monospace,
                 )

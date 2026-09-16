@@ -88,6 +88,44 @@ Gefixter Build-Blocker:
 
 Noch nicht behaupten: `DEVICE VERIFIED`, `PARITY VERIFIED` oder hörbare Sample-/Transport-Abnahme.
 
+## Sprint 2 Device-Runtime-Status
+
+Status: `DEVICE VERIFIED` fuer Boot, Compose-Shell und Transport-Start/Stop-Slice.
+
+Device:
+
+```text
+RZCY91QYC9N
+```
+
+Evidence:
+
+```text
+evidence\2026-09-16_11-30-42-pure-android-sprint2-rerun\
+```
+
+Geprueft:
+
+- APK per `adb install -r` installiert.
+- App startet als `com.vibecore.app/.MainActivity`.
+- Kein weisser Screen, keine aktive WebView-Oberflaeche sichtbar.
+- Header zeigt `PURE ANDROID • OBOE`.
+- Native Core initialisiert `VibeCoreAudioEngine` und `GrooveNode`.
+- Oboe/AAudio startet mit 48 kHz und Exclusive Stream.
+- Transport `PLAY` erzeugt `GrooveNode: transport start`.
+- Transport `STOP` erzeugt `GrooveNode: transport stop`.
+- UI unterscheidet jetzt Transport und Engine-Warmstatus:
+  - `TRANSPORT PLAYING` waehrend Playback.
+  - `ENGINE READY` nach Stop bei weiterhin warmem Audio-Stream.
+- Mixer-Screen ist erreichbar und zeigt native 16-Part-Level-UI.
+
+Offen:
+
+- Sample-Import/Playback mit realer WAV/MP3/AAC-Datei.
+- Persistenz-E2E nach vollstaendigem App-Neustart fuer Pattern/Mixer/Sample.
+- Vollstaendige Parity-Matrix fuer alle Screens.
+- Hoerbare musikalische Abnahme mit geladenem Sample.
+
 Optional installieren:
 
 ```powershell

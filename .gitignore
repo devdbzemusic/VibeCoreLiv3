@@ -40,3 +40,4 @@ native-android/app/.cxx/
 native-android/app/build/
 native-android/app/src/main/assets/webapp/
 exports/*.zip
+evidence/
