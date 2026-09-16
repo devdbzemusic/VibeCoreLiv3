@@ -30,7 +30,6 @@ interface ActiveNote {
   cleanupTimer: ReturnType<typeof setTimeout> | null;
 }
 
-// Per-part voice engines
 const _engines = new Map<number, { notes: ActiveNote[]; lastMidi: number }>();
 
 function getEngine(partId: number) {
@@ -52,7 +51,6 @@ function cleanupNote(partId: number, note: ActiveNote): void {
   recordVoiceDestroyed();
 }
 
-/** Trigger a 3D Bass note. Called from the engine's triggerPart path. */
 export function triggerNote3DBass(
   ctx: AudioContext,
   chainInput: AudioNode,
@@ -64,12 +62,10 @@ export function triggerNote3DBass(
   const engine = getEngine(part.id);
   const perf = params.performance;
 
-  // ── Voice allocation via central allocator (CRITICAL priority) ──────────
   const { module, priority } = partVoiceClass(part);
   const handle = requestVoice(part.id, module, priority);
-  if (!handle) return; // dropped — all active voices are more critical
+  if (!handle) return;
 
-  // ── Spatial chain (shared per-part, reused from synth3d) ────────────────
   const spatial = getSpatialChain(ctx, part.id, params.spatial);
   try { spatial.output.connect(chainInput); } catch { /* already connected */ }
 
@@ -85,7 +81,6 @@ export function triggerNote3DBass(
   const rng = mulberry32(hashSeed(hashSeed(part.id, opts.semitone), Math.floor(when * 1000)));
   const bpm = useGroove.getState().bpm;
 
-  // ── Mono / Legato: glide existing voices or fast-fade ─────────────────
   if (perf.mode !== "poly" && engine.notes.length > 0) {
     if (perf.glideMode !== "off" && perf.glideTime > 0) {
       const oldNote = engine.notes[0];
@@ -110,7 +105,6 @@ export function triggerNote3DBass(
     }
   }
 
-  // Enforce per-part polyphony limit in poly mode.
   if (perf.mode === "poly" && engine.notes.length >= perf.polyphony) {
     const oldest = engine.notes[0];
     if (oldest.cleanupTimer) { clearTimeout(oldest.cleanupTimer); oldest.cleanupTimer = null; }
@@ -122,9 +116,7 @@ export function triggerNote3DBass(
 
   const voices: Bass3DVoice[] = [];
   for (let i = 0; i < count; i++) {
-    const offsets = computeUnisonOffsets(
-      i, count, uni.detune, uni.spread, uni.phaseRandom, rng,
-    );
+    const offsets = computeUnisonOffsets(i, count, uni.detune, uni.spread, uni.phaseRandom, rng);
     const voiceOpts: VoiceOpts3D = {
       velocity: opts.velocity,
       semitone: opts.semitone,
@@ -157,28 +149,28 @@ export function triggerNote3DBass(
 }
 
 /**
- * Release one live-performance 3D Bass note using the existing voice engine.
- * `semitone` uses the same MIDI-60 domain as triggerPart.
+ * Live key-up reuses the voice's steal(fadeSec) primitive because it is the
+ * source-proven primitive that cancels pre-scheduled amp-envelope automation
+ * before fading from the current level. The existing voice.noteOff() only
+ * updates cleanup for a gate that was already scheduled at note-on.
  */
-export function releaseNote3DBass(partId: number, semitone: number, when: number): boolean {
+export function releaseNote3DBass(partId: number, semitone: number, _when: number): boolean {
   const engine = _engines.get(partId);
   if (!engine) return false;
   const note = [...engine.notes].reverse().find((candidate) => candidate.midi === semitone);
   if (!note) return false;
 
   if (note.cleanupTimer) { clearTimeout(note.cleanupTimer); note.cleanupTimer = null; }
-  note.voices.forEach((voice) => voice.noteOff(when));
-
   const part = useGroove.getState().parts.find((candidate) => candidate.id === partId);
-  const releaseSec = (part?.bass3d ?? defaultBass3D()).ampEnv.release;
+  const releaseSec = Math.max(0.005, (part?.bass3d ?? defaultBass3D()).ampEnv.release);
+  note.voices.forEach((voice) => voice.steal(releaseSec));
   note.cleanupTimer = setTimeout(
     () => cleanupNote(partId, note),
-    Math.max(50, (releaseSec + 0.35) * 1000),
+    Math.max(50, (releaseSec + 0.1) * 1000),
   );
   return true;
 }
 
-/** Stop all notes for a part immediately (transport stop / audio restart). */
 export function killAllNotes3DBass(partId: number): void {
   const engine = _engines.get(partId);
   if (!engine) return;
@@ -190,7 +182,6 @@ export function killAllNotes3DBass(partId: number): void {
   engine.notes = [];
 }
 
-/** Clear all bass voice engines (call on audio restart). */
 export function clearAll3DBass(): void {
   _engines.forEach((e) => {
     e.notes.forEach((n) => {
