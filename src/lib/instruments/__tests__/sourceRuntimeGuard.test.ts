@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildDefaultParts } from "@/lib/model";
 import { useGroove } from "@/lib/store";
 import {
+  applyCanonicalEngineWrite,
   applyCanonicalSourceWrite,
   canonicalizeRuntimeParts,
   configureProjectPersistenceV13,
@@ -102,6 +103,56 @@ describe("applyCanonicalSourceWrite", () => {
     expect(result.source).toBe("sample");
     expect(result.legacyInstrument?.source?.source).toBe("synth");
     expect(result.legacyInstrument?.source?.reason).toBe("legacy-synth-on-sample-domain");
+  });
+});
+
+describe("applyCanonicalEngineWrite", () => {
+  it("keeps canonical 3D Synth engine unchanged", () => {
+    const synth = canonicalizeRuntimeParts([
+      buildDefaultParts().find((part) => part.category === "synth")!,
+    ]).parts[0];
+
+    const result = applyCanonicalEngineWrite(synth, "3D");
+    expect(result).toBe(synth);
+    expect(result.synth.engine).toBe("3D");
+  });
+
+  it("rejects legacy Synth engine and keeps it in compatibility metadata", () => {
+    const synth = canonicalizeRuntimeParts([
+      buildDefaultParts().find((part) => part.category === "synth")!,
+    ]).parts[0];
+    const result = applyCanonicalEngineWrite(synth, "Synth") as typeof synth & {
+      legacyInstrument?: { engine?: { engine: string; reason: string; migratedBySchema: number } };
+    };
+
+    expect(result.synth.engine).toBe("3D");
+    expect(result.legacyInstrument?.engine).toEqual({
+      engine: "Synth",
+      reason: "legacy-noncanonical-synth-engine",
+      migratedBySchema: 13,
+    });
+  });
+
+  it("rejects legacy Bass engine and keeps 3D Bass active", () => {
+    const bass = canonicalizeRuntimeParts([
+      buildDefaultParts().find((part) => part.category === "bass")!,
+    ]).parts[0];
+    const result = applyCanonicalEngineWrite(bass, "Bass") as typeof bass & {
+      legacyInstrument?: { engine?: { engine: string; reason: string; migratedBySchema: number } };
+    };
+
+    expect(result.synth.engine).toBe("3D Bass");
+    expect(result.legacyInstrument?.engine?.engine).toBe("Bass");
+    expect(result.legacyInstrument?.engine?.reason).toBe("legacy-noncanonical-bass-engine");
+  });
+
+  it("does not introduce a synth renderer on sample-domain parts", () => {
+    const kick = canonicalizeRuntimeParts([
+      buildDefaultParts().find((part) => part.category === "kick")!,
+    ]).parts[0];
+
+    const result = applyCanonicalEngineWrite(kick, "3D");
+    expect(result).toBe(kick);
   });
 });
 
