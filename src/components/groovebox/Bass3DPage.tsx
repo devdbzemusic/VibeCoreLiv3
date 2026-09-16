@@ -48,7 +48,7 @@ function ParamSlider({
 // ── Main component ────────────────────────────────────────────────────────────
 export function Bass3DPage() {
   const {
-    parts, selectedPart, selectPart, setSynthEngine, setPartSource, setBass3D,
+    parts, selectedPart, selectPart, setSynthEngine, setBass3D,
     setTab, setNotes, patterns, selectedPattern, selectedSceneIdx,
   } = useGroove();
   const [deepOpen, setDeepOpen] = useState(false);
@@ -64,9 +64,8 @@ export function Bass3DPage() {
     }
     if (p && p.synth.engine !== "3D Bass") {
       setSynthEngine(p.id, "3D Bass");
-      setPartSource(p.id, "synth");
     }
-  }, [parts, selectedPart, selectPart, setSynthEngine, setPartSource]);
+  }, [parts, selectedPart, selectPart, setSynthEngine]);
 
   const p = parts[selectedPart];
   const b = p?.bass3d ?? defaultBass3D();
