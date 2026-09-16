@@ -5,14 +5,13 @@ import {
   Play, Pause, Square, Zap, Sliders, Grid3x3,
 } from "lucide-react";
 import { useMeter, useVisibleParts } from "@/hooks/useMeter";
-import { ensureAudio, getCtx } from "@/lib/audio/engine";
-import { activateNativeAudio, isNativeAudioPath } from "@/lib/audio/nativeAudioRuntime";
+import { toggleRuntimePlay } from "@/lib/runtime/transport";
 
 export function PerformanceTab() {
   const {
     patterns, transport, selectedPattern, selectPattern, queuePattern,
-    togglePlay, playheads, bpm,
-    parts, setPartVolume, toggleMute, toggleSolo,
+    playheads, bpm,
+    parts,
     seekTo, selectSceneIdx, selectedSceneIdx,
   } = useGroove();
 
@@ -25,15 +24,7 @@ export function PerformanceTab() {
   useVisibleParts(visibleIds);
 
   const handlePlay = async () => {
-    if (isNativeAudioPath()) {
-      if (!await activateNativeAudio()) return;
-      togglePlay();
-      return;
-    }
-    await ensureAudio();
-    const ctx = getCtx();
-    if (ctx?.state === "suspended") await ctx.resume();
-    togglePlay();
+    await toggleRuntimePlay();
   };
 
   const onClipTap = (i: number) => {
