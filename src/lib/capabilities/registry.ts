@@ -1,17 +1,19 @@
 // VibeCoreLiv3 - Capability Registry
 //
 // Purpose:
-//   Single readable inventory of platform capabilities required by the v4.0
-//   governance model. This registry is intentionally declarative: modules can
-//   ask what exists before they expose controls, AI actions, or import paths.
+//   One authority for feature availability and evidence status. Static project
+//   capability metadata and side-effect-free runtime probes intentionally live
+//   together so UI/runtime modules do not invent their own environment checks.
 //
 // Rules:
-//   - "ready" means implemented and usable through the normal app contract.
-//   - "partial" means present but not complete enough for all v4.0 promises.
+//   - "ready" means implemented through the normal app contract.
+//   - "partial" means present but incomplete for all v4.0 promises.
 //   - "planned" means reserved/designed but not implemented.
-//   - "blocked" means known constraints prevent use.
-//   - verification status MUST describe evidence, not intent. Device/runtime
-//     behavior remains NOT_EXECUTED until an actual APK/device run proves it.
+//   - "blocked" means a known constraint prevents use.
+//   - runtime probes NEVER initialize audio, request permission, open MIDI, or
+//     create a second renderer. They only inspect already exposed platform APIs.
+//   - verification describes evidence, not intent. Device/runtime behavior stays
+//     NOT_EXECUTED until an actual build/device run proves it.
 
 export type CapabilityStatus = "ready" | "partial" | "planned" | "blocked";
 export type VerificationStatus = "VERIFIED" | "STATICALLY_VERIFIED" | "EXPECTED" | "UNKNOWN" | "NOT_EXECUTED";
@@ -65,8 +67,9 @@ const CAPABILITIES: Capability[] = [
     area: "parameter",
     status: "partial",
     verification: "STATICALLY_VERIFIED",
-    owner: "src/lib/store + module parameter helpers",
-    contract: "Current parameter writes mostly flow through store actions; a dedicated hub is still pending.",
+    owner: "src/lib/runtime/parameterHub.ts + src/lib/store.ts",
+    contract: "ParameterHub v1 is a stateless typed proxy over the existing authoritative store; it must not become a second state store.",
+    notes: "Current v1 coverage is intentionally narrow. Gesture/automation/undo semantics remain follow-up work.",
   },
   {
     id: "ai.intent-layer",
@@ -111,8 +114,8 @@ const CAPABILITIES: Capability[] = [
     area: "instrument",
     status: "partial",
     verification: "STATICALLY_VERIFIED",
-    owner: "src/components/groovebox/Synth3DPage.tsx + Bass3DPage.tsx + InstrumentKeyboard.tsx",
-    contract: "Piano Roll access and on-screen touch keyboard exist; external MIDI keyboard and motion recorder are pending.",
+    owner: "src/components/groovebox/InstrumentKeyboard.tsx + src/lib/runtime/performanceInput.ts",
+    contract: "Migrated touch keyboard uses Runtime PerformanceInput. Native Bass has an explicit note lifecycle; Native 3D Synth remains unsupported until a renderer exists.",
   },
   {
     id: "sample.slot-integrity",
@@ -157,4 +160,195 @@ export function hasCapability(id: string, minimum: CapabilityStatus = "ready"): 
     ready: 3,
   };
   return rank[capability.status] >= rank[minimum];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Runtime capability probes
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type RuntimeCapabilityId =
+  | "audio.web"
+  | "audio.native"
+  | "audio.lowLatency.native"
+  | "audio.input.web"
+  | "preview.buffer.web"
+  | "preview.buffer.native"
+  | "instrument.synth3d.web"
+  | "instrument.synth3d.native"
+  | "instrument.bass3d.web"
+  | "instrument.bass3d.native"
+  | "voice.native"
+  | "voice.liveInput.native"
+  | "midi.input.web"
+  | "storage.indexeddb";
+
+export interface RuntimeCapabilityProbe {
+  id: RuntimeCapabilityId;
+  available: boolean;
+  verification: VerificationStatus;
+  reason?: string;
+}
+
+function browserAudioApiPresent(): boolean {
+  if (typeof window === "undefined") return false;
+  const candidate = window as typeof window & { webkitAudioContext?: typeof AudioContext };
+  return typeof candidate.AudioContext !== "undefined" || typeof candidate.webkitAudioContext !== "undefined";
+}
+
+function nativeBridgeAvailable(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.VibeCoreNative?.isAvailable?.() === true;
+  } catch {
+    return false;
+  }
+}
+
+function nativeMethod(name: keyof NonNullable<Window["VibeCoreNative"]>): boolean {
+  if (!nativeBridgeAvailable()) return false;
+  return typeof window.VibeCoreNative?.[name] === "function";
+}
+
+export function probeRuntimeCapability(id: RuntimeCapabilityId): RuntimeCapabilityProbe {
+  const webAudio = browserAudioApiPresent();
+  const native = nativeBridgeAvailable();
+
+  switch (id) {
+    case "audio.web":
+      return {
+        id,
+        available: webAudio,
+        verification: webAudio ? "EXPECTED" : "UNKNOWN",
+        reason: webAudio ? "Browser exposes AudioContext" : "AudioContext API is not exposed",
+      };
+    case "audio.native":
+      return {
+        id,
+        available: native,
+        verification: native ? "STATICALLY_VERIFIED" : "NOT_EXECUTED",
+        reason: native ? "VibeCoreNative bridge reports available" : "Native bridge is not present/available",
+      };
+    case "audio.lowLatency.native":
+      return {
+        id,
+        available: native,
+        verification: "NOT_EXECUTED",
+        reason: native
+          ? "Native Oboe path exists, but low-latency behavior is not measured yet"
+          : "Native Oboe path unavailable",
+      };
+    case "audio.input.web": {
+      const available = typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function";
+      return {
+        id,
+        available,
+        verification: available ? "EXPECTED" : "UNKNOWN",
+        reason: available ? "getUserMedia API exposed; permission not requested" : "getUserMedia API unavailable",
+      };
+    }
+    case "preview.buffer.web":
+      return {
+        id,
+        available: webAudio,
+        verification: webAudio ? "STATICALLY_VERIFIED" : "UNKNOWN",
+        reason: webAudio ? "RuntimePreview reuses existing WebAudio preview path" : "WebAudio unavailable",
+      };
+    case "preview.buffer.native":
+      return {
+        id,
+        available: false,
+        verification: "STATICALLY_VERIFIED",
+        reason: "No dedicated Native preview-buffer contract exists; Voice slots are not reserved for preview",
+      };
+    case "instrument.synth3d.web":
+      return {
+        id,
+        available: webAudio,
+        verification: webAudio ? "STATICALLY_VERIFIED" : "UNKNOWN",
+        reason: webAudio ? "Existing Synth3D WebAudio voice engine is present" : "WebAudio unavailable",
+      };
+    case "instrument.synth3d.native":
+      return {
+        id,
+        available: false,
+        verification: "STATICALLY_VERIFIED",
+        reason: "No dedicated Native 3D Synth renderer/JNI note lifecycle is source-proven",
+      };
+    case "instrument.bass3d.web":
+      return {
+        id,
+        available: webAudio,
+        verification: webAudio ? "STATICALLY_VERIFIED" : "UNKNOWN",
+        reason: webAudio ? "Existing Bass3D WebAudio voice engine is present" : "WebAudio unavailable",
+      };
+    case "instrument.bass3d.native": {
+      const available = native && nativeMethod("bassNoteOn") && nativeMethod("bassNoteOff") && nativeMethod("bassAllNotesOff");
+      return {
+        id,
+        available,
+        verification: available ? "STATICALLY_VERIFIED" : "UNKNOWN",
+        reason: available ? "Native Bass note lifecycle bridge is exposed" : "Native Bass lifecycle bridge unavailable",
+      };
+    }
+    case "voice.native": {
+      const available = native && nativeMethod("voiceNoteOn") && nativeMethod("voiceNoteOff") && nativeMethod("voiceAllNotesOff");
+      return {
+        id,
+        available,
+        verification: available ? "STATICALLY_VERIFIED" : "UNKNOWN",
+        reason: available ? "Native Voice lifecycle bridge is exposed" : "Native Voice lifecycle bridge unavailable",
+      };
+    }
+    case "voice.liveInput.native": {
+      const available = native && nativeMethod("voiceSetLiveInputEnabled") && nativeMethod("voiceLiveInputEnabled");
+      return {
+        id,
+        available,
+        verification: available ? "STATICALLY_VERIFIED" : "UNKNOWN",
+        reason: available ? "Native Voice live-input bridge is exposed" : "Native Voice live-input bridge unavailable",
+      };
+    }
+    case "midi.input.web": {
+      const available = typeof navigator !== "undefined" && "requestMIDIAccess" in navigator;
+      return {
+        id,
+        available,
+        verification: available ? "EXPECTED" : "UNKNOWN",
+        reason: available ? "Web MIDI API exposed; device access not requested" : "Web MIDI API unavailable",
+      };
+    }
+    case "storage.indexeddb": {
+      const available = typeof indexedDB !== "undefined";
+      return {
+        id,
+        available,
+        verification: available ? "EXPECTED" : "UNKNOWN",
+        reason: available ? "IndexedDB API exposed" : "IndexedDB unavailable",
+      };
+    }
+  }
+}
+
+export function runtimeCapabilityAvailable(id: RuntimeCapabilityId): boolean {
+  return probeRuntimeCapability(id).available;
+}
+
+export function runtimeCapabilitySnapshot(): Record<RuntimeCapabilityId, RuntimeCapabilityProbe> {
+  const ids: RuntimeCapabilityId[] = [
+    "audio.web",
+    "audio.native",
+    "audio.lowLatency.native",
+    "audio.input.web",
+    "preview.buffer.web",
+    "preview.buffer.native",
+    "instrument.synth3d.web",
+    "instrument.synth3d.native",
+    "instrument.bass3d.web",
+    "instrument.bass3d.native",
+    "voice.native",
+    "voice.liveInput.native",
+    "midi.input.web",
+    "storage.indexeddb",
+  ];
+  return Object.fromEntries(ids.map((id) => [id, probeRuntimeCapability(id)])) as Record<RuntimeCapabilityId, RuntimeCapabilityProbe>;
 }
