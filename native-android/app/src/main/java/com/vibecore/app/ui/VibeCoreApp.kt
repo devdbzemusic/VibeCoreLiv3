@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,11 +18,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vibecore.app.nativeui.NativeScreen
 import com.vibecore.app.nativeui.TrackState
 import com.vibecore.app.nativeui.VibeCoreViewModel
 
@@ -49,11 +53,7 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(VibeCoreColors.Surface2, VibeCoreColors.Background),
-                    )
-                )
+                .background(Brush.verticalGradient(listOf(VibeCoreColors.Surface2, VibeCoreColors.Background)))
                 .padding(10.dp),
         ) {
             Column(
@@ -71,23 +71,53 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                     onTempoUp = { viewModel.nudgeTempo(1.0) },
                 )
 
-                TrackStrip(
-                    tracks = state.tracks,
-                    selected = state.selectedTrack,
-                    onSelect = viewModel::selectTrack,
-                )
+                when (state.screen) {
+                    NativeScreen.PATTERN -> {
+                        TrackStrip(
+                            tracks = state.tracks,
+                            selected = state.selectedTrack,
+                            onSelect = viewModel::selectTrack,
+                        )
+                        val track = state.tracks[state.selectedTrack]
+                        PatternPanel(
+                            track = track,
+                            currentStep = state.currentStep,
+                            onToggleStep = viewModel::toggleStep,
+                            onMute = { viewModel.toggleMute() },
+                            onSolo = { viewModel.toggleSolo() },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    NativeScreen.MIXER -> MixerPanel(
+                        tracks = state.tracks,
+                        selectedTrack = state.selectedTrack,
+                        onSelect = viewModel::selectTrack,
+                        onVolume = viewModel::setTrackVolume,
+                        onMute = viewModel::toggleMute,
+                        onSolo = viewModel::toggleSolo,
+                        modifier = Modifier.weight(1f),
+                    )
+                    NativeScreen.SAMPLE -> MigrationPlaceholder(
+                        title = "SAMPLE FORGE",
+                        detail = "Android SAF + native PCM asset store is the next port slice.",
+                        modifier = Modifier.weight(1f),
+                    )
+                    NativeScreen.SYNTH -> MigrationPlaceholder(
+                        title = "SYNTH 3D",
+                        detail = "Visual parity is preserved; native synth renderer is not yet implemented.",
+                        modifier = Modifier.weight(1f),
+                    )
+                    NativeScreen.VOICE -> MigrationPlaceholder(
+                        title = "VOICE",
+                        detail = "Native Voice core exists; Compose controls are being ported next.",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
 
-                val track = state.tracks[state.selectedTrack]
-                PatternPanel(
-                    track = track,
-                    currentStep = state.currentStep,
-                    onToggleStep = viewModel::toggleStep,
-                    onMute = viewModel::toggleMute,
-                    onSolo = viewModel::toggleSolo,
-                    modifier = Modifier.weight(1f),
+                BottomModeBar(
+                    selected = state.screen,
+                    onSelect = viewModel::selectScreen,
                 )
-
-                BottomModeBar()
 
                 DiagnosticBar(
                     text = state.diagnostic,
@@ -184,9 +214,7 @@ private fun TrackStrip(
 ) {
     val scroll = rememberScrollState()
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(scroll),
+        modifier = Modifier.fillMaxWidth().horizontalScroll(scroll),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         tracks.forEachIndexed { index, track ->
@@ -194,14 +222,8 @@ private fun TrackStrip(
             Surface(
                 color = if (chosen) VibeCoreColors.Primary.copy(alpha = 0.18f) else VibeCoreColors.Surface1,
                 shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(
-                    1.dp,
-                    if (chosen) VibeCoreColors.Primary else VibeCoreColors.Border,
-                ),
-                modifier = Modifier
-                    .width(84.dp)
-                    .height(44.dp)
-                    .clickable { onSelect(index) },
+                border = BorderStroke(1.dp, if (chosen) VibeCoreColors.Primary else VibeCoreColors.Border),
+                modifier = Modifier.width(84.dp).height(44.dp).clickable { onSelect(index) },
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
@@ -231,17 +253,9 @@ private fun PatternPanel(
             modifier = Modifier.fillMaxSize().padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        track.name,
-                        color = VibeCoreColors.Primary,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 19.sp,
-                    )
+                    Text(track.name, color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 19.sp)
                     Text("PATTERN 01 • 16 STEPS", color = VibeCoreColors.Muted, fontSize = 10.sp)
                 }
                 ToggleChip("M", track.muted, VibeCoreColors.Crimson, onMute)
@@ -270,6 +284,115 @@ private fun PatternPanel(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MixerPanel(
+    tracks: List<TrackState>,
+    selectedTrack: Int,
+    onSelect: (Int) -> Unit,
+    onVolume: (Int, Int) -> Unit,
+    onMute: (Int) -> Unit,
+    onSolo: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Panel(modifier = modifier) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("MIXER", color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 19.sp)
+            Text("16 PARTS • NATIVE GROOVE LEVELS", color = VibeCoreColors.Muted, fontSize = 10.sp)
+
+            Column(
+                modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                tracks.forEachIndexed { index, track ->
+                    MixerRow(
+                        track = track,
+                        selected = index == selectedTrack,
+                        onSelect = { onSelect(index) },
+                        onVolume = { onVolume(index, it) },
+                        onMute = { onMute(index) },
+                        onSolo = { onSolo(index) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MixerRow(
+    track: TrackState,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    onVolume: (Int) -> Unit,
+    onMute: () -> Unit,
+    onSolo: () -> Unit,
+) {
+    Surface(
+        color = if (selected) VibeCoreColors.Primary.copy(alpha = 0.08f) else VibeCoreColors.Surface2,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, if (selected) VibeCoreColors.Primary else VibeCoreColors.Border),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onSelect),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 9.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            Text(
+                track.name,
+                modifier = Modifier.width(72.dp),
+                color = if (selected) VibeCoreColors.PrimaryGlow else VibeCoreColors.Foreground,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
+            Slider(
+                value = track.volume.toFloat(),
+                onValueChange = { onVolume(it.toInt()) },
+                valueRange = 0f..127f,
+                modifier = Modifier.weight(1f),
+                colors = SliderDefaults.colors(
+                    thumbColor = VibeCoreColors.Primary,
+                    activeTrackColor = VibeCoreColors.Primary,
+                    inactiveTrackColor = VibeCoreColors.SurfaceElevated,
+                ),
+            )
+            Text(
+                track.volume.toString(),
+                color = VibeCoreColors.Muted,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 9.sp,
+                modifier = Modifier.width(24.dp),
+                textAlign = TextAlign.End,
+            )
+            ToggleChip("M", track.muted, VibeCoreColors.Crimson, onMute)
+            ToggleChip("S", track.soloed, VibeCoreColors.Amber, onSolo)
+        }
+    }
+}
+
+@Composable
+private fun MigrationPlaceholder(title: String, detail: String, modifier: Modifier = Modifier) {
+    Panel(modifier = modifier) {
+        Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(title, color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 22.sp)
+                Text(
+                    "PURE ANDROID MIGRATION",
+                    color = VibeCoreColors.Magenta,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 10.sp,
+                )
+                Text(detail, color = VibeCoreColors.Muted, textAlign = TextAlign.Center, fontSize = 12.sp)
+                Text("Golden Master UI remains the parity reference.", color = VibeCoreColors.Foreground, fontSize = 11.sp)
             }
         }
     }
@@ -320,19 +443,22 @@ private fun StepCell(
 }
 
 @Composable
-private fun BottomModeBar() {
+private fun BottomModeBar(selected: NativeScreen, onSelect: (NativeScreen) -> Unit) {
     Panel {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(6.dp),
+            modifier = Modifier.fillMaxWidth().padding(4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            listOf("PATTERN", "MIXER", "SAMPLE", "SYNTH", "VOICE").forEachIndexed { index, text ->
+            NativeScreen.entries.forEach { screen ->
+                val active = selected == screen
                 Text(
-                    text = text,
-                    color = if (index == 0) VibeCoreColors.Primary else VibeCoreColors.Muted,
-                    fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Medium,
+                    text = screen.name,
+                    color = if (active) VibeCoreColors.Primary else VibeCoreColors.Muted,
+                    fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
                     fontSize = 10.sp,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 7.dp),
+                    modifier = Modifier
+                        .clickable { onSelect(screen) }
+                        .padding(horizontal = 7.dp, vertical = 9.dp),
                 )
             }
         }
@@ -362,10 +488,7 @@ private fun DiagnosticBar(text: String, engineRunning: Boolean) {
 }
 
 @Composable
-private fun Panel(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
+private fun Panel(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Surface(
         color = VibeCoreColors.Surface1,
         shape = PanelShape,
