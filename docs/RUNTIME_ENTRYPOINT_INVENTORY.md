@@ -38,11 +38,11 @@ Runtime execution remains `NOT EXECUTED`.
 
 ---
 
-## 2. Shared InstrumentKeyboard — migrated
+## 2. Shared InstrumentKeyboard — migrated and lifecycle-hardened
 
 File: `src/components/groovebox/InstrumentKeyboard.tsx`
 
-Old direct path:
+The old direct path:
 
 ```text
 InstrumentKeyboard
@@ -61,18 +61,36 @@ InstrumentKeyboard
 → selected runtime
 ```
 
-The component now tracks pointer→note ownership. Pointer up, pointer cancel and lost pointer capture issue a Runtime release command. Component unmount issues an all-notes-off recovery command for the active instrument route.
+The component reserves pointer ownership **before** awaiting runtime activation. This matters because Native engine startup and browser `ensureAudio()` are asynchronous.
+
+```text
+pointerDown
+→ reserve pointer/midi/instrument as pending
+→ await Runtime noteOn
+
+pointerUp / cancel / lost capture while pending
+→ mark released
+→ if noteOn later succeeds, emit matching noteOff immediately
+```
+
+Unmount marks pending gestures released and sends all-notes-off for already active instrument routes. Async completions do not update React state after disposal.
 
 Classification: `A`  
-Status: `STATICALLY VERIFIED — UI BYPASS REMOVED`
+Status: `STATICALLY VERIFIED — UI BYPASS REMOVED / ASYNC UI RACE GUARDED`
 
-### Browser release caveat
+### Browser 3D release
 
-The existing browser `triggerPart()` API schedules a finite `gateSec` but does not expose a reusable per-note release handle. Therefore the Runtime reports browser release as `gate`, not `explicit`.
+3D Synth and 3D Bass reuse their existing per-part voice engines. No second voice manager was introduced.
 
-### Native authority rule
+The low-level voice `noteOff()` methods were audited and found unsuitable as proof of early key release because the amp ADSR is already scheduled at note-on. The existing `steal(fadeSec)` primitives **do** cancel scheduled amp automation and fade from the current value, so live key-up reuses them with the patch release duration.
 
-Native mode never falls through from PerformanceInput to audible WebAudio.
+Browser generic Parts still use scheduled gate semantics.
+
+### Remaining registration acknowledgement gap
+
+`triggerPart()` calls async `playSynth()` without awaiting it, and the 3D modules are dynamically imported. Therefore the Browser Runtime still does not formally acknowledge that a specific 3D voice is registered before `performanceNoteOn()` resolves.
+
+This is now an explicit contract gap, not hidden by the UI lifecycle guard.
 
 ---
 
@@ -94,42 +112,55 @@ InstrumentKeyboard
 → audio graph
 ```
 
-Release:
+Native release/recovery:
 
 ```text
-pointer up/cancel/lost capture
-→ performanceNoteOff
-→ bassNoteOff
+pointer release → performanceNoteOff → bassNoteOff
+unmount/panic   → performanceAllNotesOff → bassAllNotesOff
 ```
 
-Recovery:
+Browser release:
 
 ```text
-unmount
-→ performanceAllNotesOff
-→ bassAllNotesOff
+performanceNoteOff
+→ releaseNote3DBass
+→ existing Bass3D voice.steal(releaseSec)
 ```
 
-Status: `STATICALLY VERIFIED`  
-Runtime/audio result: `NOT EXECUTED`
+Status: routes `STATICALLY VERIFIED`; actual audio execution `NOT EXECUTED`; browser registration acknowledgement still open.
 
 ---
 
 ## 4. 3D Synth live keyboard
 
-Browser source path exists through `triggerPart → trigger3DSynth`.
+Browser path:
 
-No dedicated Native 3D Synth engine/node/JNI live-note route is source-proven. The Native C++ top-level currently exposes dedicated `bass`, `groove` and `voice` modules; `TrackMode::Synth` alone is routing metadata and is not proof of a synth renderer.
+```text
+performanceNoteOn
+→ existing triggerPart
+→ async trigger3DSynth
+→ existing Synth3D voice engine
+```
 
-The keyboard can infer the route from canonical Part state:
+Browser release:
+
+```text
+performanceNoteOff
+→ releaseNote3D
+→ existing Synth3D voice.steal(releaseSec)
+```
+
+No dedicated Native 3D Synth engine/node/JNI live-note route is source-proven. `TrackMode::Synth` is routing metadata, not renderer evidence.
+
+The keyboard infers the route from canonical Part state:
 
 - engine `3D` → `synth3d`
 - engine `3D Bass` → `bass3d`
 - otherwise → `part`
 
-On Native, `synth3d` returns unsupported. It does **not** silently start WebAudio.
+On Native, `synth3d` returns unsupported and does **not** silently start WebAudio.
 
-Status: Browser `STATICALLY VERIFIED`; Native `UNSUPPORTED / IMPLEMENTATION GAP`.
+Status: Browser source path `STATICALLY VERIFIED` with registration-ack gap; Native `UNSUPPORTED / IMPLEMENTATION GAP`.
 
 ---
 
@@ -137,35 +168,25 @@ Status: Browser `STATICALLY VERIFIED`; Native `UNSUPPORTED / IMPLEMENTATION GAP`
 
 A first frontend ProjectMirror exists for the current Pattern/Scene and up to 16 native tracks. It maps pattern length, swing, track mute/solo/volume/mode, steps, probability, accent, ratchet/roll, microtiming and piano-roll notes.
 
-Important semantic conversions are explicit:
+Semantic conversions are explicit:
 
 - Web swing `50 = straight` → Native swing `0 = straight`
 - Web ratchet = total hits → Native roll count = additional hits
 - Web micro percentage domain → Native PPQ tick domain
 
-The Native `GrooveEngine` now has a project-load guard so bulk hydration can avoid polluting undo history.
+The Native `GrooveEngine` has a project-load guard so bulk hydration can avoid polluting undo history.
 
-Open gate: Kotlin/JNI begin/end project-load marshalling is not yet committed because the large Kotlin bridge cannot safely be replaced from truncated connector output. The mirror therefore is **not yet bound as automatic runtime hydration**.
+Open gate: Kotlin/JNI begin/end project-load marshalling is not yet committed because the large Kotlin bridge cannot safely be replaced from truncated connector output. The mirror is therefore **not yet bound as automatic runtime hydration**.
 
-Status: mirror/conversions `STATICALLY VERIFIED`; complete Store→Native runtime transfer `NOT EXECUTED / INCOMPLETE`.
+Status: mirror/conversions `STATICALLY VERIFIED`; complete Store→Native runtime transfer `INCOMPLETE / NOT EXECUTED`.
 
 ---
 
 ## 6. Sample Forge decode/edit
 
-Predominantly:
+Decode, PCM transforms, normalize/reverse/trim/fade/pitch/stretch/freeze and assignment are primarily `B — AUDIO_DECODE_ANALYSIS/EDIT`.
 
-```text
-file/buffer
-→ decode
-→ AudioBuffer transforms
-→ normalize/reverse/trim/fade/pitch/stretch/freeze
-→ assign buffer
-```
-
-Classification: `B`.
-
-These operations do not need to be moved through Oboe merely to satisfy audible runtime authority.
+These operations do not need to move through Oboe merely to satisfy audible runtime authority.
 
 ---
 
@@ -244,6 +265,9 @@ Implemented frontend pieces now include:
 VibeCoreRuntime boundary
 ├ Transport              ← TopBar + Performance migrated
 ├ PerformanceInput       ← shared InstrumentKeyboard migrated
+│  ├ Native Bass explicit note lifecycle
+│  ├ Browser 3D release via existing voice engines
+│  └ Native Synth intentionally unsupported
 ├ ProjectMirror          ← current-scene v1 exists, auto-hydration gate open
 ├ Timing units           ← branded Beat/Clock24/Sixteenth/PPQ conversion
 ├ Preview                ← not yet migrated
@@ -266,8 +290,8 @@ AudioAssetService
 
 ## 14. Next authority work
 
-1. Finish Kotlin/JNI `beginProjectLoad/endProjectLoad` marshalling safely and bind Current-Scene ProjectMirror after native activation.
-2. Provide a real browser performance voice handle so `noteOff/allNotesOff` can be explicit rather than gate-only.
+1. Close the Browser 3D registration acknowledgement contract without creating a second engine/allocator.
+2. Finish Kotlin/JNI `beginProjectLoad/endProjectLoad` marshalling safely and bind Current-Scene ProjectMirror after native activation.
 3. Decide/implement Native 3D Synth renderer rather than using WebAudio fallback.
 4. Migrate Sample Forge / Forge audible preview to RuntimePreview.
 5. Migrate/capability-gate bRAINWAVEz, Spatial and granular audible paths.
