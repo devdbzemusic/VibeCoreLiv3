@@ -1,6 +1,6 @@
-# INTEGRATION GATE — ONE ENGINE (Web ↔ Native) — OFFEN (P1)
+# INTEGRATION GATE — ONE ENGINE (Web ↔ Native) — P1 GATE-READY
 
-**Status:** 🔴 OFFEN — Adapter umgesetzt; Hardware-Evidenz und Divergenz-Plan offen (Stand 2026-08-22)
+**Status:** 🟡 P1 GATE-READY — Adapter umgesetzt, Probe vorhanden, Divergenz-Plan festgelegt; echte Device-Evidenz muss auf Android noch erzeugt werden (Stand 2026-09-16)
 **Ebene:** Plattform-Konstitution (VibeCore Univers SUPREMÉ, „One Engine, One Clock, Zero Legacy")
 **Bezug:** ADR-005 (ENTSCHIEDEN 2026-08-18: WebView-`JavascriptInterface`, Interface-Name `VibeCoreNative` — Decision C), Task #38
 
@@ -15,7 +15,7 @@ Es existieren derzeit **zwei getrennte Ausführungspfade** für Audio:
 | **Native Oboe Engine** | `native-android/app/src/main/cpp/` | Intern konstitutionskonform: EIN Oboe-Callback (`VibeCoreAudioEngine::onAudioReady`), EINE Clock (`VibeCoreSync`, PPQ 1920, sample-genaue Tick-Events), ein AudioNode-Graph (Groove = 1, Bass = 2, Voice = 3). Kein zweiter Thread/Scheduler im C++-Baum (grep-verifiziert). |
 | **WebAudio Engine** | `src/lib/audio/engine.ts` (v1.2) | Vollständige parallele Architektur: Per-Part-Channel-Strips, 6 FX-Busse, Master-Kette, Voice-Allocator. Genutzt von 15+ Groovebox-Komponenten (SoundTab, ForgeTab, Bass3DSubtab, Synth3DSubtab, PerformanceTab, SyncTab, …). |
 
-**Kernbefund (aktualisiert 2026-08-22):** Die Android-Erkennung und der
+**Kernbefund (aktualisiert 2026-09-16):** Die Android-Erkennung und der
 Transport-Seam sind aktiv. `AudioBackend.ts`, `NativeOboeBackend.ts` und
 `nativeAudioRuntime.ts` sprechen ausschließlich reale
 `window.VibeCoreNative`-Methoden. Auf Android wird der WebAudio-Scheduler beim
@@ -27,7 +27,8 @@ Die Voice-Schnittstelle stellt acht Slot-basierte Mono-Float-Samples bereit.
 Der TS-Adapter verwendet diese `voiceLoadSample`-, `voiceNoteOn`- und
 `voiceNoteOff`-Methoden direkt. Eine vollständige Zuordnung der größeren
 Web-Part-, Pattern- und FX-Welt ist ausdrücklich Teil des offenen
-Divergenz-Plans.
+Divergenz-Plans. Dieser Plan ist jetzt in
+`docs/NATIVE_DIVERGENCE_PLAN.md` verbindlich festgelegt.
 
 ## 2. Konsequenz für die One-Rule
 
@@ -47,14 +48,29 @@ FX Mix Lab existiert nur web-seitig; 3D Bass/Voice-DSP nur nativ.
    Latenz/Diagnose sowie Voice-Sample/Note-On/Off 1:1 auf die Kotlin-Bridge.
    Der Android-Transport startet nicht zusätzlich den WebAudio-Scheduler; im
    Browser bleibt der bisherige Fallback aktiv.
-3. **End-to-End verifiziert (offen):** Mindestens Transport (Play/Stop/Tempo) und ein
-   Instrumentenpfad (Note-On/Off) laufen nachweislich über die native Engine
-   aus der WebView; Timing-Quelle ist ausschließlich VibeCoreSync.
-4. **Divergenz-Plan (offen):** Festgelegt, welche web-seitigen DSP-Funktionen (FX Mix
-   Lab) nativ nachgezogen oder übergangsweise hybrid betrieben werden — ohne
-   zweite Clock.
+3. 🟡 **Probe implementiert, Device-Lauf offen:** `window.runNativeIntegrationGateProbe()`
+   läuft über den TS-Adapter (`activateNativeAudio` → `NativeOboeBackend`) und
+   prüft Transport Play/Stop/Tempo, Voice-Sample/Note-On/Off und Native
+   Diagnostics. Der tatsächliche Hardware-Report muss auf Android erzeugt und
+   zusammen mit `adb logcat` abgelegt werden.
+4. ✅ **Divergenz-Plan festgelegt:** `docs/NATIVE_DIVERGENCE_PLAN.md` definiert,
+   welche web-seitigen DSP-Funktionen nativ nachgezogen werden und welche
+   Android-seitig bis zur Native-Parität keinen zweiten hörbaren Output-Pfad
+   starten dürfen.
 
-## 4. Ausdrücklicher Nicht-Beschluss
+## 4. P1-Probe
+
+Ausführung in Chrome DevTools für die Android-WebView:
+
+```js
+await window.runNativeIntegrationGateProbe()
+```
+
+Ein Gate-fähiger Report muss `pass: true`, `backendKind: "oboe-native"`, eine
+positive `latencyMs` und bestandene Schritte für Bridge, Aktivierung, Tempo,
+Transport, Voice-Sample/Note-Pfad, Stop und Diagnostics enthalten.
+
+## 5. Ausdrücklicher Nicht-Beschluss
 
 Dieses Dokument ändert **keinen** Code der beiden Engines. Die ADR-005-
 Entscheidung selbst ist in `native-android/docs/adr/ADR-005-module-boundaries.md`

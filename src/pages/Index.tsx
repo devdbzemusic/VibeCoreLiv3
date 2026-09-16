@@ -32,6 +32,7 @@ import { bindInternalSource }    from "@/lib/clock/sources/internalSource";
 import { startQualityManager }   from "@/lib/audio/quality";
 import { startMidiInput }        from "@/lib/audio/midiInput";
 import { bindNativeAudioRuntime } from "@/lib/audio/nativeAudioRuntime";
+import "@/lib/audio/nativeIntegrationGateProbe";
 
 // ── Module-name mapping (MASTERPROMPT v5.0 — Workflow Consolidation) ─────────
 // Maps every TabKey to its display module name shown in the ModuleHeader.

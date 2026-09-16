@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NativeOboeBackend } from "./NativeOboeBackend";
+import { runNativeIntegrationGateProbe } from "./nativeIntegrationGateProbe";
 
 function bridge() {
   return {
@@ -65,5 +66,18 @@ describe("NativeOboeBackend", () => {
     const backend = new NativeOboeBackend();
 
     await expect(backend.startEngine()).rejects.toThrow("native:error");
+  });
+});
+
+describe("runNativeIntegrationGateProbe", () => {
+  it("fails explicitly when no native bridge is available", async () => {
+    const report = await runNativeIntegrationGateProbe();
+
+    expect(report.pass).toBe(false);
+    expect(report.backendKind).toBe("unavailable");
+    expect(report.steps[0]).toMatchObject({
+      name: "native bridge available",
+      pass: false,
+    });
   });
 });

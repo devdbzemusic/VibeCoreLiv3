@@ -1,4 +1,4 @@
-# DEVICE RUNTIME VERIFICATION RUNBOOK — VibeCore Univers (Stand: 2026-08-18)
+# DEVICE RUNTIME VERIFICATION RUNBOOK — VibeCore Univers (Stand: 2026-09-16)
 
 **Zweck:** Physischer Android-Runtime-Test (Ziel: Xiaomi-Gerät) ohne weitere
 Architekturarbeit. Vorbedingung dieses Runbooks ist erfüllt: Build ist real
@@ -62,7 +62,27 @@ adb logcat -d | grep VibeCore > 02_engine.log   # openStream/AAudio-Zeilen siche
 ```
 Erwartung im Log: Stream open (AAudio, LowLatency), Samplerate/Burst-Angaben.
 
-### 7. Audio Smoke Test (hörbar)
+### 7. P1 One-Engine Probe über TS-Adapter
+
+In Chrome DevTools für die WebView:
+
+```js
+await window.runNativeIntegrationGateProbe()
+```
+
+Erwartung:
+
+- `pass: true`
+- `backendKind: "oboe-native"`
+- `latencyMs > 0`
+- bestandene Schritte für Bridge, Aktivierung, Tempo, Transport,
+  Voice-Sample/Note-On/Off, Stop und Diagnostics
+
+Evidenz: JSON-Report speichern. Diese Probe ist der verbindliche P1-Nachweis,
+weil sie den App-Pfad `activateNativeAudio()` → `NativeOboeBackend` nutzt und
+nicht direkt an der UI vorbei ausschließlich `window.VibeCoreNative.*` aufruft.
+
+### 8. Audio Smoke Test (hörbar, ergänzend)
 ```js
 window.VibeCoreNative.setMasterGain(0.8)
 window.VibeCoreNative.grooveSetStep(0, 0, true)   // Step 1, Track 1 aktivieren
@@ -72,7 +92,7 @@ window.VibeCoreNative.play()
 Erwartung: hörbares, periodisches Signal ohne Knacken/Dropouts (~30 s hören).
 XRun-Kontrolle: `adb logcat -d | grep -iE "xrun|underrun"` — Erwartung: leer/0.
 
-### 8. Stop/Close + sauberes Shutdown
+### 9. Stop/Close + sauberes Shutdown
 ```js
 window.VibeCoreNative.stop(); window.VibeCoreNative.stopEngine()
 ```
@@ -81,25 +101,25 @@ Beenden (`adb logcat -d | grep -E "FATAL|SIGSEGV"` leer). Zusatztest
 Audiofokus: während Wiedergabe Musik-App starten → VibeCore muss stoppen
 (Fokusverlust wird in MainActivity durchgesetzt; kein Auto-Resume).
 
-### 9. WebView Bridge Smoke
+### 10. WebView Bridge Smoke
 ```js
 typeof window.VibeCoreNative           // "object"
 typeof window.VibeCoreHost             // "object"
 window.VibeCoreHost.hasMicrophonePermission()      // false (frisch installiert)
 window.VibeCoreNative.getTempo()       // 120 nach Schritt 7
 ```
-Hinweis (dokumentierter Befund, NICHT Teil dieses Gates): die Web-App nutzt
-derzeit WebAudio; das TS-Interface hat Mismatches zur Kotlin-Bridge
-(`start()` vs. `startEngine()`, `loadSample/trigger/configure` fehlen). Der
-Bridge-Smoke erfolgt daher direkt über die DevTools-Konsole, nicht über die App-UI.
+Hinweis: Der alte Bridge-Mismatch (`start()` vs. `startEngine()`) ist im
+aktuellen Adaptervertrag behoben. Für das Gate zählt primär Schritt 7, weil er
+die App-seitige TS-Schicht prüft.
 
-### 10. Logs/Evidenz sammeln
+### 11. Logs/Evidenz sammeln
 ```bash
 adb logcat -d > full_session.log
 adb shell dumpsys media.audio_flinger | head -100 > audioflinger.txt   # optional
 ```
-Abzugeben: 01_launch.log, 02_engine.log, full_session.log, Ton-Beobachtung
-(gehört ja/nein, Artefakte ja/nein), ggf. Video/Audio-Mitschnitt.
+Abzugeben: Probe-JSON aus Schritt 7, 01_launch.log, 02_engine.log,
+full_session.log, Ton-Beobachtung (gehört ja/nein, Artefakte ja/nein), ggf.
+Video/Audio-Mitschnitt.
 
 ## P1-Befunde — Relevanz für diesen Runtime-Test (keine Fixes in diesem Gate)
 - **Bass numFrames-Clamp fehlt:** relevant, falls das Gerät Callbacks > 2048
