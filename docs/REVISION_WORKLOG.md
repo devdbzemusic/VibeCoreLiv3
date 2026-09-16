@@ -67,7 +67,7 @@ Branch: `revision/v4-runtime-consolidation`
 
 - freshly confirmed the legacy model still permits `sample`, `synth` and `hybrid` for almost every non-generic sample category
 - freshly confirmed `buildDefaultParts()` initializes kick/snare/perc/hat as `source: "synth"`
-- freshly confirmed the v12 persistence migration returns v12+ state unchanged and therefore does not repair legacy ownership
+- freshly confirmed the v12 persistence migration returns v12+ state unchanged and therefore does not repair legacy ownership by itself
 - freshly confirmed `SoundTab` still exposes interactive `sample` / `synth` / `hybrid` source switching and a Hybrid editor
 - freshly confirmed WebAudio `engine.ts` still selects the audible renderer from mutable `part.source`, including a legacy Hybrid/Sub branch
 - added `src/lib/instruments/sourceBoundary.ts` as the canonical ownership contract
@@ -75,26 +75,37 @@ Branch: `revision/v4-runtime-consolidation`
 - added `src/lib/instruments/sourcePolicy.ts` for canonical new/default state and new source writes
 - added `src/lib/instruments/sourceUiPolicy.ts` so new v4 UI exposes one authority per Part category
 - added `src/lib/instruments/runtimeSourcePlan.ts` so target audible-render ownership is category/authority-driven rather than `Part.source`-driven
+- added `src/lib/instruments/sourceRuntimeGuard.ts` as a compatibility bridge over the single authoritative Zustand store
+- bound the canonical source guard before Native/clock/scheduler/parameter runtime bindings in `src/pages/Index.tsx`
+- live startup now canonicalizes recognized legacy Part sources and preserves incompatible original values under `legacyInstrument.source`
+- future legacy source writes are immediately re-canonicalized by the same guard instead of becoming a second audible authority
+- Runtime diagnostics now report total/canonical/invalid-active/legacy-compatibility Part source counts
+- removed redundant `setPartSource(..., "synth")` coupling from both dedicated `Synth3DPage` and `Bass3DPage`
 - canonical ownership resolves drum/sample categories to `sample-domain`, synth to `synth3d`, and bass to `bass3d`
-- `hybrid` is compatibility data only; no new v4 runtime/UI path re-enables it
-- incompatible legacy source values are preserved under `legacyInstrument.source` rather than silently discarded
-- added source-level tests for boundary, project migration, write policy, UI policy and runtime render planning
-- reconciled `docs/SAMPLE_SYNTH_MIGRATION_CONTRACT.md` and `docs/PROJECT_STATUS.md` to the actual branch state
-- Store schema/default/action adoption and large `SoundTab` / `engine.ts` mechanical integration remain pending; no truncated whole-file replacement was attempted through the connector
+- `hybrid` is compatibility data only; no new v4 authority contract re-enables it
+- added source-level tests for boundary, project migration, write policy, UI policy, runtime render planning and runtime guard/idempotence
+- direct store persist schema remains declared as v12 and `SoundTab`/`engine.ts` still contain legacy UI/render branches; those mechanical migrations remain partial
+
+### Verification infrastructure
+
+- added `.github/workflows/revision-verify.yml` with `npm ci`, typecheck, lint, unit tests, web build and Android web bundle gates
+- first observed PR run `35060578966` created job `104679844962` but GitHub assigned no runner (`runner_id: 0`, empty runner name, `steps: []`)
+- no npm command executed in that run; this is recorded as a runner/workflow-start blocker rather than an application build failure
+- local clean-worktree verification is separately blocked because the execution shell cannot resolve `github.com`
 
 ### Current
 
 Runtime consolidation continues with three main open implementation fronts:
 
-1. apply the now-defined v13 Sample/Synth policies mechanically in Zustand defaults/persistence, SoundTab and WebAudio trigger routing
+1. complete the remaining Sample/Synth mechanical migration in store persistence metadata, `SoundTab` and WebAudio renderer routing
 2. complete Native ProjectMirror bulk-load/sample-asset contract
-3. continue safe ParameterHub/AI Intent caller adoption
+3. continue safe ParameterHub/AI Intent caller adoption and obtain an executable verification environment
 
 ### Verification
 
 No build/runtime claim has been upgraded to `VERIFIED` in this revision cycle.
 
-Still `NOT EXECUTED` without concrete evidence:
+Still `NOT EXECUTED` at application-command level:
 
 - TypeScript typecheck
 - lint
@@ -106,4 +117,4 @@ Still `NOT EXECUTED` without concrete evidence:
 - Android E2E
 - latency/xRun/jitter/CPU/RAM/thermal measurements
 
-Source inspection and test-file presence are recorded only as static evidence.
+The GitHub Actions verification attempt is `BLOCKED` before the first workflow step because no runner was allocated. Source inspection and test-file presence remain static evidence only.
