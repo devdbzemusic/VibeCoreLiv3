@@ -14,7 +14,9 @@ import kotlinx.coroutines.launch
 
 class VibeCoreViewModel(application: Application) : AndroidViewModel(application) {
     private val runtime = NativeRuntime(application)
-    private val _state = MutableStateFlow(
+    private val repository = NativeProjectRepository(application)
+
+    private val initialState = repository.load(
         VibeCoreUiState(
             nativeAvailable = runtime.isAvailable(),
             engineRunning = runtime.isEngineRunning(),
@@ -24,16 +26,24 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
             diagnostic = runtime.diagnostic(),
         )
     )
+
+    private val _state = MutableStateFlow(initialState)
     val state: StateFlow<VibeCoreUiState> = _state.asStateFlow()
 
     private var meterJob: Job? = null
 
     init {
+        hydrateProjectToNative(initialState)
         startUiPolling()
+    }
+
+    fun selectScreen(screen: NativeScreen) {
+        _state.update { it.copy(screen = screen) }
     }
 
     fun selectTrack(track: Int) {
         _state.update { it.copy(selectedTrack = track.coerceIn(0, it.tracks.lastIndex)) }
+        persist()
     }
 
     fun toggleStep(step: Int) {
@@ -55,6 +65,7 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
                 }
             )
         }
+        persist()
     }
 
     fun togglePlay() {
@@ -72,30 +83,48 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         val next = bpm.coerceIn(20.0, 300.0)
         runtime.setTempo(next)
         _state.update { it.copy(bpm = next) }
+        persist()
     }
 
     fun nudgeTempo(delta: Double) = setTempo(_state.value.bpm + delta)
 
-    fun toggleMute() {
-        val selected = _state.value.selectedTrack
-        val next = !_state.value.tracks[selected].muted
-        runtime.setTrackMute(selected, next)
-        _state.update { state ->
-            state.copy(tracks = state.tracks.mapIndexed { index, track ->
-                if (index == selected) track.copy(muted = next) else track
+    fun toggleMute(trackIndex: Int = _state.value.selectedTrack) {
+        val state = _state.value
+        if (trackIndex !in state.tracks.indices) return
+        val next = !state.tracks[trackIndex].muted
+        runtime.setTrackMute(state.tracks[trackIndex].id, next)
+        _state.update { current ->
+            current.copy(tracks = current.tracks.mapIndexed { index, track ->
+                if (index == trackIndex) track.copy(muted = next) else track
             })
         }
+        persist()
     }
 
-    fun toggleSolo() {
-        val selected = _state.value.selectedTrack
-        val next = !_state.value.tracks[selected].soloed
-        runtime.setTrackSolo(selected, next)
-        _state.update { state ->
-            state.copy(tracks = state.tracks.mapIndexed { index, track ->
-                if (index == selected) track.copy(soloed = next) else track
+    fun toggleSolo(trackIndex: Int = _state.value.selectedTrack) {
+        val state = _state.value
+        if (trackIndex !in state.tracks.indices) return
+        val next = !state.tracks[trackIndex].soloed
+        runtime.setTrackSolo(state.tracks[trackIndex].id, next)
+        _state.update { current ->
+            current.copy(tracks = current.tracks.mapIndexed { index, track ->
+                if (index == trackIndex) track.copy(soloed = next) else track
             })
         }
+        persist()
+    }
+
+    fun setTrackVolume(trackIndex: Int, volume: Int) {
+        val state = _state.value
+        if (trackIndex !in state.tracks.indices) return
+        val next = volume.coerceIn(0, 127)
+        runtime.setTrackVolume(state.tracks[trackIndex].id, next)
+        _state.update { current ->
+            current.copy(tracks = current.tracks.mapIndexed { index, track ->
+                if (index == trackIndex) track.copy(volume = next) else track
+            })
+        }
+        persist()
     }
 
     fun onAudioFocusGained() {
@@ -107,6 +136,23 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         runtime.onAudioFocusLost(transient)
         runtime.stop()
         refreshRuntimeState()
+    }
+
+    private fun hydrateProjectToNative(state: VibeCoreUiState) {
+        runtime.setTempo(state.bpm)
+        state.tracks.forEach { track ->
+            runtime.setPatternLength(track.id, track.steps.size)
+            runtime.setTrackMute(track.id, track.muted)
+            runtime.setTrackSolo(track.id, track.soloed)
+            runtime.setTrackVolume(track.id, track.volume)
+            track.steps.forEachIndexed { stepIndex, step ->
+                runtime.setStep(track.id, stepIndex, step.active, step.velocity, step.note)
+            }
+        }
+    }
+
+    private fun persist() {
+        repository.save(_state.value)
     }
 
     private fun startUiPolling() {
@@ -136,6 +182,7 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
 
     override fun onCleared() {
         meterJob?.cancel()
+        persist()
         runtime.shutdown()
         super.onCleared()
     }
