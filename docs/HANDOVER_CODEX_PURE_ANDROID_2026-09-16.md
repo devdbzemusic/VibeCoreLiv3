@@ -174,6 +174,33 @@ Geprueft:
 - Screenshot zeigt VibeCore Compose UI im Querformat.
 - Kein Fatal/ANR/SIGSEGV/SIGABRT/UnsatisfiedLinkError im frischen Logcat.
 
+## Sprint 5 Landscape UX Fit
+
+Status: `DEVICE VERIFIED` fuer Pattern-Landscape-Fit.
+
+Evidence:
+
+```text
+evidence\2026-09-16_11-40-58-landscape-ux-fit-final\
+```
+
+Geaendert:
+
+- Compose-Shell erkennt Landscape ueber `BoxWithConstraints`.
+- Transport-Bar nutzt im Landscape-Modus kompaktere Abstaende und Schriftgroessen.
+- Trackstrip nutzt im Landscape-Modus breitere, niedrigere Touch-Ziele.
+- Pattern-Screen nutzt im Landscape-Modus eine 2x8-Step-Matrix neben Trackkopf und Mute/Solo.
+- Step-Zahlen und Toggle-Chips sind fuer die kompakte Darstellung typografisch stabilisiert.
+
+Geprueft:
+
+- Debug-APK erfolgreich gebaut.
+- APK auf `RZCY91QYC9N` installiert.
+- App startet im Querformat.
+- Alle 16 Pattern-Steps sind im ersten Landscape-Viewport sichtbar.
+- App bleibt fokussiert als `com.vibecore.app/.MainActivity`.
+- Kein Fatal/ANR/SIGSEGV/SIGABRT/UnsatisfiedLinkError im frischen Logcat.
+
 Optional installieren:
 
 ```powershell

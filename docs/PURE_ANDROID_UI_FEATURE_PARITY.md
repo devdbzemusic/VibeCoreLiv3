@@ -34,6 +34,13 @@ Sprint 3 (`Pattern/Mixer Persistenz & Restart-E2E`) ist fuer den ersten Pattern-
 
 Weiterhin offen: Sample-Datei-Import, Sample-Playback, Sample-Restore und vollstaendige Screen-Parity.
 
+Sprint 5 (`Landscape UX Fit`) ist fuer Pattern im Querformat `DEVICE VERIFIED`:
+
+- Landscape wird in Compose erkannt und kompakt gerendert.
+- Transport, Trackstrip und Pattern-Panel passen in den ersten Querformat-Viewport.
+- Alle 16 Pattern-Steps sind im Landscape-Startzustand sichtbar.
+- Pattern bleibt touch-bedienbar und visuell im VibeCore-Stil.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.
