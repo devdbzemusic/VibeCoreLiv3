@@ -44,11 +44,7 @@ export interface AudioBackend {
   close(): Promise<void>;
 }
 
-/** Verbindlicher JS-Vertrag zu NativeAudioBridge.kt.
- *
- * Nur Methoden aufnehmen, deren Kotlin -> JNI -> C++ Kette im Repository
- * statisch korreliert wurde. Das Interface ist absichtlich kein Wunschzettel.
- */
+/** Verbindlicher JS-Vertrag zu NativeAudioBridge.kt. */
 export interface VibeCoreNativeBridge {
   isAvailable(): boolean;
   startEngine(): boolean;
@@ -65,11 +61,13 @@ export interface VibeCoreNativeBridge {
   getLatencyMs(): number;
   getDiagnosticStatus(): string;
 
-  // Groove — verified NativeAudioBridge.kt -> jni_bridge.cpp -> GrooveEngine.
+  // Phase 3 Groove — current-scene project mirror surface. These methods are
+  // source-correlated Kotlin → JNI → GrooveEngine/GrooveNode. They are kept on
+  // the native bridge contract rather than the narrow generic AudioBackend.
   grooveSetStep(track: number, step: number, active: boolean, velocity: number, note: number): void;
   grooveSetStepProbability(track: number, step: number, probability: number): void;
   grooveSetStepAccent(track: number, step: number, accent: boolean): void;
-  grooveSetStepRoll(track: number, step: number, extraHits: number): void;
+  grooveSetStepRoll(track: number, step: number, count: number): void;
   grooveSetStepMicroTiming(track: number, step: number, ticks: number): void;
   grooveSetPatternLength(track: number, length: number): void;
   grooveSetSwing(track: number, swing: number): void;
@@ -78,10 +76,16 @@ export interface VibeCoreNativeBridge {
   grooveSetTrackSolo(track: number, soloed: boolean): void;
   grooveSetTrackVolume(track: number, volume: number): void;
   grooveSetTrackMode(track: number, mode: number): void;
-  grooveAddPianoRollNote(track: number, startTick: number, endTick: number, note: number, velocity: number): void;
   grooveClearPianoRoll(track: number): void;
+  grooveAddPianoRollNote(track: number, startTick: number, endTick: number, note: number, velocity: number): void;
 
-  // Voice — verified NativeAudioBridge.kt -> jni_voice_bridge.cpp -> VoiceEngine.
+  // Phase 5 Bass performance surface. Source-correlated all the way through
+  // NativeAudioBridge.kt → jni_bass_bridge.cpp → BassEngine → BassNode.
+  bassNoteOn(note: number, velocity: number): void;
+  bassNoteOff(note: number): void;
+  bassAllNotesOff(): void;
+
+  // Phase 6 Voice/sample surface used by the existing NativeOboeBackend.
   voiceLoadSample(slot: number, data: Float32Array, sampleRate: number, rootNote: number): boolean;
   voiceClearSample(slot: number): void;
   voiceNoteOn(note: number, velocity: number, slot: number, slice: number): void;
