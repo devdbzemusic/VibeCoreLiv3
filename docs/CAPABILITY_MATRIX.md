@@ -8,14 +8,16 @@ Status values follow the v4.0 MasterPrompt where applicable.
 |---|---|---|---|
 | Master musical clock | `src/lib/clock/masterClock.ts` | STATICALLY VERIFIED | prove repo-wide single-clock ownership and explicit tick-unit conversions |
 | Central app state | `src/lib/store.ts` | STATICALLY VERIFIED | split concerns via typed slices/contracts, not parallel stores |
-| Parameter Hub | `src/lib/runtime/parameterHub.ts` is a stateless typed proxy over the existing Zustand authority | PARTIAL / STATICALLY VERIFIED | expand coverage; add gesture/undo/automation semantics without creating parallel state |
+| Parameter Hub | `src/lib/parameters/hub.ts` is the single stateless typed proxy over the existing Zustand authority | PARTIAL / STATICALLY VERIFIED | expand coverage; add gesture/undo/automation semantics without creating parallel state |
+| Parameter Hub caller adoption | TopBar BPM, Tap Tempo and Master Volume now route through the canonical Hub | STATICALLY VERIFIED | migrate further callers only where ownership/units are explicit |
 | Capability Registry | `src/lib/capabilities/registry.ts` static metadata + side-effect-free runtime probes | STATICALLY VERIFIED | continue migrating UI/runtime availability checks to registry |
-| Runtime selection | `src/lib/runtime/selection.ts` now queries `audio.native` through Capability Registry | STATICALLY VERIFIED | keep activation/failure separate from selection |
+| Runtime selection | `src/lib/runtime/selection.ts` queries `audio.native` through Capability Registry | STATICALLY VERIFIED | keep activation/failure separate from selection |
+| Native runtime availability | `nativeAudioRuntime.ts` now delegates availability to Capability Registry | STATICALLY VERIFIED | continue removing duplicate local availability guesses |
 | Web audio runtime | direct `engine.ts` WebAudio graph | STATICALLY VERIFIED | later normalize behind Runtime API / WebAudio adapter |
 | Native Android backend | `AudioBackend` → `NativeOboeBackend` → `VibeCoreNative` | STATICALLY VERIFIED | device/runtime proof still required |
 | Android WebView injection | `MainActivity.kt` injects `window.VibeCoreNative` | STATICALLY VERIFIED | verify packaged APK/runtime |
 | Native Oboe callback | `VibeCoreAudioEngine::onAudioReady()` | STATICALLY VERIFIED | measure callback behavior/xRuns/latency on device |
-| Native low-latency capability | Registry reports the Native Oboe path as available when bridge exists, but does not claim measured latency | NOT EXECUTED | execute latency/xRun/device measurements |
+| Native low-latency capability | Registry reports Native Oboe path presence but does not claim measured latency | NOT EXECUTED | execute latency/xRun/device measurements |
 | Native sync | `VibeCoreSync` PPQ 1920 | STATICALLY VERIFIED | prove no competing runtime timing source on device |
 | Browser scheduler | `scheduler.ts` AudioContext-time look-ahead | STATICALLY VERIFIED | classify as browser-only musical scheduler; preserve native gate |
 | Native/browser scheduler exclusion | `isNativeAudioPath()` gate in scheduler + startup binding in `Index.tsx` | STATICALLY VERIFIED | execute duplicate-trigger tests on Android |
@@ -32,8 +34,8 @@ Status values follow the v4.0 MasterPrompt where applicable.
 | Runtime Preview browser | `RuntimePreview` delegates to existing WebAudio preview path | STATICALLY VERIFIED | migrate remaining preview callers |
 | Runtime Preview native | Registry explicitly reports unavailable; no reserved preview buffer/slot contract | UNSUPPORTED / GAP | add dedicated native preview contract; do not steal Voice slots |
 | Sample editing | wave/slice/grain/stretch domains present | STATICALLY VERIFIED | enforce sample-only semantic boundary |
-| Sample/Synth boundary | legacy `sample/synth/hybrid` runtime branch still present | CONFLICT | migrate only after Gate B0 |
-| FX/Mixer WebAudio | direct part/FX/master graph | STATICALLY VERIFIED | parameter-hub/runtime migration later |
+| Sample/Synth boundary | legacy `sample/synth/hybrid` runtime branch still present | CONFLICT | migrate only after versioned compatibility gate |
+| FX/Mixer WebAudio | direct part/FX/master graph | STATICALLY VERIFIED | continue parameter-hub/runtime migration selectively |
 | Voice native DSP | Kotlin → JNI → `VoiceEngine` → `VoiceNode` → DSP | STATICALLY VERIFIED | execute device evidence |
 | Voice native live input | `voiceSetLiveInputEnabled` / `voiceLiveInputEnabled` bridge + `VoiceEngine::setLiveInputEnabled` | STATICALLY VERIFIED | request permission/device proof through RuntimeVoice UI flow |
 | Voice UI semantics | Current VoiceTab is mainly generic Part editing and does not yet represent the Native Voice DSP contract | CONFLICT / PARTIAL | migrate only semantically exact controls first; keep generic Part controls distinct |
@@ -43,17 +45,17 @@ Status values follow the v4.0 MasterPrompt where applicable.
 | Remix file analysis | import/analyze path | STATICALLY VERIFIED | adopt versioned AnalysisCache |
 | Remix live input | incomplete evidence | PARTIAL / UNKNOWN | add capability-gated live-input contract |
 | Device playback capture | no complete proven path | UNKNOWN | Android capability design + legal/platform gates |
-| AI assistants | multiple deterministic assistants | STATICALLY VERIFIED | centralize intent boundary |
+| AI assistants | multiple deterministic assistants | STATICALLY VERIFIED | route applies through validated intent/command adapters |
 | AI learning consent | project-local consent/profile code | STATICALLY VERIFIED | version/revert/evidence hardening |
-| AI Intent Layer | partial/direct apply paths remain | PARTIAL | implement intent/validation/command boundary |
+| AI Intent Layer | `src/lib/ai/intent.ts`: Mix volume/pan support Suggest→Validate→Preview→ParameterHub→Apply→Revert→Explain | PARTIAL / STATICALLY VERIFIED CORE | migrate a real AI caller; add only validated adapters for further payloads |
 | Motion Step Recorder | automation pieces exist; full contract not proven | PARTIAL / UNKNOWN | implement sync + parameter-hub recording path |
 | MIDI input API | Runtime Registry can report Web MIDI API presence without requesting access | EXPECTED / NOT EXECUTED | bind actual MIDI ownership and timing through Runtime |
 | External sync | clock source model exists | PARTIAL | verify MIDI/other sources individually |
-| Resource cache core | deterministic byte-budgeted LRU/refcount cache exists | STATICALLY VERIFIED | integrate carefully into existing asset loaders |
-| WebAudio sample cache | `engine.ts` still owns an unbounded `Map<SampleId, AudioBuffer>` | GAP | migrate to budgeted cache without replacing the 77 KB engine blindly |
+| Resource cache core | deterministic byte-budgeted LRU/refcount cache exists | STATICALLY VERIFIED CORE | integrate carefully into existing asset loaders |
+| WebAudio sample cache | `engine.ts` still owns an unbounded `Map<SampleId, AudioBuffer>` | GAP | migrate to budgeted cache with complete-file/build verification |
 | Analysis cache | version/hash/settings keyed analysis cache exists | STATICALLY VERIFIED CORE | adopt in Remix/Sample analysis callers |
-| Waveform cache | no canonical peak-pyramid integration proven | GAP | add waveform peak cache and zoom pyramid later |
-| Diagnostics | browser/native diagnostics facilities present | PARTIAL | expose Registry + cache/runtime metrics in one snapshot |
+| Waveform cache | min/max peak-pyramid builder + budgeted ResourceCache adapter now exists | STATICALLY VERIFIED CORE | integrate with Sample Forge/zoom views after test execution |
+| Diagnostics | unified `src/lib/runtime/diagnostics.ts` snapshot combines backend, Registry, project state and reported counters | STATICALLY VERIFIED CORE | expose cache/runtime metrics in diagnostics UI and execute evidence capture |
 | Android touch E2E | detailed matrix exists | NOT EXECUTED | execute on target device |
 | APK/native runtime | static call graph exists | NOT EXECUTED | build/install/launch and capture evidence |
 | Audio latency/xRuns | instrumentation/API exists | NOT EXECUTED | measure and record |
@@ -62,7 +64,7 @@ Status values follow the v4.0 MasterPrompt where applicable.
 
 ## Runtime capability authority
 
-The Capability Registry now owns side-effect-free environment/feature availability for migrated Runtime paths.
+The Capability Registry owns side-effect-free environment/feature availability for migrated Runtime paths.
 
 Current probe IDs include:
 
