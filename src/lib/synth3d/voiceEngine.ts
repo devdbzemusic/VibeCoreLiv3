@@ -26,7 +26,59 @@ interface ActiveNote {
   cleanupTimer: ReturnType<typeof setTimeout> | null;
 }
 
+type NoteStartWaiter = () => void;
+
 const _engines = new Map<number, { notes: ActiveNote[]; lastMidi: number }>();
+const _noteStartWaiters = new Map<string, Set<NoteStartWaiter>>();
+
+function noteKey(partId: number, semitone: number): string {
+  return `${partId}:${semitone}`;
+}
+
+function notifyNoteStarted(partId: number, semitone: number): void {
+  const key = noteKey(partId, semitone);
+  const waiters = _noteStartWaiters.get(key);
+  if (!waiters?.size) return;
+  _noteStartWaiters.delete(key);
+  for (const resolve of waiters) resolve();
+}
+
+/**
+ * Await acknowledgement from the existing voice engine that a newly-triggered
+ * 3D Synth note has actually been registered. Call this BEFORE triggerPart().
+ * It closes the dynamic-import acknowledgement gap without adding a second
+ * allocator or renderer.
+ */
+export function waitForNoteStart3D(
+  partId: number,
+  semitone: number,
+  timeoutMs = 1000,
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    const key = noteKey(partId, semitone);
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const finish = (started: boolean) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      const set = _noteStartWaiters.get(key);
+      set?.delete(onStarted);
+      if (set && set.size === 0) _noteStartWaiters.delete(key);
+      resolve(started);
+    };
+    const onStarted = () => finish(true);
+
+    let set = _noteStartWaiters.get(key);
+    if (!set) {
+      set = new Set();
+      _noteStartWaiters.set(key, set);
+    }
+    set.add(onStarted);
+    timer = setTimeout(() => finish(false), Math.max(50, timeoutMs));
+  });
+}
 
 function getEngine(partId: number) {
   let e = _engines.get(partId);
@@ -111,6 +163,7 @@ export function triggerNote3D(
   const note: ActiveNote = { midi: opts.semitone, voices, handle, startTime: when, cleanupTimer: null };
   engine.notes.push(note);
   engine.lastMidi = opts.semitone;
+  notifyNoteStarted(part.id, opts.semitone);
 
   const noteOffTime = when + opts.gateSec;
   voices.forEach((v) => v.noteOff(noteOffTime));
