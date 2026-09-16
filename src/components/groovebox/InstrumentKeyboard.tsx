@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import {
+  inferPerformanceInstrument,
   performanceAllNotesOff,
   performanceNoteOff,
   performanceNoteOn,
@@ -26,7 +27,7 @@ const KEYS = [
 
 interface InstrumentKeyboardProps {
   partId: number;
-  /** Explicit runtime instrument route. Omitted = generic part route. */
+  /** Explicit runtime route. If omitted it is derived from the canonical Part. */
   instrument?: PerformanceInstrument;
   title: string;
   baseOctave?: number;
@@ -37,7 +38,7 @@ interface InstrumentKeyboardProps {
 
 export function InstrumentKeyboard({
   partId,
-  instrument = "part",
+  instrument,
   title,
   baseOctave = 4,
   gateSec = 0.8,
@@ -47,8 +48,9 @@ export function InstrumentKeyboard({
   const [octave, setOctave] = useState(baseOctave);
   const [active, setActive] = useState<Set<number>>(() => new Set());
   const [runtimeMessage, setRuntimeMessage] = useState<string | null>(null);
-  const activePointers = useRef(new Map<number, number>());
+  const activePointers = useRef(new Map<number, { midi: number; instrument: PerformanceInstrument }>());
 
+  const resolvedInstrument = () => instrument ?? inferPerformanceInstrument(partId);
   const noteFor = (semitone: number) => (octave + 1) * 12 + semitone;
 
   const addActive = (midi: number) => {
@@ -70,8 +72,9 @@ export function InstrumentKeyboard({
 
   const play = async (pointerId: number, semitone: number) => {
     const midi = noteFor(semitone);
+    const route = resolvedInstrument();
     const result = await performanceNoteOn({
-      instrument,
+      instrument: route,
       partId,
       midiNote: midi,
       velocity,
@@ -86,23 +89,32 @@ export function InstrumentKeyboard({
     }
 
     setRuntimeMessage(null);
-    activePointers.current.set(pointerId, midi);
+    activePointers.current.set(pointerId, { midi, instrument: route });
     addActive(midi);
   };
 
   const releasePointer = (pointerId: number) => {
-    const midi = activePointers.current.get(pointerId);
-    if (midi == null) return;
+    const activeNote = activePointers.current.get(pointerId);
+    if (!activeNote) return;
     activePointers.current.delete(pointerId);
-    performanceNoteOff({ instrument, partId, midiNote: midi, velocity, gateSec });
-    removeActive(midi);
+    performanceNoteOff({
+      instrument: activeNote.instrument,
+      partId,
+      midiNote: activeNote.midi,
+      velocity,
+      gateSec,
+    });
+    removeActive(activeNote.midi);
   };
 
   // A tab switch/unmount must never leave native sustained notes behind.
   useEffect(() => () => {
+    const instruments = new Set<PerformanceInstrument>();
+    for (const activeNote of activePointers.current.values()) instruments.add(activeNote.instrument);
+    if (instruments.size === 0) instruments.add(resolvedInstrument());
     activePointers.current.clear();
-    performanceAllNotesOff(instrument);
-  }, [instrument]);
+    for (const route of instruments) performanceAllNotesOff(route);
+  }, [instrument, partId]);
 
   return (
     <div className={cn("panel p-3", className)}>
