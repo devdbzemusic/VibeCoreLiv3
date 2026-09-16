@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type { VibeCoreNativeBridge } from "@/lib/audio/AudioBackend";
+import { useGroove } from "@/lib/store";
 import {
+  mirrorCurrentSceneToNative,
   webMicroToNativeTicks,
   webRatchetToNativeExtraHits,
   webSwingToNative,
@@ -26,5 +29,46 @@ describe("native project mirror conversions", () => {
     expect(webMicroToNativeTicks(0)).toBe(0);
     expect(webMicroToNativeTicks(25)).toBe(60);
     expect(webMicroToNativeTicks(50)).toBe(120);
+  });
+
+  it("mirrors the current scene through the declared Groove bridge surface", () => {
+    const native = {
+      isAvailable: vi.fn(() => true),
+      grooveSetTrackMode: vi.fn(),
+      grooveSetTrackMute: vi.fn(),
+      grooveSetTrackSolo: vi.fn(),
+      grooveSetTrackVolume: vi.fn(),
+      grooveClearPattern: vi.fn(),
+      grooveSetPatternLength: vi.fn(),
+      grooveSetSwing: vi.fn(),
+      grooveSetStep: vi.fn(),
+      grooveSetStepProbability: vi.fn(),
+      grooveSetStepAccent: vi.fn(),
+      grooveSetStepRoll: vi.fn(),
+      grooveSetStepMicroTiming: vi.fn(),
+      grooveClearPianoRoll: vi.fn(),
+      grooveAddPianoRollNote: vi.fn(),
+    } as unknown as VibeCoreNativeBridge;
+
+    const state = useGroove.getState();
+    const report = mirrorCurrentSceneToNative(state, native);
+    const expectedTracks = Math.min(16, state.parts.length);
+
+    expect(report.mirroredTracks).toBe(expectedTracks);
+    expect(native.grooveSetTrackMode).toHaveBeenCalledTimes(expectedTracks);
+    expect(native.grooveClearPattern).toHaveBeenCalledTimes(expectedTracks);
+    expect(native.grooveSetPatternLength).toHaveBeenCalledTimes(expectedTracks);
+    expect(native.grooveClearPianoRoll).toHaveBeenCalledTimes(expectedTracks);
+  });
+
+  it("returns a diagnostic warning instead of mutating when the bridge is unavailable", () => {
+    const native = {
+      isAvailable: vi.fn(() => false),
+    } as unknown as VibeCoreNativeBridge;
+
+    const report = mirrorCurrentSceneToNative(useGroove.getState(), native);
+
+    expect(report.mirroredTracks).toBe(0);
+    expect(report.warnings).toContain("native bridge unavailable");
   });
 });
