@@ -38,32 +38,65 @@ Status terminology follows the v4.0 MasterPrompt.
 
 - `AudioBackend` interface exists — `STATICALLY VERIFIED`
 - `NativeOboeBackend implements AudioBackend` — `STATICALLY VERIFIED`
-- `nativeAudioRuntime.ts` exists and binds backend tempo/gain/transport/seek state — `STATICALLY VERIFIED`
-- Android `NativeAudioBridge.kt` exists and loads `vibecore-native` — `STATICALLY VERIFIED`
-- Central browser-side MasterClock exists — `STATICALLY VERIFIED`
+- No concrete `WebAudioBackend implements AudioBackend` exists; browser fallback uses `engine.ts` directly — `STATICALLY VERIFIED`
+- `nativeAudioRuntime.ts` binds backend tempo/gain/transport/seek state — `STATICALLY VERIFIED`
+- `Index.tsx` invokes both native-runtime binding and browser scheduler binding on app mount — `STATICALLY VERIFIED`
+- Browser scheduler explicitly refuses to start when `isNativeAudioPath()` is true — `STATICALLY VERIFIED`
+- Android `MainActivity.kt` injects `NativeAudioBridge` exactly as `window.VibeCoreNative` — `STATICALLY VERIFIED`
+- Kotlin bridge loads `vibecore-native` and exposes lifecycle/transport/groove/bass/voice methods — `STATICALLY VERIFIED`
+- inspected Kotlin → JNI → C++ lifecycle/transport/voice mappings exist — `STATICALLY VERIFIED`
+- `VibeCoreAudioEngine::onAudioReady()` is the Oboe data callback and executes command queue → native sync → graph event dispatch → graph render → master gain → output — `STATICALLY VERIFIED`
+- Native Groove step path reaches `StepSequencer → TriggerQueue → GrooveNode → VoicePool/BassNode/VoiceNode` — `STATICALLY VERIFIED`
+- Browser scheduler reaches `scheduleTickAt() → triggerPart() → voiceAllocator → WebAudio part/master graph → AudioContext.destination` — `STATICALLY VERIFIED`
 - Central application state/store exists — `STATICALLY VERIFIED`
-- Android/native C++ audio platform exists — `STATICALLY VERIFIED`
-- Groove, Piano Roll, FX, 3D Synth, 3D Bass, Voice, Remix and bRAINWAVEz modules exist — `STATICALLY VERIFIED`
+- Capability Registry exists at `src/lib/capabilities/registry.ts` — `STATICALLY VERIFIED`
 - AI learning consent/profile implementation exists — `STATICALLY VERIFIED`
 - E2E simulation matrix exists — `STATICALLY VERIFIED`
 
+## Important runtime-contract findings
+
+### Backend asymmetry
+
+`AudioBackend.ts` describes WebAudio and native as backend concepts, but only `NativeOboeBackend` implements the interface. Browser operation uses the direct `engine.ts` runtime instead of a concrete `WebAudioBackend` adapter.
+
+This is an architecture asymmetry, not yet a refactor authorization.
+
+### Native bridge surface is wider than AudioBackend
+
+Kotlin exposes native Groove, Scene, Piano Roll, Bass and Voice APIs that are not all part of `VibeCoreNativeBridge` / `AudioBackend`.
+
+### Groove-state mirroring remains unresolved
+
+The native Groove engine and bridge setters are real. The narrow AudioBackend/nativeAudioRuntime path currently proves transport/tempo/gain/seek, but does not itself prove that Zustand Pattern/Scene/Step/Piano-Roll state is mirrored into native GrooveEngine before playback.
+
+Until an exact TypeScript caller chain for the Kotlin `groove*` bridge methods is found, native Groove project-state synchronization remains `UNKNOWN` and release-blocking.
+
+### Timing domains
+
+At least three timing units are present:
+
+- Browser `masterClock.tick`: 24 ticks per beat
+- Browser scheduler `globalTick/songTicks`: sixteenth-note counters
+- Native `VibeCoreSync`: PPQ 1920 / 480 ticks per sixteenth
+
+These may coexist only with explicit conversion/domain ownership. Generic untyped `tick` interchange is unsafe.
+
 ## Runtime facts not yet proven
 
-- `bindNativeAudioRuntime()` active invocation path — `UNKNOWN`
-- absence of simultaneous WebAudio musical scheduler on native Android path — `UNKNOWN`
-- complete TypeScript → Kotlin bridge coverage — `UNKNOWN`
-- complete Kotlin → JNI mapping — `UNKNOWN`
-- JNI → C++ engine call graph — `UNKNOWN`
-- Oboe callback → mixer/DSP → output graph — `UNKNOWN`
-- single-master-clock realization across all musical modules — `UNKNOWN`
+- complete TypeScript caller coverage for the large Kotlin Groove/Bass/Voice bridge surface — `UNKNOWN`
+- Groove/Pattern/Piano-Roll state mirroring into native engine — `UNKNOWN`
+- complete repository-wide timer/clock classification — `PARTIAL / UNKNOWN`
+- real-device absence of duplicate triggers — `NOT EXECUTED`
+- real APK/device callback behavior — `NOT EXECUTED`
+- single-master-clock realization under actual Android runtime — `NOT EXECUTED`
 
 ## Known architecture gaps / conflicts
 
-- Authoritative Parameter Hub — `NOT VERIFIED / GAP`
-- Authoritative Capability Registry — `NOT VERIFIED / GAP`
+- Authoritative Parameter Hub — `PARTIAL / GAP`
+- Capability Registry — `EXISTS / STATICALLY VERIFIED`; adoption as sole availability authority still incomplete
 - Sample/Synth instrument boundary currently conflicts with v4.0 sample-slot integrity — `CONFLICT`
 - AI Intent → Validation → Command/Parameter boundary is only partially centralized — `PARTIAL`
-- Runtime backend access is not yet uniformly proven through one frontend runtime contract — `PARTIAL / UNKNOWN`
+- Runtime backend access is not yet uniformly represented by one frontend backend contract — `PARTIAL`
 - Motion Step Recorder as an end-to-end central capability — `PARTIAL / UNKNOWN`
 - Remix live audio input / device playback capture — `PARTIAL / UNKNOWN`
 
@@ -104,7 +137,7 @@ For the current revision branch, the following remain `NOT EXECUTED` until concr
 2. Runtime Authority & Call-Graph Truth audit — **current gate**
 3. Sample/Synth boundary migration design and implementation
 4. Runtime contract
-5. Capability Registry
+5. Capability Registry adoption/hardening
 6. Parameter Hub
 7. Caching layer
 8. React/UI performance revision
