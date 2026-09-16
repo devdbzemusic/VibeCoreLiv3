@@ -26,7 +26,8 @@ const KEYS = [
 
 interface InstrumentKeyboardProps {
   partId: number;
-  instrument: PerformanceInstrument;
+  /** Explicit runtime instrument route. Omitted = generic part route. */
+  instrument?: PerformanceInstrument;
   title: string;
   baseOctave?: number;
   gateSec?: number;
@@ -36,7 +37,7 @@ interface InstrumentKeyboardProps {
 
 export function InstrumentKeyboard({
   partId,
-  instrument,
+  instrument = "part",
   title,
   baseOctave = 4,
   gateSec = 0.8,
