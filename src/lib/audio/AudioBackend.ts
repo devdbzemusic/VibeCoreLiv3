@@ -44,7 +44,11 @@ export interface AudioBackend {
   close(): Promise<void>;
 }
 
-/** Verbindlicher JS-Vertrag zu NativeAudioBridge.kt. */
+/** Verbindlicher JS-Vertrag zu NativeAudioBridge.kt.
+ *
+ * Nur Methoden aufnehmen, deren Kotlin -> JNI -> C++ Kette im Repository
+ * statisch korreliert wurde. Das Interface ist absichtlich kein Wunschzettel.
+ */
 export interface VibeCoreNativeBridge {
   isAvailable(): boolean;
   startEngine(): boolean;
@@ -60,6 +64,24 @@ export interface VibeCoreNativeBridge {
   getCurrentTick(): number;
   getLatencyMs(): number;
   getDiagnosticStatus(): string;
+
+  // Groove — verified NativeAudioBridge.kt -> jni_bridge.cpp -> GrooveEngine.
+  grooveSetStep(track: number, step: number, active: boolean, velocity: number, note: number): void;
+  grooveSetStepProbability(track: number, step: number, probability: number): void;
+  grooveSetStepAccent(track: number, step: number, accent: boolean): void;
+  grooveSetStepRoll(track: number, step: number, extraHits: number): void;
+  grooveSetStepMicroTiming(track: number, step: number, ticks: number): void;
+  grooveSetPatternLength(track: number, length: number): void;
+  grooveSetSwing(track: number, swing: number): void;
+  grooveClearPattern(track: number): void;
+  grooveSetTrackMute(track: number, muted: boolean): void;
+  grooveSetTrackSolo(track: number, soloed: boolean): void;
+  grooveSetTrackVolume(track: number, volume: number): void;
+  grooveSetTrackMode(track: number, mode: number): void;
+  grooveAddPianoRollNote(track: number, startTick: number, endTick: number, note: number, velocity: number): void;
+  grooveClearPianoRoll(track: number): void;
+
+  // Voice — verified NativeAudioBridge.kt -> jni_voice_bridge.cpp -> VoiceEngine.
   voiceLoadSample(slot: number, data: Float32Array, sampleRate: number, rootNote: number): boolean;
   voiceClearSample(slot: number): void;
   voiceNoteOn(note: number, velocity: number, slot: number, slice: number): void;
