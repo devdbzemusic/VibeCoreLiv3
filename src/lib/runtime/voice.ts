@@ -1,4 +1,5 @@
 import { activateNativeAudio } from "@/lib/audio/nativeAudioRuntime";
+import { probeRuntimeCapability } from "@/lib/capabilities/registry";
 import { selectedRuntimeKind } from "./selection";
 
 export type RuntimeVoiceCapability = "supported" | "unsupported" | "unknown";
@@ -27,24 +28,22 @@ function unsupported(reason: string): RuntimeVoiceResult {
   return { accepted: false, runtime: selectedRuntimeKind(), reason };
 }
 
-async function nativeBridge() {
+async function nativeBridge(requireLiveInput = false) {
   if (selectedRuntimeKind() !== "oboe-native") return null;
+  const capability = probeRuntimeCapability(requireLiveInput ? "voice.liveInput.native" : "voice.native");
+  if (!capability.available) return null;
   if (!await activateNativeAudio()) return null;
   return window.VibeCoreNative ?? null;
 }
 
 /**
- * Current RuntimeVoice capability.
- *
- * Native Voice is source-proven. A browser Voice adapter has not yet been
- * contract-audited, so Browser returns unsupported rather than reusing generic
- * Part controls and pretending they are Voice-DSP commands.
+ * Current RuntimeVoice capability from the central Capability Registry.
+ * Browser remains unsupported until a dedicated Voice-DSP adapter is audited.
  */
 export function runtimeVoiceCapability(): RuntimeVoiceCapability {
-  if (selectedRuntimeKind() === "oboe-native") {
-    return typeof window !== "undefined" && window.VibeCoreNative ? "supported" : "unknown";
-  }
-  return "unsupported";
+  if (selectedRuntimeKind() !== "oboe-native") return "unsupported";
+  const capability = probeRuntimeCapability("voice.native");
+  return capability.available ? "supported" : "unknown";
 }
 
 export async function setRuntimeVoicePitch(semitones: number, enabled = true): Promise<RuntimeVoiceResult> {
@@ -110,14 +109,19 @@ export async function setRuntimeVoiceWidth(width: number, enabled = true): Promi
 }
 
 /**
- * Requests the Native Voice live-input stream. `requested` and `active` are
- * deliberately distinct so UI cannot claim recording/input success merely
- * because the user tapped a button.
+ * Requests the Native Voice live-input stream. `requested` and `active` remain
+ * distinct so UI cannot claim input success merely because the user tapped a
+ * control. Availability comes from `voice.liveInput.native`.
  */
 export async function setRuntimeVoiceLiveInput(enabled: boolean): Promise<RuntimeVoiceResult> {
   inputRequested = enabled;
-  const native = await nativeBridge();
-  if (!native) return unsupported("Voice live input is not available for the selected runtime");
+  const capability = probeRuntimeCapability("voice.liveInput.native");
+  if (!capability.available) {
+    return unsupported(capability.reason ?? "Voice live input is not available for the selected runtime");
+  }
+
+  const native = await nativeBridge(true);
+  if (!native) return unsupported("Voice live input runtime could not be activated");
   const accepted = native.voiceSetLiveInputEnabled(enabled);
   return accepted
     ? { accepted: true, runtime: "oboe-native" }
@@ -143,8 +147,9 @@ export function getRuntimeVoiceInputStatus(): RuntimeVoiceInputStatus {
     };
   }
 
+  const capability = probeRuntimeCapability("voice.liveInput.native");
   const native = typeof window !== "undefined" ? window.VibeCoreNative : undefined;
-  if (!native) {
+  if (!capability.available || !native) {
     return {
       capability: "unknown",
       requested: inputRequested,
@@ -154,7 +159,7 @@ export function getRuntimeVoiceInputStatus(): RuntimeVoiceInputStatus {
       outputLevel: null,
       activeUnits: null,
       playing: null,
-      error: "Native Voice bridge is not available",
+      error: capability.reason ?? "Native Voice bridge is not available",
     };
   }
 
@@ -163,8 +168,7 @@ export function getRuntimeVoiceInputStatus(): RuntimeVoiceInputStatus {
     capability: "supported",
     requested: inputRequested,
     active,
-    // The bridge exposes monitor as a write-only parameter. Until a getter is
-    // added, do not infer monitor state from input activity.
+    // Monitor is currently write-only on the bridge; do not infer it from input.
     monitoring: false,
     inputLevel: native.voiceInputLevel(),
     outputLevel: native.voiceOutputLevel(),
