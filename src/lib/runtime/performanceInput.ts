@@ -1,5 +1,7 @@
 import { ensureAudio, getCtx, triggerPart } from "@/lib/audio/engine";
 import { activateNativeAudio } from "@/lib/audio/nativeAudioRuntime";
+import { killAllNotes3D, releaseNote3D } from "@/lib/synth3d/voiceEngine";
+import { killAllNotes3DBass, releaseNote3DBass } from "@/lib/bass3d/voiceEngine";
 import { useGroove } from "@/lib/store";
 import { selectedRuntimeKind } from "./selection";
 
@@ -110,10 +112,11 @@ export async function performanceNoteOn(note: PerformanceNote): Promise<Performa
     gateSec: note.gateSec,
   });
 
-  // The current browser engine schedules a finite gate and does not expose a
-  // per-note release handle from triggerPart(). Keeping this explicit prevents
-  // the UI from pretending browser noteOff is already implemented.
-  return { accepted: true, runtime: "webaudio", releaseMode: "gate" };
+  return {
+    accepted: true,
+    runtime: "webaudio",
+    releaseMode: note.instrument === "synth3d" || note.instrument === "bass3d" ? "explicit" : "gate",
+  };
 }
 
 /** Explicit live performance release where the selected runtime supports it. */
@@ -137,16 +140,36 @@ export function performanceNoteOff(note: PerformanceNote): PerformanceInputResul
     };
   }
 
+  const ctx = getCtx();
+  if (ctx && note.instrument === "synth3d") {
+    const released = releaseNote3D(note.partId, midi - 60, ctx.currentTime);
+    return {
+      accepted: released,
+      runtime: "webaudio",
+      releaseMode: "explicit",
+      reason: released ? undefined : "No matching active 3D Synth note",
+    };
+  }
+  if (ctx && note.instrument === "bass3d") {
+    const released = releaseNote3DBass(note.partId, midi - 60, ctx.currentTime);
+    return {
+      accepted: released,
+      runtime: "webaudio",
+      releaseMode: "explicit",
+      reason: released ? undefined : "No matching active 3D Bass note",
+    };
+  }
+
   return {
     accepted: true,
     runtime: "webaudio",
     releaseMode: "gate",
-    reason: "Browser triggerPart currently releases by scheduled gate",
+    reason: "Generic browser Part release remains scheduled by gate",
   };
 }
 
 /** Panic/recovery boundary for live input. */
-export function performanceAllNotesOff(instrument: PerformanceInstrument): PerformanceInputResult {
+export function performanceAllNotesOff(instrument: PerformanceInstrument, partId?: number): PerformanceInputResult {
   const runtime = selectedRuntimeKind();
   if (runtime === "oboe-native") {
     const native = window.VibeCoreNative;
@@ -162,10 +185,19 @@ export function performanceAllNotesOff(instrument: PerformanceInstrument): Perfo
     };
   }
 
+  if (partId != null && instrument === "synth3d") {
+    killAllNotes3D(partId);
+    return { accepted: true, runtime: "webaudio", releaseMode: "explicit" };
+  }
+  if (partId != null && instrument === "bass3d") {
+    killAllNotes3DBass(partId);
+    return { accepted: true, runtime: "webaudio", releaseMode: "explicit" };
+  }
+
   return {
     accepted: false,
     runtime: "webaudio",
     releaseMode: "gate",
-    reason: "Browser engine has no public per-performance all-notes-off boundary yet",
+    reason: "Generic browser Part has no public all-notes-off boundary yet",
   };
 }
