@@ -1,5 +1,7 @@
 import type { VibeCoreNativeBridge } from "@/lib/audio/AudioBackend";
 import type { Part, Scene, Step } from "@/lib/model";
+import { instrumentAuthorityForCategory } from "@/lib/instruments/sourceBoundary";
+import { nativeGrooveAssetRegistry, nativeGrooveSampleIdForPart } from "./nativeGrooveAssets";
 import { asSixteenthStep, sixteenthToNativePpq } from "./timing";
 import { useGroove } from "@/lib/store";
 
@@ -10,6 +12,8 @@ export interface NativeMirrorReport {
   mirroredTracks: number;
   mirroredSteps: number;
   mirroredNotes: number;
+  assignedSamples: number;
+  missingRegisteredSamples: number;
   warnings: string[];
 }
 
@@ -58,6 +62,30 @@ function stepMidiNote(part: Part, step: Step): number {
   return clampInt(60 + (part.pitch || 0) + (step.pitch || 0), 0, 127);
 }
 
+function mirrorTrackSample(
+  native: VibeCoreNativeBridge,
+  track: number,
+  part: Part,
+  report: NativeMirrorReport,
+): void {
+  const authority = instrumentAuthorityForCategory(part.category);
+  if (authority !== "sample-domain") {
+    // Explicitly clear any stale sample assignment from a previous project.
+    native.grooveSetTrackSample(track, -1);
+    return;
+  }
+
+  const sampleId = nativeGrooveSampleIdForPart(part);
+  if (sampleId == null || !nativeGrooveAssetRegistry.isRegistered(part)) {
+    native.grooveSetTrackSample(track, -1);
+    if (part.sampleName) report.missingRegisteredSamples += 1;
+    return;
+  }
+
+  native.grooveSetTrackSample(track, sampleId);
+  report.assignedSamples += 1;
+}
+
 function mirrorTrack(
   native: VibeCoreNativeBridge,
   track: number,
@@ -73,6 +101,7 @@ function mirrorTrack(
   native.grooveSetTrackMute(track, !!part.mute);
   native.grooveSetTrackSolo(track, !!part.solo);
   native.grooveSetTrackVolume(track, clampInt((part.volume / 100) * 127, 0, 127));
+  mirrorTrackSample(native, track, part, report);
 
   native.grooveClearPattern(track);
   native.grooveSetPatternLength(track, clampInt(scene.length, 1, 64));
@@ -121,8 +150,8 @@ function mirrorTrack(
  * - Current scene only. The verified bridge exposes no complete Pattern-bank /
  *   Scene-bank load contract yet.
  * - First 16 parts only because Native Groove has kMaxTracks = 16.
- * - Sample IDs are NOT mirrored: the repository currently has no proven stable
- *   web sample-name -> native sampleId registry/bridge contract.
+ * - Stable Native sample id is Part.id, but the id is assigned to a track only
+ *   after the session AssetRegistry confirms PCM registration in Groove.
  * - Gate/filter/pan-offset per-step values are not mirrored because Native
  *   Groove Step has no equivalent fields.
  *
@@ -137,6 +166,8 @@ export function mirrorCurrentSceneToNative(
     mirroredTracks: 0,
     mirroredSteps: 0,
     mirroredNotes: 0,
+    assignedSamples: 0,
+    missingRegisteredSamples: 0,
     warnings: [],
   };
 
@@ -164,13 +195,16 @@ export function mirrorCurrentSceneToNative(
   if (state.parts.length > MAX_NATIVE_TRACKS) {
     report.warnings.push(`${state.parts.length - MAX_NATIVE_TRACKS} part(s) exceed native 16-track limit and were not mirrored`);
   }
-  if (state.parts.some((p) => p.sampleName)) {
-    report.warnings.push("sample assignments were not mirrored: stable web asset -> native sampleId contract is not verified yet");
-  }
 
   const count = Math.min(MAX_NATIVE_TRACKS, state.parts.length);
   for (let track = 0; track < count; track += 1) {
     mirrorTrack(native, track, state.parts[track], scene, pattern.swing, report);
+  }
+
+  if (report.missingRegisteredSamples > 0) {
+    report.warnings.push(
+      `${report.missingRegisteredSamples} sample assignment(s) have Web project metadata but no registered Native Groove PCM asset`,
+    );
   }
 
   return report;
