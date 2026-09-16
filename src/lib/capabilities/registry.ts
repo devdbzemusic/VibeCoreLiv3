@@ -67,7 +67,7 @@ const CAPABILITIES: Capability[] = [
     area: "parameter",
     status: "partial",
     verification: "STATICALLY_VERIFIED",
-    owner: "src/lib/runtime/parameterHub.ts + src/lib/store.ts",
+    owner: "src/lib/parameters/hub.ts + src/lib/store.ts",
     contract: "ParameterHub v1 is a stateless typed proxy over the existing authoritative store; it must not become a second state store.",
     notes: "Current v1 coverage is intentionally narrow. Gesture/automation/undo semantics remain follow-up work.",
   },
