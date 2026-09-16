@@ -88,6 +88,15 @@ Sprint 10 (`Voice Native Keyboard Entry`) ist fuer den Native-Voice-Keyboard-/No
 
 Weiterhin offen: hoerbarer Voice-E2E mit Sample/Live-Input, Recording-Permission, Voice-Parameter, Takes-Liste und AI-Aktionen.
 
+Sprint 11 (`Settings / Diagnostics Entry`) ist fuer den Native-Settings-/Diagnostics-Slice `DEVICE VERIFIED`:
+
+- `SETTINGS` ist als eigener Compose-Screen erreichbar.
+- Master-Gain wird per Touch-Slider direkt an `VibeCoreAudioEngine::setMasterGain` geschrieben.
+- Master-Gain wird persistiert und beim Start wieder in Native Runtime hydriert.
+- Native Diagnosewerte fuer BPM, Engine, Play, Latenz, Pfad und Diagnosezeile sind sichtbar.
+
+Weiterhin offen: vollstaendige Settings-Paritaet, exportierbarer Diagnosebericht, Audio-Device-/MIDI-/Projektoptionen.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.
@@ -148,9 +157,9 @@ Statuswerte:
 | Automation / Motion | `AutomationDrawer.tsx` etc. | Native Automation/Motion | REFERENCE | OPEN | OPEN | OPEN | OPEN | OPEN | REFERENCE |
 | Arp | `ArpPanel.tsx` | Native Arp controls | REFERENCE | OPEN | OPEN | CONTRACT OPEN | OPEN | OPEN | REFERENCE |
 | MIDI | Browser MIDI path | Android MIDI API → Native | REFERENCE | OPEN | OPEN | OPEN | OPEN | OPEN | REFERENCE |
-| Diagnostics | `DiagPanel` / DiagnosticsModal | Native Diagnostics | REFERENCE | OPEN | WIRED CORE | WIRED CORE | n/a | OPEN | SHELL |
+| Diagnostics | `DiagPanel` / DiagnosticsModal | Native Diagnostics | SHELL | WIRED | WIRED CORE | WIRED CORE | n/a | PARTIAL | DEVICE VERIFIED SLICE |
 | AI | AI Context / Scene / CoAssistant | Native intent UI | REFERENCE | OPEN | CORE PARTIAL | n/a | OPEN | OPEN | REFERENCE |
-| Settings | Web settings/setup | Native Settings | REFERENCE | OPEN | OPEN | OPEN | OPEN | OPEN | REFERENCE |
+| Settings | Web settings/setup | Native Settings | SHELL | WIRED MASTER | WIRED PARTIAL | WIRED MASTER | PARTIAL | PARTIAL | DEVICE VERIFIED SLICE |
 
 ## Aktiver Pure-Android Runtime-Pfad
 
@@ -211,7 +220,7 @@ Ein Screen darf erst `VERIFIED` erhalten, wenn:
 8. Piano Roll Resteditor
 9. Motion/Automation/Arp
 10. Android MIDI
-11. Settings/Diagnostics
+11. Settings/Diagnostics Restparitaet
 12. AI Intent UI
 13. vollständiger Parity-/Device-/Performance-Abschluss
 

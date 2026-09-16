@@ -28,6 +28,7 @@ class NativeProjectRepository(context: Context) {
         }
         return default.copy(
             bpm = prefs.getFloat("bpm", default.bpm.toFloat()).toDouble().coerceIn(20.0, 300.0),
+            masterGain = prefs.getFloat("master_gain", default.masterGain).coerceIn(0f, 1f),
             selectedTrack = prefs.getInt("selected_track", default.selectedTrack).coerceIn(0, tracks.lastIndex),
             tracks = tracks,
         )
@@ -37,6 +38,7 @@ class NativeProjectRepository(context: Context) {
         val editor = prefs.edit()
             .putInt("schema", SCHEMA_VERSION)
             .putFloat("bpm", state.bpm.toFloat())
+            .putFloat("master_gain", state.masterGain.coerceIn(0f, 1f))
             .putInt("selected_track", state.selectedTrack)
 
         state.tracks.forEach { track ->
@@ -61,6 +63,6 @@ class NativeProjectRepository(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "vibecore_native_project_v1"
-        private const val SCHEMA_VERSION = 3
+        private const val SCHEMA_VERSION = 4
     }
 }

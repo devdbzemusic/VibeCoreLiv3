@@ -111,6 +111,18 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
 
     fun nudgeTempo(delta: Double) = setTempo(_state.value.bpm + delta)
 
+    fun setMasterGain(value: Float) {
+        val next = value.coerceIn(0f, 1f)
+        runtime.setMasterGain(next)
+        _state.update {
+            it.copy(
+                masterGain = next,
+                settingsStatus = "Master gain ${(next * 100f).toInt()}% -> Native Oboe engine.",
+            )
+        }
+        persist()
+    }
+
     fun toggleMute(trackIndex: Int = _state.value.selectedTrack) {
         val state = _state.value
         if (trackIndex !in state.tracks.indices) return
@@ -337,6 +349,7 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
 
     private fun hydrateProjectToNative(state: VibeCoreUiState) {
         runtime.setTempo(state.bpm)
+        runtime.setMasterGain(state.masterGain)
         state.tracks.forEach { track ->
             runtime.setTrackMode(track.id, track.kind)
             runtime.setPatternLength(track.id, track.steps.size)

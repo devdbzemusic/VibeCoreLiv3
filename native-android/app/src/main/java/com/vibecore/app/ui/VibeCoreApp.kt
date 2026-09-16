@@ -183,6 +183,18 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                         onAllNotesOff = viewModel::allPerformanceNotesOff,
                         modifier = Modifier.weight(1f),
                     )
+                    NativeScreen.SETTINGS -> SettingsDiagnosticsPanel(
+                        masterGain = state.masterGain,
+                        bpm = state.bpm,
+                        engineRunning = state.engineRunning,
+                        playing = state.playing,
+                        latencyMs = state.latencyMs,
+                        diagnostic = state.diagnostic,
+                        status = state.settingsStatus,
+                        compact = compactLandscape,
+                        onMasterGain = viewModel::setMasterGain,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
 
                 BottomModeBar(state.screen, viewModel::selectScreen)
@@ -360,6 +372,91 @@ private fun PatternPanel(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsDiagnosticsPanel(
+    masterGain: Float,
+    bpm: Double,
+    engineRunning: Boolean,
+    playing: Boolean,
+    latencyMs: Double,
+    diagnostic: String,
+    status: String,
+    compact: Boolean,
+    onMasterGain: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Panel(modifier) {
+        if (compact) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.width(540.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("SETTINGS", color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    Text("NATIVE ENGINE CONTROL + DIAGNOSTICS", color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 8.sp)
+                    Text("MASTER ${(masterGain * 100f).toInt()}%", color = VibeCoreColors.Foreground, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                    Slider(
+                        value = masterGain,
+                        onValueChange = onMasterGain,
+                        valueRange = 0f..1f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = VibeCoreColors.Primary,
+                            activeTrackColor = VibeCoreColors.Primary,
+                            inactiveTrackColor = VibeCoreColors.SurfaceElevated,
+                        ),
+                    )
+                    Text(status, color = VibeCoreColors.Lime, fontFamily = FontFamily.Monospace, fontSize = 8.sp, maxLines = 2)
+                }
+                Column(modifier = Modifier.fillMaxHeight().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PerformanceMeter("BPM", String.format("%.0f", bpm), true, Modifier.weight(1f))
+                        PerformanceMeter("ENGINE", if (engineRunning) "ON" else "IDLE", true, Modifier.weight(1f))
+                        PerformanceMeter("PLAY", if (playing) "RUN" else "STOP", true, Modifier.weight(1f))
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PerformanceMeter("LATENCY", if (latencyMs >= 0) "${String.format("%.1f", latencyMs)}ms" else "--", true, Modifier.weight(1f))
+                        PerformanceMeter("PATH", "OBOE", true, Modifier.weight(1f))
+                    }
+                    Surface(
+                        color = VibeCoreColors.Surface0,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, VibeCoreColors.Border),
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize().padding(10.dp), contentAlignment = Alignment.CenterStart) {
+                            Text(diagnostic, color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 9.sp, maxLines = 3)
+                        }
+                    }
+                }
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("SETTINGS", color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 22.sp)
+                Text("NATIVE ENGINE CONTROL + DIAGNOSTICS", color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                Text("MASTER ${(masterGain * 100f).toInt()}%", color = VibeCoreColors.Foreground, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                Slider(
+                    value = masterGain,
+                    onValueChange = onMasterGain,
+                    valueRange = 0f..1f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = VibeCoreColors.Primary,
+                        activeTrackColor = VibeCoreColors.Primary,
+                        inactiveTrackColor = VibeCoreColors.SurfaceElevated,
+                    ),
+                )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PerformanceMeter("BPM", String.format("%.0f", bpm), false, Modifier.weight(1f))
+                    PerformanceMeter("ENGINE", if (engineRunning) "ON" else "IDLE", false, Modifier.weight(1f))
+                    PerformanceMeter("PLAY", if (playing) "RUN" else "STOP", false, Modifier.weight(1f))
+                }
+                Text(status, color = VibeCoreColors.Lime, fontFamily = FontFamily.Monospace, fontSize = 10.sp, maxLines = 1)
+                Text(diagnostic, color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 10.sp, maxLines = 3)
             }
         }
     }

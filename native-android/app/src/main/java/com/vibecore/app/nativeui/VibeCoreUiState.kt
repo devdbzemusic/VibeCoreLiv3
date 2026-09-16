@@ -1,6 +1,6 @@
 package com.vibecore.app.nativeui
 
-enum class NativeScreen { PATTERN, SCENE, MIXER, SAMPLE, BASS, SYNTH, ROLL, VOICE }
+enum class NativeScreen { PATTERN, SCENE, MIXER, SAMPLE, BASS, SYNTH, ROLL, VOICE, SETTINGS }
 enum class TrackKind(val nativeMode: Int) { DRUM(0), BASS(1), SYNTH(2), SAMPLE(3), VOICE(4) }
 
 data class StepState(
@@ -30,6 +30,8 @@ data class VibeCoreUiState(
     val currentStep: Int = 0,
     val latencyMs: Double = -1.0,
     val diagnostic: String = "native:unknown",
+    val masterGain: Float = 1.0f,
+    val settingsStatus: String = "Native diagnostics ready. Master gain writes directly to the Oboe engine.",
     val screen: NativeScreen = NativeScreen.PATTERN,
     val sampleBusy: Boolean = false,
     val sampleStatus: String = "Select a Sample-domain track and choose an audio file.",

@@ -345,6 +345,31 @@ Offen:
 - Recording/Live-Input mit Android-Microphone-Permission.
 - Pitch/Formant/Harmony/Layer/Phrase-Controls und AI-Workflow.
 - Hoerbarer Voice-Audio-Abgleich mit geladenem Sample oder Live-Input.
+
+## Sprint 11 Settings / Diagnostics Entry
+
+Status: `DEVICE VERIFIED` fuer Native-Settings-/Diagnostics-Slice.
+
+Geaendert:
+
+- Untere Navigation enthaelt jetzt `SETTINGS`.
+- Settings-Screen zeigt Native-Engine-Diagnosewerte: BPM, Engine-State, Play-State, Latenz, Runtime-Pfad und native Diagnosezeile.
+- Master-Gain ist als Touch-Slider verfuegbar und schreibt direkt nach `VibeCoreAudioEngine::setMasterGain`.
+- Master-Gain wird im aktuellen Compose-Persistenzschema gespeichert und beim Start wieder in Native Runtime hydriert.
+
+Geprueft:
+
+- Debug-APK erfolgreich gebaut.
+- APK auf `RZCY91QYC9N` installiert.
+- `SETTINGS`-Screen zeigt `SETTINGS`, `NATIVE ENGINE CONTROL + DIAGNOSTICS`, `MASTER`, `BPM`, `ENGINE`, `PLAY`, `LATENCY`, `PATH`, `OBOE`.
+- Touch-Slider setzt Master-Gain sichtbar auf `MASTER 40%`.
+- Kein Fatal/ANR/SIGSEGV/SIGABRT/UnsatisfiedLinkError im gefilterten App-Logcat.
+
+Offen:
+
+- Vollstaendige Settings-Paritaet gegen Golden Master.
+- Exportierbarer Diagnosebericht statt nur kompakter Statuszeile.
+- Weitere Engine-/Projektoptionen: Audio-Device-Auswahl, MIDI, Reset/Import/Export, Privacy/AI-Schalter.
 - DONE: Decode-/Native-Load-Fehler mit Stacktrace in Logcat schreiben.
 - DONE: Persisted-Sample-Restore-Teilfehler sichtbar machen statt stumm zu schlucken.
 - OPEN: Vollautomatische SAF-Dateiauswahl robust machen oder als manuellen Device-Testschritt behandeln.
