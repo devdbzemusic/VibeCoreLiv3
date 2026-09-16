@@ -18,11 +18,12 @@ This file records evidence status only. It must never convert planned or configu
 | Gate | Command / Evidence | Status |
 |---|---|---|
 | Obtain clean revision worktree | clone `revision/v4-runtime-consolidation` | BLOCKED — verification shell DNS cannot resolve `github.com` |
-| TypeScript typecheck | `npm run typecheck` | NOT EXECUTED — no local worktree available in verification shell |
-| ESLint | `npm run lint` | NOT EXECUTED — no local worktree available in verification shell |
-| Unit tests | `npm run test` | NOT EXECUTED — no local worktree available in verification shell |
-| Web build | `npm run build` | NOT EXECUTED — no local worktree available in verification shell |
-| Android-targeted web build | `npm run build:android` | NOT EXECUTED — no local worktree available in verification shell |
+| GitHub Revision Verify runner allocation | workflow run `35060578966`, job `104679844962` | BLOCKED — job completed failure with `runner_id: 0`, empty runner name and `steps: []`; no command started |
+| TypeScript typecheck | `npm run typecheck` | NOT EXECUTED — local worktree unavailable and GitHub Actions did not allocate a runner |
+| ESLint | `npm run lint` | NOT EXECUTED — local worktree unavailable and GitHub Actions did not allocate a runner |
+| Unit tests | `npm run test` | NOT EXECUTED — local worktree unavailable and GitHub Actions did not allocate a runner |
+| Web build | `npm run build` | NOT EXECUTED — local worktree unavailable and GitHub Actions did not allocate a runner |
+| Android-targeted web build | `npm run build:android` | NOT EXECUTED — local worktree unavailable and GitHub Actions did not allocate a runner |
 | Native Gradle build | `native-android` Gradle build | NOT EXECUTED |
 | APK install | target Android device | NOT EXECUTED |
 | Launch / fatal scan | adb + logcat | NOT EXECUTED |
@@ -35,7 +36,7 @@ This file records evidence status only. It must never convert planned or configu
 | scroll/touch interaction | device E2E | NOT EXECUTED |
 | reference audio / DSP | audio evidence | NOT EXECUTED |
 
-## Verification attempt — 2026-09-16
+## Verification attempt — local shell — 2026-09-16
 
 A clean-worktree verification was actually attempted against the revision branch using:
 
@@ -59,9 +60,56 @@ Interpretation:
 
 GitHub source inspection and branch mutation remain available through the repository connector, but that does not provide an executable worktree.
 
+## Verification attempt — GitHub Actions — 2026-09-16
+
+A branch-only verification workflow was added at:
+
+```text
+.github/workflows/revision-verify.yml
+```
+
+Configured sequence:
+
+```text
+npm ci
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run build:android
+```
+
+The first observed pull-request run was:
+
+```text
+workflow run: 35060578966
+head: e3e3b270eb7de6e48600b0d35fcca0639dfcf0e7
+job: 104679844962 (verify-web)
+```
+
+Observed GitHub job metadata:
+
+```text
+status: completed
+conclusion: failure
+runner_id: 0
+runner_name: ""
+steps: []
+```
+
+The job was created and closed without a runner ever being assigned and without a single workflow step starting. The job-log download also returned no usable log artifact.
+
+Interpretation:
+
+- the observed failure is a **runner/workflow-start blocker**, not evidence that TypeScript, lint, Vitest, Vite or the Android web bundle failed,
+- `npm ci` was not reached,
+- therefore all project build/test commands remain `NOT EXECUTED`,
+- do not fix application code in response to this run unless a later executed step produces a concrete code/build error.
+
 ## Static evidence already established
 
 - test/build scripts are defined in `package.json` — `STATICALLY VERIFIED`
+- `.github/workflows/revision-verify.yml` exists — `STATICALLY VERIFIED`; runner execution remains BLOCKED
 - E2E simulation matrix exists — `STATICALLY VERIFIED`
 - native Android/C++ audio structure exists — `STATICALLY VERIFIED`
 - browser-side MasterClock exists — `STATICALLY VERIFIED`
@@ -69,6 +117,7 @@ GitHub source inspection and branch mutation remain available through the reposi
 - shared InstrumentKeyboard no longer calls renderer-specific audio functions directly — `STATICALLY VERIFIED`
 - Browser 3D performance input now awaits existing voice-engine registration acknowledgement — `STATICALLY VERIFIED`
 - Native 3D Synth renderer remains unsupported/not source-proven — `UNKNOWN / IMPLEMENTATION GAP`
+- v4 Sample/Synth source boundary has pure migration/policy/runtime-plan contracts plus a live Zustand guard — `STATICALLY VERIFIED`; full store schema/runtime renderer migration is still partial
 
 ## Evidence recording rule
 
