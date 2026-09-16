@@ -36,14 +36,14 @@ Status terminology follows the v4.0 MasterPrompt.
 - `AudioBackend` interface exists — `STATICALLY VERIFIED`
 - `NativeOboeBackend implements AudioBackend` — `STATICALLY VERIFIED`
 - no concrete `WebAudioBackend implements AudioBackend` exists; browser fallback uses `engine.ts` directly — `STATICALLY VERIFIED`
-- `nativeAudioRuntime.ts` binds backend tempo/gain/transport/seek state and now delegates Native availability to Capability Registry — `STATICALLY VERIFIED`
+- `nativeAudioRuntime.ts` binds backend tempo/gain/transport/seek state and delegates Native availability to Capability Registry — `STATICALLY VERIFIED`
 - Android `MainActivity.kt` injects `NativeAudioBridge` as `window.VibeCoreNative` — `STATICALLY VERIFIED`
 - Kotlin → JNI → C++ lifecycle/transport/Groove/Bass/Voice mappings exist for inspected paths — `STATICALLY VERIFIED`
 - `VibeCoreAudioEngine::onAudioReady()` is the inspected Oboe callback — `STATICALLY VERIFIED`
 - native Groove step path reaches `StepSequencer → TriggerQueue → GrooveNode → voice targets` — `STATICALLY VERIFIED`
 - browser scheduler reaches `scheduleTickAt() → triggerPart() → voice allocation → WebAudio graph` — `STATICALLY VERIFIED`
 - central Zustand application/project state exists — `STATICALLY VERIFIED`
-- Capability Registry exists and now owns side-effect-free runtime availability probes — `STATICALLY VERIFIED`
+- Capability Registry exists and owns side-effect-free runtime availability probes — `STATICALLY VERIFIED`
 - runtime selection delegates Native/Web availability to Capability Registry — `STATICALLY VERIFIED`
 - shared `InstrumentKeyboard` routes through Runtime PerformanceInput instead of direct WebAudio calls — `STATICALLY VERIFIED`
 - Browser 3D Synth/Bass note registration acknowledgement is wired through the existing voice engines — `STATICALLY VERIFIED`
@@ -53,6 +53,7 @@ Status terminology follows the v4.0 MasterPrompt.
 - Runtime Voice boundary exists for source-correlated Native Voice DSP/live-input controls — `STATICALLY VERIFIED`
 - canonical `ParameterHub` exists at `src/lib/parameters/hub.ts` as a stateless proxy over the existing store — `STATICALLY VERIFIED`
 - TopBar BPM, Tap Tempo and Master Volume now write through the canonical ParameterHub — `STATICALLY VERIFIED`
+- ChannelStrip Part Volume/Pan now write through ParameterHub — `STATICALLY VERIFIED`
 - unified Runtime diagnostics snapshot exists — `STATICALLY VERIFIED`
 - deterministic byte-budgeted/refcounted ResourceCache exists — `STATICALLY VERIFIED CORE`
 - AudioBuffer cache adapter exists — `STATICALLY VERIFIED CORE`
@@ -60,6 +61,8 @@ Status terminology follows the v4.0 MasterPrompt.
 - Waveform min/max peak pyramid cache exists — `STATICALLY VERIFIED CORE`
 - AI learning consent/profile implementation exists — `STATICALLY VERIFIED`
 - AI Intent v1 exists for parameter-backed Mix volume/pan with validation, pure preview, apply, receipt-based revert and explain — `STATICALLY VERIFIED CORE`
+- current-Scene Store → Native Groove hydration runs after successful Native engine activation and reports mirror diagnostics separately from audio activation — `STATICALLY VERIFIED`
+- Sample/Synth ownership contract, v13 project migration core, new-write policy and UI policy exist — `STATICALLY VERIFIED CORE`
 - E2E simulation matrix exists — `STATICALLY VERIFIED`
 
 ## Runtime capability authority
@@ -97,7 +100,7 @@ A transient duplicate implementation created during consolidation was detected b
 
 ## AI Intent authority
 
-`src/lib/ai/intent.ts` now provides the first validated v4-style flow:
+`src/lib/ai/intent.ts` provides the first validated v4-style flow:
 
 ```text
 Suggestion
@@ -114,6 +117,28 @@ Version 1 deliberately supports only Mix `volume` and `pan` suggestions because 
 
 No hidden global AI history/store is created; apply receipts are caller-owned.
 
+## Sample/Synth ownership authority
+
+The old v12 model still contains legacy `SourceMode = sample | synth | hybrid` and old helpers/UI that expose those modes too broadly. The revision branch now contains explicit v4 ownership modules:
+
+- `src/lib/instruments/sourceBoundary.ts`
+- `src/lib/instruments/projectMigration.ts`
+- `src/lib/instruments/sourcePolicy.ts`
+- `src/lib/instruments/sourceUiPolicy.ts`
+
+Canonical ownership is:
+
+- kick/snare/perc/hat/sample → `sample-domain`
+- synth → `synth3d`
+- bass → `bass3d`
+- `hybrid` → compatibility data only, not a valid new runtime source
+
+The v13 migration core preserves incompatible v12 source values under `legacyInstrument.source` instead of silently discarding them.
+
+Store schema bump/default adoption and `SoundTab` caller adoption remain pending because those large files require complete-file/build-safe editing rather than replacement from truncated connector payloads.
+
+See `docs/SAMPLE_SYNTH_MIGRATION_CONTRACT.md`.
+
 ## Important remaining runtime-contract findings
 
 ### Backend asymmetry
@@ -122,11 +147,17 @@ No hidden global AI history/store is created; apply receipts are caller-owned.
 
 This is an architecture asymmetry, not authorization to build a second browser engine.
 
-### Native Groove project mirroring remains incomplete
+### Native Groove project mirroring remains partial
 
-Current-scene Store→Native mapping and explicit timing conversions exist. Native `GrooveEngine` also has a project-load guard.
+Current-scene Store→Native mapping and automatic post-activation hydration now exist, with explicit timing conversions and separate mirror diagnostics.
 
-Kotlin/JNI `beginProjectLoad/endProjectLoad` bulk-load marshalling and automatic post-activation hydration are not yet complete.
+Still unresolved:
+
+- full Pattern/Scene-bank bulk loading
+- stable Web asset → Native sample-ID mapping
+- Kotlin/JNI marshalling for the C++ project-load undo-suppression guard (`beginProjectLoad/endProjectLoad`)
+
+The absence of those pieces means ProjectMirror is useful but not yet a full project-bank contract.
 
 ### Timing domains remain explicit
 
@@ -160,9 +191,9 @@ The new budgeted cache core is present but not yet connected to the ~77 KB engin
 
 - Native 3D Synth renderer — `UNSUPPORTED / GAP`
 - Native Preview buffer/region renderer — `UNSUPPORTED / GAP`
-- Native Groove ProjectMirror bulk-load completion — `PARTIAL`
+- Native Groove full ProjectMirror/bulk-load/sample-asset contract — `PARTIAL`
 - full ParameterHub coverage and gesture/undo/automation integration — `PARTIAL`
-- Sample/Synth instrument boundary migration — `CONFLICT / INCOMPLETE`
+- Sample/Synth store/UI/runtime adoption — `PARTIAL`; core ownership/migration policies implemented
 - AI Intent adapters beyond Mix volume/pan — `PARTIAL`
 - Runtime backend access is not yet uniformly represented by one frontend backend interface — `PARTIAL`
 - Motion Step Recorder end-to-end contract — `PARTIAL / UNKNOWN`
@@ -216,12 +247,12 @@ See `docs/TEST_STATUS.md` for the verification ledger.
 
 ## Revision order from current branch state
 
-1. Runtime/capability authority consolidation — **in progress, materially implemented**
-2. Native Groove ProjectMirror bulk-load completion
-3. ParameterHub adoption and command-history design
-4. AI Intent caller migration / additional validated command adapters
-5. Cache integration into real asset/analysis callers
-6. Sample/Synth versioned semantic migration
+1. Runtime/capability authority consolidation — **materially implemented / still expanding adoption**
+2. Sample/Synth v13 store/UI adoption — **core policy implemented; mechanical adoption pending**
+3. Native Groove ProjectMirror bulk-load/sample-asset completion
+4. ParameterHub adoption and command-history design
+5. AI Intent caller migration / additional validated command adapters
+6. Cache integration into real asset/analysis callers
 7. Voice UI semantic migration
 8. Native 3D Synth renderer design/implementation
 9. remaining Native audible-render ownership gaps
