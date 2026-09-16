@@ -7,6 +7,7 @@
  */
 import { createAudioBackend, isNativeOboeAvailable, type AudioBackend } from "./AudioBackend";
 import { useGroove } from "@/lib/store";
+import { asSixteenthStep, sixteenthToNativePpq } from "@/lib/runtime/timing";
 
 export interface NativeAudioStatus {
   available: boolean;
@@ -21,7 +22,6 @@ let backend: AudioBackend | null = null;
 let bound = false;
 let lastError: string | null = null;
 let transportWork: Promise<void> = Promise.resolve();
-const NATIVE_TICKS_PER_STEP = 480; // VibeCoreSync PPQ 1920 / 4 sixteenth-notes.
 
 function reportError(error: unknown) {
   lastError = error instanceof Error ? error.message : String(error);
@@ -90,8 +90,9 @@ function syncNativeSeek(state: ReturnType<typeof useGroove.getState>): void {
   const scene = pattern.scenes[sceneIdx];
   const step = Math.max(0, Math.min(Math.max(0, (scene?.length ?? 1) - 1), seek.step));
   const songSteps = previousSteps + step;
+  const nativeTick = sixteenthToNativePpq(asSixteenthStep(songSteps));
 
-  backend.setPosition(songSteps * NATIVE_TICKS_PER_STEP);
+  backend.setPosition(nativeTick);
   useGroove.setState({
     transport: {
       ...state.transport,
