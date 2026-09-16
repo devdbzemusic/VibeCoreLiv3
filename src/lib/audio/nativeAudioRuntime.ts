@@ -9,6 +9,7 @@ import { createAudioBackend, type AudioBackend } from "./AudioBackend";
 import { useGroove } from "@/lib/store";
 import { probeRuntimeCapability } from "@/lib/capabilities/registry";
 import { asSixteenthStep, sixteenthToNativePpq } from "@/lib/runtime/timing";
+import { mirrorCurrentSceneToNative, type NativeMirrorReport } from "@/lib/runtime/projectMirror";
 
 export interface NativeAudioStatus {
   available: boolean;
@@ -19,15 +20,54 @@ export interface NativeAudioStatus {
   error: string | null;
 }
 
+export interface NativeProjectMirrorStatus {
+  attempted: boolean;
+  succeeded: boolean;
+  report: NativeMirrorReport | null;
+  error: string | null;
+}
+
 let backend: AudioBackend | null = null;
 let bound = false;
 let lastError: string | null = null;
 let transportWork: Promise<void> = Promise.resolve();
+let lastMirrorStatus: NativeProjectMirrorStatus = {
+  attempted: false,
+  succeeded: false,
+  report: null,
+  error: null,
+};
 
 function reportError(error: unknown) {
   lastError = error instanceof Error ? error.message : String(error);
   useGroove.setState({ audioReady: false });
   console.error("[native-audio]", lastError);
+}
+
+/**
+ * Project mirroring is deliberately non-fatal for audio activation. A stale or
+ * incompatible bridge must be diagnosable without forcing the engine offline.
+ */
+function hydrateCurrentScene(state: ReturnType<typeof useGroove.getState>): void {
+  try {
+    const report = mirrorCurrentSceneToNative(state);
+    const bridgeUnavailable = report.warnings.includes("native bridge unavailable");
+    lastMirrorStatus = {
+      attempted: true,
+      succeeded: !bridgeUnavailable,
+      report,
+      error: bridgeUnavailable ? "native bridge unavailable during project mirror" : null,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    lastMirrorStatus = {
+      attempted: true,
+      succeeded: false,
+      report: null,
+      error: message,
+    };
+    console.warn("[native-audio] project mirror failed", message);
+  }
 }
 
 /**
@@ -40,6 +80,15 @@ export function isNativeAudioPath(): boolean {
 
 export function getNativeAudioBackend(): AudioBackend | null {
   return backend;
+}
+
+export function getNativeProjectMirrorStatus(): NativeProjectMirrorStatus {
+  return {
+    ...lastMirrorStatus,
+    report: lastMirrorStatus.report
+      ? { ...lastMirrorStatus.report, warnings: [...lastMirrorStatus.report.warnings] }
+      : null,
+  };
 }
 
 export function getNativeAudioStatus(): NativeAudioStatus {
@@ -75,6 +124,7 @@ export async function activateNativeAudio(): Promise<boolean> {
     const state = useGroove.getState();
     backend.setTempo(state.bpm);
     backend.setMasterGain(state.masterVolume / 100);
+    hydrateCurrentScene(state);
     syncNativeSeek(state);
     lastError = null;
     useGroove.setState({ audioReady: true });
