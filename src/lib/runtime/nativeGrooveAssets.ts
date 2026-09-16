@@ -31,6 +31,14 @@ export interface NativeGrooveAssetUploadResult {
   registration?: NativeGrooveAssetRegistration;
 }
 
+export interface NativeGrooveAssetReadiness {
+  ready: boolean;
+  expectedSampleParts: number;
+  registeredSampleParts: number;
+  missingPartIds: number[];
+  missingPartNames: string[];
+}
+
 /**
  * Stable v1 sample-id rule.
  *
@@ -101,6 +109,25 @@ export const nativeGrooveAssetRegistry = new NativeGrooveAssetRegistry();
 export function getNativeGrooveAssetBridge(): NativeGrooveAssetBridge | null {
   if (typeof window === "undefined") return null;
   return window.VibeCoreGrooveAssets ?? null;
+}
+
+/**
+ * Project-level cold-start readiness. A sample-domain Part only counts as an
+ * expected PCM asset when project metadata says a sample is assigned. Empty
+ * drum/sample slots therefore do not block Native startup.
+ */
+export function nativeGrooveAssetReadiness(parts: readonly Part[]): NativeGrooveAssetReadiness {
+  const expected = parts.filter((part) =>
+    instrumentAuthorityForCategory(part.category) === "sample-domain" && !!part.sampleName,
+  );
+  const missing = expected.filter((part) => !nativeGrooveAssetRegistry.isRegistered(part));
+  return {
+    ready: missing.length === 0,
+    expectedSampleParts: expected.length,
+    registeredSampleParts: expected.length - missing.length,
+    missingPartIds: missing.map((part) => part.id),
+    missingPartNames: missing.map((part) => part.name),
+  };
 }
 
 /**
