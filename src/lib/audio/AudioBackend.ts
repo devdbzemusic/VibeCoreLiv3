@@ -73,6 +73,8 @@ export interface VibeCoreNativeBridge {
   grooveSetTrackMute(track: number, muted: boolean): void;
   grooveSetTrackSolo(track: number, soloed: boolean): void;
   grooveSetTrackVolume(track: number, volume: number): void;
+  /** Assigns a previously registered Groove SampleBuffer id; -1 = no sample. */
+  grooveSetTrackSample(track: number, sampleId: number): void;
   grooveSetTrackMode(track: number, mode: number): void;
   grooveClearPianoRoll(track: number): void;
   grooveAddPianoRollNote(track: number, startTick: number, endTick: number, note: number, velocity: number): void;
