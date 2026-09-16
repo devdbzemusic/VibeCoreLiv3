@@ -1,6 +1,10 @@
 import type { Part, SourceMode } from "@/lib/model";
 import { useGroove } from "@/lib/store";
-import { migratePartToV13 } from "./projectMigration";
+import {
+  PROJECT_SCHEMA_VERSION,
+  migratePartToV13,
+  migratePersistedProject,
+} from "./projectMigration";
 import { resolveSourceWrite } from "./sourcePolicy";
 
 let bound = false;
@@ -33,11 +37,24 @@ export function applyCanonicalSourceWrite(part: Part, requested: SourceMode): Pa
 }
 
 /**
+ * Promote the existing Zustand persist middleware to the v13 compatibility
+ * contract without creating a second store. `setOptions` is a runtime bridge
+ * until the monolithic store declaration itself can be edited safely.
+ */
+export function configureProjectPersistenceV13(): void {
+  useGroove.persist.setOptions({
+    version: PROJECT_SCHEMA_VERSION,
+    migrate: (persistedState, fromVersion) =>
+      migratePersistedProject(persistedState, fromVersion) as typeof persistedState,
+  });
+}
+
+/**
  * Enforce the canonical v4 Sample/Synth ownership on the live Zustand state.
  *
- * This is a compatibility bridge while the monolithic store persistence config
- * still declares schema v12. The guard does not create a second state store:
- * it rewrites the existing authoritative `parts` array through Zustand and the
+ * This is a compatibility bridge while the monolithic store source still
+ * declares schema v12. The guard does not create a second state store: it
+ * rewrites the existing authoritative `parts` array through Zustand and the
  * existing persist middleware serializes the resulting Part objects, including
  * reversible `legacyInstrument.source` metadata.
  */
@@ -64,7 +81,16 @@ export function bindCanonicalSourceGuard(): void {
   if (bound) return;
   bound = true;
 
-  migrateLiveProjectSourcesToV13();
+  // Set the persist contract before the first compatibility write so any
+  // migration write is serialized with the v13 envelope.
+  configureProjectPersistenceV13();
+  const migrated = migrateLiveProjectSourcesToV13();
+  if (!migrated) {
+    // Persist middleware v5 does not write initial state at creation time. A
+    // no-op-equivalent partial update stamps an already-canonical project with
+    // the new v13 persistence version without changing musical data.
+    useGroove.setState({ parts: useGroove.getState().parts });
+  }
 
   const originalSetPartSource = useGroove.getState().setPartSource;
   useGroove.setState({
