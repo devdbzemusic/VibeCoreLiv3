@@ -317,6 +317,34 @@ Offen:
 - Vollstaendige Scene-Bank-/Scene-Chain-Paritaet inklusive Persistenz.
 - Vollstaendiger Piano-Roll-Editor: Notenliste, Laengen, Velocity, Verschieben/Loeschen einzelner Noten, Persistenz.
 - Hoerbarer E2E-Nachweis fuer Piano-Roll-Trigger ueber Transport mit passenden Instrument-/Sample-Zielen.
+
+## Sprint 10 Voice Native Keyboard Entry
+
+Status: `DEVICE VERIFIED` fuer den Native-Voice-Keyboard-/Node-Slice.
+
+Geaendert:
+
+- `VOICE` ist nicht mehr nur Placeholder, sondern zeigt eine Native-Voice-Performance-Oberflaeche.
+- Voice wird vor Engine-Start vorbereitet, damit `VoiceNode` im AudioGraph vorhanden ist.
+- Voice-Tasten rufen direkt `VoiceEngine noteOn/noteOff -> VoiceNode -> Oboe` ueber Kotlin/JNI/C++ auf.
+- `ALL OFF`, aktive Note, aktive Voice-Units und Output-Level sind sichtbar.
+- Status markiert ehrlich, dass Sample-Slots, Recording, Live-Input und AI-Voice-Paritaet noch offen sind.
+
+Geprueft:
+
+- Debug-APK erfolgreich gebaut.
+- APK auf `RZCY91QYC9N` installiert.
+- `VOICE`-Screen zeigt `VOICE`, `Native Voice keyboard -> VoiceEngine noteOn/noteOff -> Oboe`, `ALL OFF`, `VOICES`, `LEVEL`, `ACTIVE` und Keyboard-Tasten.
+- Tap auf `C3` erzeugt sichtbaren Status `Voice note 60 released; sample/live-input content still needs parity work.`
+- Logcat zeigt `AudioGraph: addNode id=3 name=VoiceNode`, `VoiceNode: prepared` und `Engine running`.
+- Kein Fatal/ANR/SIGSEGV/SIGABRT/UnsatisfiedLinkError im gefilterten App-Logcat.
+
+Offen:
+
+- Voice-Sample-Slot Laden/Preview in Compose.
+- Recording/Live-Input mit Android-Microphone-Permission.
+- Pitch/Formant/Harmony/Layer/Phrase-Controls und AI-Workflow.
+- Hoerbarer Voice-Audio-Abgleich mit geladenem Sample oder Live-Input.
 - DONE: Decode-/Native-Load-Fehler mit Stacktrace in Logcat schreiben.
 - DONE: Persisted-Sample-Restore-Teilfehler sichtbar machen statt stumm zu schlucken.
 - OPEN: Vollautomatische SAF-Dateiauswahl robust machen oder als manuellen Device-Testschritt behandeln.

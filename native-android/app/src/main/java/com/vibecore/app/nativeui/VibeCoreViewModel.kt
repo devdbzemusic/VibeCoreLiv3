@@ -43,6 +43,7 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
     init {
         hydrateProjectToNative(initialState)
         runtime.prepareBassInstrument()
+        runtime.prepareVoiceInstrument()
         restorePersistedSamples()
         startUiPolling()
     }
@@ -50,6 +51,10 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
     fun selectScreen(screen: NativeScreen) {
         if (_state.value.screen == NativeScreen.BASS && screen != NativeScreen.BASS) {
             runtime.bassAllNotesOff()
+            _state.update { it.copy(activePerformanceNote = null) }
+        }
+        if (_state.value.screen == NativeScreen.VOICE && screen != NativeScreen.VOICE) {
+            runtime.voiceAllNotesOff()
             _state.update { it.copy(activePerformanceNote = null) }
         }
         _state.update { it.copy(screen = screen) }
@@ -234,9 +239,10 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
                 )
             }
             NativeScreen.VOICE -> _state.update {
+                val ok = runtime.voiceNoteOn(note)
                 it.copy(
-                    performanceStatus = "Voice performance keyboard is not routed in this Compose slice yet.",
-                    activePerformanceNote = note,
+                    voiceStatus = if (ok) "Voice note $note -> Native Voice / Oboe" else "Voice note failed: native engine unavailable.",
+                    activePerformanceNote = if (ok) note else null,
                 )
             }
             else -> Unit
@@ -247,14 +253,18 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         if (source == NativeScreen.BASS) {
             runtime.bassNoteOff(note)
         }
+        if (source == NativeScreen.VOICE) {
+            runtime.voiceNoteOff(note)
+        }
         _state.update {
             it.copy(
                 performanceStatus = when (source) {
                     NativeScreen.SYNTH -> "Synth keyboard UI ready; native Synth3D renderer is still an open sprint."
-                    NativeScreen.VOICE -> "Voice performance keyboard is not routed in this Compose slice yet."
                     NativeScreen.BASS -> "Bass note $note released."
+                    NativeScreen.VOICE -> it.performanceStatus
                     else -> it.performanceStatus
                 },
+                voiceStatus = if (source == NativeScreen.VOICE) "Voice note $note released; sample/live-input content still needs parity work." else it.voiceStatus,
                 activePerformanceNote = null,
             )
         }
@@ -262,7 +272,8 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
 
     fun allPerformanceNotesOff() {
         runtime.bassAllNotesOff()
-        _state.update { it.copy(activePerformanceNote = null, performanceStatus = "All performance notes released.") }
+        runtime.voiceAllNotesOff()
+        _state.update { it.copy(activePerformanceNote = null, performanceStatus = "All performance notes released.", voiceStatus = "All voice notes released.") }
     }
 
     fun queueScene(scene: Int) {
@@ -404,6 +415,10 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
                 bassActiveVoices = runtime.bassActiveVoices(),
                 bassOutputLevel = runtime.bassOutputLevel(),
                 activeScene = runtime.activeScene(),
+                voiceActiveUnits = runtime.voiceActiveUnits(),
+                voiceOutputLevel = runtime.voiceOutputLevel(),
+                voiceInputLevel = runtime.voiceInputLevel(),
+                voiceLiveInput = runtime.voiceLiveInputEnabled(),
             )
         }
     }
@@ -411,6 +426,7 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
     override fun onCleared() {
         meterJob?.cancel()
         runtime.bassAllNotesOff()
+        runtime.voiceAllNotesOff()
         persist()
         runtime.shutdown()
         super.onCleared()

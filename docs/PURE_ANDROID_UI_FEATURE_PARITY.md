@@ -78,6 +78,16 @@ Sprint 9 (`Scene / Piano-Roll Native Entry`) ist fuer die ersten Scene- und Pian
 
 Weiterhin offen: Scene-Bank-/Chain-Paritaet, vollstaendiger Piano-Roll-Editor, Persistenz und hoerbarer Transport-E2E fuer Piano-Roll-Noten.
 
+Sprint 10 (`Voice Native Keyboard Entry`) ist fuer den Native-Voice-Keyboard-/Node-Slice `DEVICE VERIFIED`:
+
+- `VOICE` ist als eigener Compose-Screen mit Performance-Keyboard erreichbar.
+- Voice wird vor Engine-Start vorbereitet, damit `VoiceNode` in den AudioGraph kommt.
+- Voice-Note-On/Off laeuft ueber Kotlin/JNI in `VoiceEngine`/`VoiceNode` und startet den Oboe/AAudio-Stream.
+- Voice-Unit-Meter und Release-Status sind sichtbar.
+- Sample-Slots, Recording, Live-Input und AI-Voice bleiben bewusst als offene Parity-Arbeit markiert.
+
+Weiterhin offen: hoerbarer Voice-E2E mit Sample/Live-Input, Recording-Permission, Voice-Parameter, Takes-Liste und AI-Aktionen.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.
@@ -132,7 +142,7 @@ Statuswerte:
 | Sample Forge | `SmplTab.tsx` / `ForgeTab.tsx` | `SampleForgeScreen.kt` | SHELL | WIRED | WIRED | NATIVE ASSET CORE PARTIAL | PARTIAL | PARTIAL | WIRED |
 | Synth 3D | `Synth3DPage.tsx` / subtabs | `Synth3DScreen.kt` | SHELL | WIRED KEYBOARD UI | PARTIAL | NATIVE SYNTH GAP | OPEN | PARTIAL | GAP VISIBLE |
 | Bass 3D | `Bass3DPage.tsx` / subtabs | `Bass3DScreen.kt` | SHELL | WIRED KEYBOARD | PARTIAL | WIRED BASS KEYBOARD | OPEN | PARTIAL | DEVICE VERIFIED SLICE |
-| Voice | `VoiceTab.tsx` | `VoiceScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE VOICE CORE EXISTS | OPEN | OPEN | REFERENCE |
+| Voice | `VoiceTab.tsx` | `VoiceScreen.kt` | SHELL | WIRED KEYBOARD | PARTIAL | WIRED VOICE KEYBOARD | OPEN | PARTIAL | DEVICE VERIFIED SLICE |
 | FX / Sends | FX tabs / channel sends | `FxScreen.kt` / Mixer | REFERENCE | OPEN | OPEN | PARTIAL CORE | OPEN | OPEN | REFERENCE |
 | Piano Roll | Web piano-roll controls | `PianoRollScreen.kt` | SHELL | WIRED ADD/CLEAR | PARTIAL | NATIVE GROOVE API WIRED | OPEN | PARTIAL | DEVICE VERIFIED SLICE |
 | Automation / Motion | `AutomationDrawer.tsx` etc. | Native Automation/Motion | REFERENCE | OPEN | OPEN | OPEN | OPEN | OPEN | REFERENCE |
@@ -195,7 +205,7 @@ Ein Screen darf erst `VERIFIED` erhalten, wenn:
 2. Mixer
 3. Sample Forge + Android SAF + Native PCM Asset Store
 4. Bass 3D Restparitaet
-5. Voice
+5. Voice Restparitaet
 6. Synth 3D Native Renderer
 7. FX / Sends
 8. Piano Roll Resteditor

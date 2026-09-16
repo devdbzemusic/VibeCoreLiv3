@@ -138,6 +138,40 @@ class NativeRuntime(context: Context) {
     fun bassActiveVoices(): Int = bridge.bassActiveVoices()
     fun bassOutputLevel(): Float = bridge.bassOutputLevel()
 
+    fun prepareVoiceInstrument() {
+        if (!bridge.isAvailable()) return
+        bridge.voiceSetGlobalMode(0)
+        bridge.voiceSetPolyMode(1)
+        bridge.voiceSetPlayMode(0)
+        bridge.voiceSetVolume(0.9f)
+        bridge.voiceSetDryWet(1f)
+        bridge.voiceSetMonitor(0f)
+        bridge.voiceSetRootNote(60)
+        bridge.voiceSetActiveSlot(0)
+        bridge.voiceSetStereoEnabled(true)
+        bridge.voiceSetStereoWidth(1.0f)
+    }
+
+    fun voiceNoteOn(note: Int, velocity: Int = 108): Boolean {
+        prepareVoiceInstrument()
+        if (!ensureStarted()) return false
+        bridge.voiceNoteOn(note.coerceIn(0, 127), velocity.coerceIn(1, 127), 0, -1)
+        return true
+    }
+
+    fun voiceNoteOff(note: Int) {
+        bridge.voiceNoteOff(note.coerceIn(0, 127))
+    }
+
+    fun voiceAllNotesOff() {
+        bridge.voiceAllNotesOff()
+    }
+
+    fun voiceActiveUnits(): Int = bridge.voiceActiveUnits()
+    fun voiceOutputLevel(): Float = bridge.voiceOutputLevel()
+    fun voiceInputLevel(): Float = bridge.voiceInputLevel()
+    fun voiceLiveInputEnabled(): Boolean = bridge.voiceLiveInputEnabled()
+
     fun canColdLoadSample(): Boolean = grooveAssets.canLoad()
 
     fun loadSample(sampleId: Int, monoPcm: FloatArray, sampleRate: Int): Boolean {

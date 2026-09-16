@@ -42,6 +42,11 @@ data class VibeCoreUiState(
     val sceneStatus: String = "Scene pads ready. Scene changes are queued through Native Groove.",
     val pianoRollNotesAdded: Int = 0,
     val pianoRollStatus: String = "Select Bass or Synth, then add notes to the Native Groove piano roll.",
+    val voiceStatus: String = "Voice keyboard ready. Sample slots and live input are follow-up parity work.",
+    val voiceActiveUnits: Int = 0,
+    val voiceOutputLevel: Float = 0f,
+    val voiceInputLevel: Float = 0f,
+    val voiceLiveInput: Boolean = false,
     val tracks: List<TrackState> = defaultTracks(),
 )
 

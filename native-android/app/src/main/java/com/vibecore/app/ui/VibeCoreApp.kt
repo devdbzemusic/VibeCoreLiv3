@@ -168,10 +168,20 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                         onClear = viewModel::clearPianoRoll,
                         modifier = Modifier.weight(1f),
                     )
-                    NativeScreen.VOICE -> MigrationPlaceholder(
-                        "VOICE",
-                        "Native Voice DSP already exists; Compose controls are not yet ported.",
-                        Modifier.weight(1f),
+                    NativeScreen.VOICE -> PerformanceKeyboardPanel(
+                        title = "VOICE",
+                        detail = "Native Voice keyboard -> VoiceEngine noteOn/noteOff -> Oboe",
+                        status = state.voiceStatus,
+                        activeNote = state.activePerformanceNote,
+                        activeVoices = state.voiceActiveUnits,
+                        outputLevel = state.voiceOutputLevel,
+                        compact = compactLandscape,
+                        enabled = true,
+                        screen = NativeScreen.VOICE,
+                        onNoteOn = viewModel::performanceNoteOn,
+                        onNoteOff = viewModel::performanceNoteOff,
+                        onAllNotesOff = viewModel::allPerformanceNotesOff,
+                        modifier = Modifier.weight(1f),
                     )
                 }
 
