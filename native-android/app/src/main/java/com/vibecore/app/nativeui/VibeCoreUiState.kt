@@ -1,6 +1,6 @@
 package com.vibecore.app.nativeui
 
-enum class NativeScreen { PATTERN, MIXER, SAMPLE, BASS, SYNTH, VOICE }
+enum class NativeScreen { PATTERN, SCENE, MIXER, SAMPLE, BASS, SYNTH, ROLL, VOICE }
 enum class TrackKind(val nativeMode: Int) { DRUM(0), BASS(1), SYNTH(2), SAMPLE(3), VOICE(4) }
 
 data class StepState(
@@ -37,6 +37,11 @@ data class VibeCoreUiState(
     val activePerformanceNote: Int? = null,
     val bassActiveVoices: Int = 0,
     val bassOutputLevel: Float = 0f,
+    val activeScene: Int = 0,
+    val pendingScene: Int? = null,
+    val sceneStatus: String = "Scene pads ready. Scene changes are queued through Native Groove.",
+    val pianoRollNotesAdded: Int = 0,
+    val pianoRollStatus: String = "Select Bass or Synth, then add notes to the Native Groove piano roll.",
     val tracks: List<TrackState> = defaultTracks(),
 )
 

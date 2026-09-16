@@ -86,6 +86,28 @@ class NativeRuntime(context: Context) {
         bridge.grooveSetTrackSample(track, sampleId)
     }
 
+    fun queueSceneChange(scene: Int): Boolean {
+        if (!bridge.isAvailable()) return false
+        bridge.grooveQueueSceneChange(scene.coerceIn(0, 15))
+        return true
+    }
+
+    fun activeScene(): Int = bridge.grooveActiveScene().coerceAtLeast(0)
+
+    fun addPianoRollNote(track: Int, noteIndex: Int, note: Int, velocity: Int = 108): Boolean {
+        if (!bridge.isAvailable()) return false
+        val startTick = (noteIndex.coerceAtLeast(0) % 16) * 480L
+        val endTick = startTick + 360L
+        bridge.grooveAddPianoRollNote(track.coerceIn(0, 15), startTick, endTick, note.coerceIn(0, 127), velocity.coerceIn(1, 127))
+        return true
+    }
+
+    fun clearPianoRoll(track: Int): Boolean {
+        if (!bridge.isAvailable()) return false
+        bridge.grooveClearPianoRoll(track.coerceIn(0, 15))
+        return true
+    }
+
     fun prepareBassInstrument() {
         if (!bridge.isAvailable()) return
         bridge.bassSetVoiceMode(2) // Poly4 keeps the on-screen keyboard forgiving.

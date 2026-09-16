@@ -265,6 +265,54 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         _state.update { it.copy(activePerformanceNote = null, performanceStatus = "All performance notes released.") }
     }
 
+    fun queueScene(scene: Int) {
+        val target = scene.coerceIn(0, 7)
+        val ok = runtime.queueSceneChange(target)
+        _state.update {
+            it.copy(
+                pendingScene = if (ok) target else it.pendingScene,
+                sceneStatus = if (ok) {
+                    "Scene ${target + 1} queued through Native Groove."
+                } else {
+                    "Scene queue failed: native engine unavailable."
+                },
+            )
+        }
+    }
+
+    fun addPianoRollNote(note: Int) {
+        val state = _state.value
+        val track = state.tracks.getOrNull(state.selectedTrack) ?: return
+        if (track.kind != TrackKind.BASS && track.kind != TrackKind.SYNTH && track.kind != TrackKind.VOICE) {
+            _state.update { it.copy(pianoRollStatus = "${track.name} is ${track.kind}; piano-roll notes belong to Bass/Synth/Voice tracks.") }
+            return
+        }
+        val nextIndex = state.pianoRollNotesAdded
+        val ok = runtime.addPianoRollNote(track.id, nextIndex, note)
+        _state.update {
+            it.copy(
+                pianoRollNotesAdded = if (ok) nextIndex + 1 else nextIndex,
+                pianoRollStatus = if (ok) {
+                    "Added note $note to ${track.name} at native tick ${(nextIndex % 16) * 480}."
+                } else {
+                    "Piano-roll add failed: native engine unavailable."
+                },
+            )
+        }
+    }
+
+    fun clearPianoRoll() {
+        val state = _state.value
+        val track = state.tracks.getOrNull(state.selectedTrack) ?: return
+        val ok = runtime.clearPianoRoll(track.id)
+        _state.update {
+            it.copy(
+                pianoRollNotesAdded = if (ok) 0 else it.pianoRollNotesAdded,
+                pianoRollStatus = if (ok) "Cleared native piano roll for ${track.name}." else "Piano-roll clear failed: native engine unavailable.",
+            )
+        }
+    }
+
     fun onAudioFocusGained() {
         runtime.onAudioFocusGained()
         refreshRuntimeState()
@@ -355,6 +403,7 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
                 diagnostic = runtime.diagnostic(),
                 bassActiveVoices = runtime.bassActiveVoices(),
                 bassOutputLevel = runtime.bassOutputLevel(),
+                activeScene = runtime.activeScene(),
             )
         }
     }

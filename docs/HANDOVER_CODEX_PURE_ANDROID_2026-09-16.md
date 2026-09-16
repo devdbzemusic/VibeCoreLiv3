@@ -288,6 +288,35 @@ Offen:
 - Hoerbarer Bass-Audio-Abgleich per Mess-/Audio-Protokoll statt nur Device/UI/Logcat-Nachweis.
 - Vollstaendige Bass3D-Paritaet: Parameter, Mod Matrix, AI Bassline, Piano-Roll-Access, Deep Editor.
 - Native Synth3D Renderer/JNI/Compose-Paritaet.
+
+## Sprint 9 Scene / Piano-Roll Native Entry
+
+Status: `DEVICE VERIFIED` fuer Scene-Queue- und Piano-Roll-Entry-Slices.
+
+Geaendert:
+
+- Untere Navigation enthaelt jetzt `SCENE` und `ROLL`.
+- Scene-Screen zeigt 8 Scene-Pads, aktive Scene, Pending-Scene und sichtbaren Queue-Status.
+- Scene-Pads rufen direkt `grooveQueueSceneChange()` ueber Kotlin/JNI/C++ auf.
+- Piano-Roll-Screen zeigt Bass/Synth-faehige Tracks, Note-Pads und `CLEAR`.
+- Note-Pads rufen direkt `grooveAddPianoRollNote()` auf; `CLEAR` ruft `grooveClearPianoRoll()` auf.
+- Compose erzeugt keinen eigenen Sequencer; Tick-Positionen werden nur als Native-Groove-Daten geschrieben.
+
+Geprueft:
+
+- Debug-APK erfolgreich gebaut.
+- APK auf `RZCY91QYC9N` installiert.
+- `SCENE`-Screen zeigt `SCENES`, `BAR-SYNCED NATIVE GROOVE QUEUE`, `ACTIVE`, `PENDING` und 8 Scene-Pads.
+- Tap auf Scene 03 erzeugt sichtbaren Status `Scene 3 queued through Native Groove.`.
+- `ROLL`-Screen zeigt `PIANO ROLL`, Bass/Synth-Auswahl, Note-Pads und `CLEAR`.
+- Tap auf `G2` erzeugt sichtbaren Status `Added note 55 to SYNTH at native tick 0. | notes 1`.
+- Kein Fatal/ANR/SIGSEGV/SIGABRT/UnsatisfiedLinkError im gefilterten App-Logcat.
+
+Offen:
+
+- Vollstaendige Scene-Bank-/Scene-Chain-Paritaet inklusive Persistenz.
+- Vollstaendiger Piano-Roll-Editor: Notenliste, Laengen, Velocity, Verschieben/Loeschen einzelner Noten, Persistenz.
+- Hoerbarer E2E-Nachweis fuer Piano-Roll-Trigger ueber Transport mit passenden Instrument-/Sample-Zielen.
 - DONE: Decode-/Native-Load-Fehler mit Stacktrace in Logcat schreiben.
 - DONE: Persisted-Sample-Restore-Teilfehler sichtbar machen statt stumm zu schlucken.
 - OPEN: Vollautomatische SAF-Dateiauswahl robust machen oder als manuellen Device-Testschritt behandeln.

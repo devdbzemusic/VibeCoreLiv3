@@ -66,6 +66,18 @@ Sprint 8 (`Bass/Synth Performance Keyboard`) ist fuer den Native-Bass-Keyboard-S
 
 Weiterhin offen: vollstaendige Bass3D-Parameter-/Deep-Editor-Paritaet, hoerbarer Audio-Abgleich und dedizierter Native Synth3D Renderer.
 
+Sprint 9 (`Scene / Piano-Roll Native Entry`) ist fuer die ersten Scene- und Piano-Roll-Eingriffe `DEVICE VERIFIED`:
+
+- `SCENE` ist als eigener Compose-Screen erreichbar.
+- 8 Scene-Pads queueen Scene-Wechsel ueber Native Groove.
+- Aktive und pending Scene werden angezeigt.
+- `ROLL` ist als eigener Compose-Screen erreichbar.
+- Bass/Synth-Tracks koennen ausgewaehlt werden.
+- Note-Pads schreiben ueber `grooveAddPianoRollNote()` direkt in den Native-Groove-Piano-Roll.
+- `CLEAR` ruft `grooveClearPianoRoll()` auf.
+
+Weiterhin offen: Scene-Bank-/Chain-Paritaet, vollstaendiger Piano-Roll-Editor, Persistenz und hoerbarer Transport-E2E fuer Piano-Roll-Noten.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.
@@ -115,14 +127,14 @@ Statuswerte:
 | Track Selector | Groovebox part strip | Compose TrackStrip | SHELL | WIRED | WIRED | n/a | OPEN | OPEN | WIRED |
 | 16-Step Pattern | Pattern/Performance views | Compose PatternPanel | SHELL | WIRED | WIRED | WIRED | OPEN | OPEN | WIRED |
 | Mute / Solo | Channel/Pattern controls | Compose PatternPanel | SHELL | WIRED | WIRED | WIRED | OPEN | OPEN | WIRED |
-| Scene / Pattern Banks | Web Scene/Pattern workflow | Native Scene/Pattern screen | REFERENCE | OPEN | OPEN | PARTIAL CORE | OPEN | OPEN | REFERENCE |
+| Scene / Pattern Banks | Web Scene/Pattern workflow | Native Scene/Pattern screen | SHELL | WIRED SCENE QUEUE | PARTIAL | PARTIAL CORE | OPEN | PARTIAL | DEVICE VERIFIED SLICE |
 | Mixer | `MixTab` / `ChannelStrip` | `MixerScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE CORE PARTIAL | OPEN | OPEN | REFERENCE |
 | Sample Forge | `SmplTab.tsx` / `ForgeTab.tsx` | `SampleForgeScreen.kt` | SHELL | WIRED | WIRED | NATIVE ASSET CORE PARTIAL | PARTIAL | PARTIAL | WIRED |
 | Synth 3D | `Synth3DPage.tsx` / subtabs | `Synth3DScreen.kt` | SHELL | WIRED KEYBOARD UI | PARTIAL | NATIVE SYNTH GAP | OPEN | PARTIAL | GAP VISIBLE |
 | Bass 3D | `Bass3DPage.tsx` / subtabs | `Bass3DScreen.kt` | SHELL | WIRED KEYBOARD | PARTIAL | WIRED BASS KEYBOARD | OPEN | PARTIAL | DEVICE VERIFIED SLICE |
 | Voice | `VoiceTab.tsx` | `VoiceScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE VOICE CORE EXISTS | OPEN | OPEN | REFERENCE |
 | FX / Sends | FX tabs / channel sends | `FxScreen.kt` / Mixer | REFERENCE | OPEN | OPEN | PARTIAL CORE | OPEN | OPEN | REFERENCE |
-| Piano Roll | Web piano-roll controls | `PianoRollScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE GROOVE API EXISTS | OPEN | OPEN | REFERENCE |
+| Piano Roll | Web piano-roll controls | `PianoRollScreen.kt` | SHELL | WIRED ADD/CLEAR | PARTIAL | NATIVE GROOVE API WIRED | OPEN | PARTIAL | DEVICE VERIFIED SLICE |
 | Automation / Motion | `AutomationDrawer.tsx` etc. | Native Automation/Motion | REFERENCE | OPEN | OPEN | OPEN | OPEN | OPEN | REFERENCE |
 | Arp | `ArpPanel.tsx` | Native Arp controls | REFERENCE | OPEN | OPEN | CONTRACT OPEN | OPEN | OPEN | REFERENCE |
 | MIDI | Browser MIDI path | Android MIDI API → Native | REFERENCE | OPEN | OPEN | OPEN | OPEN | OPEN | REFERENCE |
@@ -179,14 +191,14 @@ Ein Screen darf erst `VERIFIED` erhalten, wenn:
 
 ## Nächste Reihenfolge
 
-1. Pattern/Scene Vollparität + Persistenz
+1. Pattern/Scene Restparitaet + Persistenz
 2. Mixer
 3. Sample Forge + Android SAF + Native PCM Asset Store
 4. Bass 3D Restparitaet
 5. Voice
 6. Synth 3D Native Renderer
 7. FX / Sends
-8. Piano Roll
+8. Piano Roll Resteditor
 9. Motion/Automation/Arp
 10. Android MIDI
 11. Settings/Diagnostics

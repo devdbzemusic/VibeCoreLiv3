@@ -95,6 +95,14 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                             modifier = Modifier.weight(1f),
                         )
                     }
+                    NativeScreen.SCENE -> ScenePanel(
+                        activeScene = state.activeScene,
+                        pendingScene = state.pendingScene,
+                        status = state.sceneStatus,
+                        compact = compactLandscape,
+                        onScene = viewModel::queueScene,
+                        modifier = Modifier.weight(1f),
+                    )
                     NativeScreen.MIXER -> MixerPanel(
                         tracks = state.tracks,
                         selectedTrack = state.selectedTrack,
@@ -147,6 +155,17 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                         onNoteOn = viewModel::performanceNoteOn,
                         onNoteOff = viewModel::performanceNoteOff,
                         onAllNotesOff = viewModel::allPerformanceNotesOff,
+                        modifier = Modifier.weight(1f),
+                    )
+                    NativeScreen.ROLL -> PianoRollPanel(
+                        tracks = state.tracks,
+                        selectedTrack = state.selectedTrack,
+                        notesAdded = state.pianoRollNotesAdded,
+                        status = state.pianoRollStatus,
+                        compact = compactLandscape,
+                        onSelect = viewModel::selectTrack,
+                        onAddNote = viewModel::addPianoRollNote,
+                        onClear = viewModel::clearPianoRoll,
                         modifier = Modifier.weight(1f),
                     )
                     NativeScreen.VOICE -> MigrationPlaceholder(
@@ -328,6 +347,88 @@ private fun PatternPanel(
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
                                 )
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScenePanel(
+    activeScene: Int,
+    pendingScene: Int?,
+    status: String,
+    compact: Boolean,
+    onScene: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Panel(modifier) {
+        if (compact) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.width(420.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("SCENES", color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    Text("BAR-SYNCED NATIVE GROOVE QUEUE", color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 8.sp)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        PerformanceMeter("ACTIVE", (activeScene + 1).toString(), true, Modifier.weight(1f))
+                        PerformanceMeter("PENDING", pendingScene?.plus(1)?.toString() ?: "--", true, Modifier.weight(1f))
+                    }
+                    Text(status, color = VibeCoreColors.Lime, fontFamily = FontFamily.Monospace, fontSize = 8.sp, maxLines = 2)
+                }
+                SceneGrid(activeScene, pendingScene, compact = true, onScene = onScene, modifier = Modifier.weight(1f).fillMaxHeight())
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("SCENES", color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 22.sp)
+                Text("BAR-SYNCED NATIVE GROOVE QUEUE", color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PerformanceMeter("ACTIVE", (activeScene + 1).toString(), false, Modifier.weight(1f))
+                    PerformanceMeter("PENDING", pendingScene?.plus(1)?.toString() ?: "--", false, Modifier.weight(1f))
+                }
+                Text(status, color = VibeCoreColors.Lime, fontFamily = FontFamily.Monospace, fontSize = 10.sp, maxLines = 1)
+                SceneGrid(activeScene, pendingScene, compact = false, onScene = onScene, modifier = Modifier.fillMaxWidth().weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SceneGrid(
+    activeScene: Int,
+    pendingScene: Int?,
+    compact: Boolean,
+    onScene: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        repeat(2) { row ->
+            Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                repeat(4) { col ->
+                    val scene = row * 4 + col
+                    val active = activeScene == scene
+                    val pending = pendingScene == scene && !active
+                    Surface(
+                        color = when {
+                            active -> VibeCoreColors.Primary.copy(alpha = 0.28f)
+                            pending -> VibeCoreColors.Amber.copy(alpha = 0.18f)
+                            else -> VibeCoreColors.Surface2
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, when {
+                            active -> VibeCoreColors.Primary
+                            pending -> VibeCoreColors.Amber
+                            else -> VibeCoreColors.Border
+                        }),
+                        modifier = Modifier.weight(1f).fillMaxHeight().clickable { onScene(scene) },
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                            Text("SCENE", color = VibeCoreColors.Muted, fontSize = if (compact) 8.sp else 9.sp)
+                            Text((scene + 1).toString().padStart(2, '0'), color = VibeCoreColors.Foreground, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black, fontSize = if (compact) 18.sp else 22.sp)
                         }
                     }
                 }
@@ -556,6 +657,121 @@ private fun SampleAssetCard(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.height(44.dp),
                     ) { Text(if (busy) "LOADING..." else "CHOOSE AUDIO", fontWeight = FontWeight.Black) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PianoRollPanel(
+    tracks: List<TrackState>,
+    selectedTrack: Int,
+    notesAdded: Int,
+    status: String,
+    compact: Boolean,
+    onSelect: (Int) -> Unit,
+    onAddNote: (Int) -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val eligible = tracks.mapIndexedNotNull { index, track ->
+        if (track.kind == TrackKind.BASS || track.kind == TrackKind.SYNTH || track.kind == TrackKind.VOICE) index to track else null
+    }
+    val selected = tracks[selectedTrack]
+    val notes = listOf(48 to "C2", 50 to "D2", 52 to "E2", 55 to "G2", 57 to "A2", 60 to "C3", 64 to "E3", 67 to "G3")
+
+    Panel(modifier) {
+        if (compact) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.width(520.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("PIANO ROLL", color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                            Text("COMPOSE -> NATIVE GROOVE PIANO-ROLL NOTES", color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 8.sp, maxLines = 1)
+                        }
+                        Button(
+                            onClick = onClear,
+                            colors = ButtonDefaults.buttonColors(containerColor = VibeCoreColors.Surface3, contentColor = VibeCoreColors.Foreground),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.height(34.dp),
+                        ) { Text("CLEAR", fontWeight = FontWeight.Black, fontSize = 9.sp) }
+                    }
+                    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        eligible.forEach { (index, track) ->
+                            val active = index == selectedTrack
+                            Surface(
+                                color = if (active) VibeCoreColors.Violet.copy(alpha = 0.16f) else VibeCoreColors.Surface2,
+                                shape = RoundedCornerShape(11.dp),
+                                border = BorderStroke(1.dp, if (active) VibeCoreColors.Violet else VibeCoreColors.Border),
+                                modifier = Modifier.width(106.dp).height(38.dp).clickable { onSelect(index) },
+                            ) { Box(contentAlignment = Alignment.Center) { Text(track.name, color = if (active) VibeCoreColors.Violet else VibeCoreColors.Foreground, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1) } }
+                        }
+                    }
+                    Text(
+                        "$status | notes $notesAdded",
+                        color = VibeCoreColors.Lime,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Black,
+                        maxLines = 2,
+                    )
+                }
+                NoteGrid(notes, compact = true, onAddNote = onAddNote, modifier = Modifier.weight(1f).fillMaxHeight())
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("PIANO ROLL", color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 22.sp)
+                Text("COMPOSE -> NATIVE GROOVE PIANO-ROLL NOTES", color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    eligible.forEach { (index, track) ->
+                        val active = index == selectedTrack
+                        Surface(
+                            color = if (active) VibeCoreColors.Violet.copy(alpha = 0.16f) else VibeCoreColors.Surface2,
+                            shape = RoundedCornerShape(11.dp),
+                            border = BorderStroke(1.dp, if (active) VibeCoreColors.Violet else VibeCoreColors.Border),
+                            modifier = Modifier.width(106.dp).height(42.dp).clickable { onSelect(index) },
+                        ) { Box(contentAlignment = Alignment.Center) { Text(track.name, color = if (active) VibeCoreColors.Violet else VibeCoreColors.Foreground, fontSize = 10.sp, fontWeight = FontWeight.Bold) } }
+                    }
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PerformanceMeter("TRACK", selected.name, false, Modifier.weight(1f))
+                    PerformanceMeter("NOTES", notesAdded.toString(), false, Modifier.weight(1f))
+                }
+                Text(status, color = VibeCoreColors.Lime, fontFamily = FontFamily.Monospace, fontSize = 10.sp, maxLines = 1)
+                Button(
+                    onClick = onClear,
+                    colors = ButtonDefaults.buttonColors(containerColor = VibeCoreColors.Surface3, contentColor = VibeCoreColors.Foreground),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.height(38.dp),
+                ) { Text("CLEAR ROLL", fontWeight = FontWeight.Black, fontSize = 10.sp) }
+                NoteGrid(notes, compact = false, onAddNote = onAddNote, modifier = Modifier.fillMaxWidth().weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoteGrid(notes: List<Pair<Int, String>>, compact: Boolean, onAddNote: (Int) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        repeat(2) { row ->
+            Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                notes.drop(row * 4).take(4).forEach { (note, label) ->
+                    Surface(
+                        color = VibeCoreColors.Surface2,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, VibeCoreColors.Border),
+                        modifier = Modifier.weight(1f).fillMaxHeight().clickable { onAddNote(note) },
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                            Text(label, color = VibeCoreColors.Foreground, fontWeight = FontWeight.Black, fontSize = if (compact) 15.sp else 18.sp)
+                            Text(note.toString(), color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 8.sp)
+                        }
+                    }
                 }
             }
         }
