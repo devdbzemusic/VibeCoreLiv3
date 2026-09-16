@@ -1,6 +1,6 @@
 # VibeCoreLiv3 — Sample/Synth Migration Contract
 
-Status: SOURCE CONTRACT IMPLEMENTED / STORE ADOPTION PENDING
+Status: SOURCE + MIGRATION + WRITE/UI POLICY IMPLEMENTED / STORE ADOPTION PENDING
 Date: 2026-09-16
 Canonical spec: v4.0
 ADR: `docs/adr/ADR-0001-sample-synth-boundaries.md`
@@ -19,6 +19,8 @@ and the legacy helper currently allows `sample`, `synth`, and `hybrid` for every
 
 The v12 Zustand persistence migration discards schemas older than v12 and returns v12+ persisted state unchanged. Therefore legacy invalid source ownership can survive rehydration today.
 
+The current `SoundTab` SOURCE UI also presents `sample`, `synth`, and `hybrid` buttons and shows `HybridPanel` whenever `p.source === "hybrid"`. This is legacy UI behavior and conflicts with the v4 ownership decision.
+
 ## 2. Canonical v4 ownership
 
 | Part category | Authority | Canonical runtime source |
@@ -35,7 +37,7 @@ The v12 Zustand persistence migration discards schemas older than v12 and return
 
 ## 3. Implemented source contract
 
-`src/lib/instruments/sourceBoundary.ts` now owns the pure classification/migration rules:
+`src/lib/instruments/sourceBoundary.ts` owns the pure classification/migration rules:
 
 - `instrumentAuthorityForCategory()`
 - `canonicalSourceForCategory()`
@@ -45,49 +47,98 @@ The v12 Zustand persistence migration discards schemas older than v12 and return
 
 The module does not mutate Zustand, UI, audio, or persisted data directly.
 
-## 4. Reversible v12 -> v13 migration rule
+## 4. Implemented v13 project migration core
 
-For every persisted Part:
+`src/lib/instruments/projectMigration.ts` now provides a pure v12 -> v13 project migration layer:
 
-1. read `category`
-2. read legacy `source`
-3. resolve canonical source from category
-4. when already canonical, keep the source without compatibility metadata
-5. when non-canonical, switch the active runtime source to the canonical value **and preserve the original value** as compatibility metadata
+- `PROJECT_SCHEMA_VERSION = 13`
+- `migratePartToV13()`
+- `migrateProjectToV13()`
+- `migratePersistedProject()`
 
-Required compatibility record:
+The migration:
+
+1. keeps the complete persisted project shape intact
+2. canonicalizes only recognized Part category/source pairs
+3. preserves every non-canonical old source under `legacyInstrument.source`
+4. does not mutate the input project or input Part array
+5. deliberately does not pretend to reconstruct pre-v12 Pattern/Scene state
+
+### Compatibility record
 
 ```ts
-{
-  source: "sample" | "synth" | "hybrid",
-  reason:
-    | "legacy-synth-on-sample-domain"
-    | "legacy-hybrid-source"
-    | "legacy-sample-on-synth-authority",
-  migratedBySchema: 13
+legacyInstrument: {
+  source: {
+    source: "sample" | "synth" | "hybrid",
+    reason:
+      | "legacy-synth-on-sample-domain"
+      | "legacy-hybrid-source"
+      | "legacy-sample-on-synth-authority",
+    migratedBySchema: 13
+  }
 }
 ```
 
-The original value must not be silently discarded.
+The original value is therefore reversible/auditable instead of silently discarded.
 
-## 5. Store adoption still required
+## 5. Implemented new-write policy
 
-The following integration is intentionally not claimed complete yet:
+`src/lib/instruments/sourcePolicy.ts` defines the rule for newly created or newly edited state:
 
-- add v13-compatible persisted metadata field to Part/project serialization
-- update `buildDefaultParts()` so drum/sample-domain slots start as `sample`
-- replace the legacy `setPartSource()` normalization with `canSelectSourceMode()` / canonical ownership
-- migrate persisted v12 Part sources through `migratePersistedSource()`
-- preserve legacy compatibility metadata through subsequent saves
-- prevent UI controls from offering invalid source transitions
+- `resolveSourceWrite()` rejects non-canonical source transitions
+- `canonicalizeNewPart()` fixes freshly-created Part defaults without touching persisted legacy projects
+- `canonicalizeNewParts()` applies the same rule to new Part sets
+
+Important distinction:
+
+- **persisted old data** -> `projectMigration.ts`
+- **new/default state and new writes** -> `sourcePolicy.ts`
+
+This avoids destroying legacy intent while preventing new invalid state.
+
+## 6. Implemented UI policy
+
+`src/lib/instruments/sourceUiPolicy.ts` now defines source-selector presentation:
+
+- sample-domain categories expose only Sample authority
+- synth category exposes only 3D Synth authority
+- bass category exposes only 3D Bass authority
+- Hybrid editor is disabled by canonical policy
+- preserved legacy source state may be shown as a compatibility notice but does not reopen invalid source buttons
+
+The policy is pure and does not mutate the store.
+
+## 7. Store/UI adoption still required
+
+The following mechanical integration is intentionally not claimed complete yet:
+
+- set Zustand persist schema version to 13
+- call `migratePersistedProject()` from the persist migration hook
+- add/persist `legacyInstrument` compatibility metadata on migrated Parts
+- canonicalize `buildDefaultParts()` output using `canonicalizeNewParts()` or equivalent model-level ownership
+- replace `setPartSource()` legacy normalization with `resolveSourceWrite()`
+- migrate `SoundTab` SOURCE UI to `sourceUiPolicyForPart()`
+- remove the interactive Hybrid source selector/editor from new v4 workflows while keeping compatibility display/export capability
 - move drum Tone/Decay controls away from legacy synth-generation semantics where necessary
-- migrate runtime routing/trigger reads of `Part.source`
+- inventory/migrate runtime trigger/routing reads of `Part.source`
 
-## 6. Tests added
+These two large files are currently not being replaced through the GitHub connector from truncated payloads:
 
-`src/lib/instruments/__tests__/sourceBoundary.test.ts` statically defines expected ownership and reversible migration behavior.
+- `src/lib/store.ts`
+- `src/components/groovebox/SoundTab.tsx`
 
-The tests cover:
+That is a tooling-safety decision, not an architectural blocker. Both changes are mechanically defined by the modules above.
+
+## 8. Tests added
+
+Source-level regression tests now exist for:
+
+- `sourceBoundary.test.ts`
+- `projectMigration.test.ts`
+- `sourcePolicy.test.ts`
+- `sourceUiPolicy.test.ts`
+
+Covered behavior includes:
 
 - all sample-domain categories
 - Synth3D ownership
@@ -95,12 +146,22 @@ The tests cover:
 - invalid synth-on-drum detection
 - legacy hybrid preservation
 - legacy sample-on-synth preservation
-- no compatibility metadata for already canonical state
+- canonical v12 -> v13 project migration
+- non-mutating project migration
+- rejection of new invalid source writes
+- default-Part canonicalization
+- UI authority visibility
+- legacy compatibility notice without re-enabling invalid UI modes
 
 These tests are SOURCE-ADDED only. They are not marked executed or passing until an actual test run produces evidence.
 
-## 7. Risk note
+## 9. Risk note
 
-Changing `allowedSourcesForCategory()` globally before every caller is inventoried could alter UI and runtime behavior implicitly. The revision therefore introduces the new authority contract first and migrates callers explicitly.
+Changing the legacy helpers globally before every caller is inventoried could alter UI and runtime behavior implicitly. The revision therefore introduces one explicit ownership authority and migrates callers deliberately.
 
-This preserves the v4.0 rule: no hidden architecture switch and no fabricated verification.
+This preserves the v4.0 rules:
+
+- no hidden architecture switch
+- no silent data loss
+- no duplicate ownership logic
+- no fabricated verification
