@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildDefaultParts } from "@/lib/model";
-import { canonicalizeRuntimeParts } from "../sourceRuntimeGuard";
+import { applyCanonicalSourceWrite, canonicalizeRuntimeParts } from "../sourceRuntimeGuard";
 
 describe("canonicalizeRuntimeParts", () => {
   it("canonicalizes legacy drum synth sources and preserves compatibility metadata", () => {
@@ -45,5 +45,41 @@ describe("canonicalizeRuntimeParts", () => {
     expect(first.changed).toBe(true);
     expect(second.changed).toBe(false);
     expect(second.parts.map((part) => part.source)).toEqual(first.parts.map((part) => part.source));
+  });
+});
+
+describe("applyCanonicalSourceWrite", () => {
+  it("keeps an already canonical synth write unchanged", () => {
+    const synth = buildDefaultParts().find((part) => part.category === "synth")!;
+    const canonical = canonicalizeRuntimeParts([synth]).parts[0];
+    const result = applyCanonicalSourceWrite(canonical, "synth");
+
+    expect(result).toBe(canonical);
+    expect(result.source).toBe("synth");
+  });
+
+  it("rejects hybrid as active bass source and preserves it as legacy metadata", () => {
+    const bass = buildDefaultParts().find((part) => part.category === "bass")!;
+    const result = applyCanonicalSourceWrite(bass, "hybrid") as typeof bass & {
+      legacyInstrument?: { source?: { source: string; reason: string; migratedBySchema: number } };
+    };
+
+    expect(result.source).toBe("synth");
+    expect(result.legacyInstrument?.source).toEqual({
+      source: "hybrid",
+      reason: "legacy-hybrid-source",
+      migratedBySchema: 13,
+    });
+  });
+
+  it("rejects synth as active drum source and preserves the rejected request", () => {
+    const kick = buildDefaultParts().find((part) => part.category === "kick")!;
+    const result = applyCanonicalSourceWrite(kick, "synth") as typeof kick & {
+      legacyInstrument?: { source?: { source: string; reason: string; migratedBySchema: number } };
+    };
+
+    expect(result.source).toBe("sample");
+    expect(result.legacyInstrument?.source?.source).toBe("synth");
+    expect(result.legacyInstrument?.source?.reason).toBe("legacy-synth-on-sample-domain");
   });
 });
