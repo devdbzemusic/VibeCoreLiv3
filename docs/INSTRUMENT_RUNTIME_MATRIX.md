@@ -18,11 +18,11 @@ It must **not** silently start an audible WebAudio renderer.
 
 | Instrument / command | Browser WebAudio | Android Native | Current status |
 |---|---|---|---|
-| 3D Bass noteOn | `triggerPart → trigger3DBass → Bass3D voiceEngine` | `bassNoteOn → Kotlin → JNI → BassEngine → BassNode` | Source routes STATICALLY VERIFIED; execution NOT EXECUTED |
-| 3D Bass noteOff | `performanceInput → releaseNote3DBass → existing voice.steal(releaseSec)` | `bassNoteOff → Kotlin → JNI → BassEngine → BassNode` | Static route exists; browser async-registration race still OPEN |
+| 3D Bass noteOn | `triggerPart → trigger3DBass → Bass3D voiceEngine → registration ack` | `bassNoteOn → Kotlin → JNI → BassEngine → BassNode` | Source routes STATICALLY VERIFIED; execution NOT EXECUTED |
+| 3D Bass noteOff | `performanceInput → releaseNote3DBass → existing voice.steal(releaseSec)` | `bassNoteOff → Kotlin → JNI → BassEngine → BassNode` | STATICALLY VERIFIED route |
 | 3D Bass allNotesOff | `killAllNotes3DBass(partId)` | `bassAllNotesOff → Kotlin → JNI → BassEngine → BassNode` | STATICALLY VERIFIED route |
-| 3D Synth noteOn | `triggerPart → trigger3DSynth → Synth3D voiceEngine` | no dedicated native 3D Synth renderer/bridge proven | Browser route STATICALLY VERIFIED; Native UNSUPPORTED |
-| 3D Synth noteOff | `performanceInput → releaseNote3D → existing voice.steal(releaseSec)` | no native route proven | Browser static route exists; Native UNSUPPORTED; async-registration race OPEN |
+| 3D Synth noteOn | `triggerPart → trigger3DSynth → Synth3D voiceEngine → registration ack` | no dedicated native 3D Synth renderer/bridge proven | Browser route STATICALLY VERIFIED; Native UNSUPPORTED |
+| 3D Synth noteOff | `performanceInput → releaseNote3D → existing voice.steal(releaseSec)` | no native route proven | Browser STATICALLY VERIFIED route; Native UNSUPPORTED |
 | 3D Synth allNotesOff | `killAllNotes3D(partId)` | no native route proven | Browser STATICALLY VERIFIED route; Native UNSUPPORTED |
 | Voice noteOn/off | browser Voice paths exist separately | `voiceNoteOn/voiceNoteOff/voiceAllNotesOff → JNI → VoiceEngine → VoiceNode` | Native STATICALLY VERIFIED; frontend caller migration incomplete |
 | Generic Part noteOn/off | `triggerPart`, release generally gate-based | generic `AudioBackend.noteOn` maps to **Voice**, not arbitrary Part/Bass/Synth | Native generic route MUST NOT be used |
@@ -36,7 +36,9 @@ InstrumentKeyboard
   → performanceNoteOn / performanceNoteOff / performanceAllNotesOff
   → selected runtime
      ├─ Browser
+     │   ├─ arm 3D registration waiter
      │   ├─ noteOn → existing triggerPart
+     │   ├─ wait for existing voice engine acknowledgement
      │   ├─ Synth3D key-up → releaseNote3D
      │   ├─ Bass3D key-up → releaseNote3DBass
      │   └─ generic Part → scheduled gate
@@ -56,7 +58,7 @@ This prevents silent Native→WebAudio audible fallback.
 
 ## Keyboard lifecycle hardening
 
-The keyboard now reserves pointer ownership **before** awaiting runtime activation. A pointer can therefore enter one of two states:
+The keyboard reserves pointer ownership **before** awaiting runtime activation:
 
 ```text
 pointerDown
@@ -66,11 +68,30 @@ pointerDown
 
 If `pointerUp`, `pointerCancel`, `lostPointerCapture` or component unmount occurs while note-on is still pending, `released=true` is retained. If note-on later succeeds, the keyboard immediately emits the matching Runtime note-off instead of leaving a late-starting note alive.
 
-This fixes the UI-level async startup race.
+## Browser 3D registration acknowledgement
+
+`triggerPart()` intentionally keeps a scheduler-friendly void API and starts its 3D `playSynth()` branch asynchronously because the 3D modules are dynamically imported.
+
+Instead of changing the scheduler contract or creating a second trigger path, the existing voice engines now expose one-shot registration waiters:
+
+```text
+PerformanceInput
+→ arm waitForNoteStart3D / waitForNoteStart3DBass
+→ triggerPart
+→ dynamic import
+→ existing triggerNote3D / triggerNote3DBass
+→ ActiveNote inserted into existing engine
+→ notifyNoteStarted
+→ PerformanceInput resolves accepted=true
+```
+
+If no voice registration arrives within the bounded acknowledgement window, PerformanceInput returns a failed note-on rather than falsely claiming a voice exists.
+
+This closes the previously documented browser 3D registration-acknowledgement gap at the static contract level.
 
 ## Browser 3D release semantics
 
-A source audit found that `Synth3DSynthVoice.noteOff()` and `Bass3DVoice.noteOff()` do not shorten the amp ADSR that was already scheduled at note-on. They mostly adjust cleanup timing. Therefore those methods are **not** used as proof of early key release.
+A source audit found that `Synth3DSynthVoice.noteOff()` and `Bass3DVoice.noteOff()` do not shorten the amp ADSR already scheduled at note-on. They mostly adjust cleanup timing. Therefore those methods are **not** used as proof of early key release.
 
 Both voice types already contain a `steal(fadeSec)` primitive which:
 
@@ -81,26 +102,17 @@ Both voice types already contain a `steal(fadeSec)` primitive which:
 
 Live browser key-up reuses this existing primitive with the patch's amp-release duration. No second allocator or voice manager was created.
 
-## Remaining browser async-registration gap
+## Bass legato allocator leak fixed
 
-`triggerPart()` defines `playSynth()` as async and calls it without awaiting it. 3D Synth/Bass are loaded by dynamic import. Consequently:
+During this audit a pre-existing Bass 3D legato/glide issue was found:
 
-```text
-performanceNoteOn()
-→ triggerPart()
-→ playSynth() starts
-→ dynamic import pending
-→ triggerPart() may return
-→ 3D voice registers later
-```
+1. `triggerNote3DBass()` requested a new global voice-allocation handle,
+2. the glide path reused the already-active Bass voice,
+3. the function returned without using or releasing the newly requested handle.
 
-The keyboard's pending-pointer guard prevents a lost UI release, but the Browser Runtime still lacks a formal acknowledgement that a particular 3D voice has been registered before `performanceNoteOn()` resolves.
+The glide path now releases that unused handle before returning and emits the normal registration acknowledgement for the re-pitched active voice.
 
-Therefore the current browser 3D key-up path is classified:
-
-`STATICALLY WIRED / REGISTRATION ACK CONTRACT OPEN`
-
-Required follow-up is to expose an awaitable/tokenized 3D performance trigger **using the existing voice engines**, not create a second engine.
+This is a static code correction only; runtime voice-count behavior is still `NOT EXECUTED`.
 
 ## Native 3D Synth gap
 
@@ -120,6 +132,8 @@ All of the following remain NOT EXECUTED:
 - JNI link
 - APK build/install/launch
 - browser keyboard rapid-tap test
+- Browser 3D registration timeout test
+- Bass legato repeated-glide allocator-count test
 - Bass keyboard on a physical Android device
 - multitouch note-on/off stress
 - app-background all-notes-off
