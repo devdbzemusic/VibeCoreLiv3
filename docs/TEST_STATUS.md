@@ -18,7 +18,7 @@ This file records evidence status only. It must never convert planned or configu
 | Gate | Command / Evidence | Status |
 |---|---|---|
 | Obtain clean revision worktree | clone `revision/v4-runtime-consolidation` | BLOCKED — verification shell DNS cannot resolve `github.com` |
-| GitHub Revision Verify runner allocation | workflow run `35060578966`, job `104679844962` | BLOCKED — job completed failure with `runner_id: 0`, empty runner name and `steps: []`; no command started |
+| GitHub Revision Verify runner allocation | runs `35060578966` and `35061265960` | BLOCKED — both observed PR jobs completed failure with `runner_id: 0`, empty runner name and `steps: []`; no command started |
 | TypeScript typecheck | `npm run typecheck` | NOT EXECUTED — local worktree unavailable and GitHub Actions did not allocate a runner |
 | ESLint | `npm run lint` | NOT EXECUTED — local worktree unavailable and GitHub Actions did not allocate a runner |
 | Unit tests | `npm run test` | NOT EXECUTED — local worktree unavailable and GitHub Actions did not allocate a runner |
@@ -79,15 +79,19 @@ npm run build
 npm run build:android
 ```
 
-The first observed pull-request run was:
+Observed pull-request runs include:
 
 ```text
-workflow run: 35060578966
+run: 35060578966
 head: e3e3b270eb7de6e48600b0d35fcca0639dfcf0e7
-job: 104679844962 (verify-web)
+job: 104679844962
+
+run: 35061265960
+head: 547fe74028336776e633fd565843f59e82f1280f
+job: 104681892169
 ```
 
-Observed GitHub job metadata:
+Both observed job records show the same pre-step failure signature:
 
 ```text
 status: completed
@@ -97,14 +101,15 @@ runner_name: ""
 steps: []
 ```
 
-The job was created and closed without a runner ever being assigned and without a single workflow step starting. The job-log download also returned no usable log artifact.
+The jobs were created and closed without a runner ever being assigned and without a single workflow step starting. No application command was reached.
 
 Interpretation:
 
-- the observed failure is a **runner/workflow-start blocker**, not evidence that TypeScript, lint, Vitest, Vite or the Android web bundle failed,
+- the failure is reproducible at the runner/workflow-start boundary,
+- it is **not** evidence that TypeScript, lint, Vitest, Vite or the Android web bundle failed,
 - `npm ci` was not reached,
 - therefore all project build/test commands remain `NOT EXECUTED`,
-- do not fix application code in response to this run unless a later executed step produces a concrete code/build error.
+- do not fix application code in response to these runs unless a later executed step produces a concrete code/build error.
 
 ## Static evidence already established
 
@@ -116,8 +121,9 @@ Interpretation:
 - Native Kotlin→JNI→C++ Groove/Bass/Voice call chains are source-correlated — `STATICALLY VERIFIED`
 - shared InstrumentKeyboard no longer calls renderer-specific audio functions directly — `STATICALLY VERIFIED`
 - Browser 3D performance input now awaits existing voice-engine registration acknowledgement — `STATICALLY VERIFIED`
+- live performance instrument inference now follows the v4 Runtime Source Plan rather than legacy synth-engine strings — `STATICALLY VERIFIED`
 - Native 3D Synth renderer remains unsupported/not source-proven — `UNKNOWN / IMPLEMENTATION GAP`
-- v4 Sample/Synth source boundary has pure migration/policy/runtime-plan contracts plus a live Zustand guard — `STATICALLY VERIFIED`; full store schema/runtime renderer migration is still partial
+- v4 Sample/Synth source boundary has pure migration/policy/runtime-plan contracts plus a pre-render live Zustand write guard — `STATICALLY VERIFIED`; full persisted schema/SoundTab/WebAudio renderer migration is still partial
 
 ## Evidence recording rule
 
