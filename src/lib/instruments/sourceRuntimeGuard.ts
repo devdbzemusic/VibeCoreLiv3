@@ -4,6 +4,7 @@ import {
   PROJECT_SCHEMA_VERSION,
   migratePartToV13,
   migratePersistedProject,
+  type LegacyInstrumentCompatibility,
 } from "./projectMigration";
 import { resolveSourceWrite } from "./sourcePolicy";
 
@@ -21,14 +22,35 @@ export interface SourceBoundaryRejectedDetail {
   reason?: string;
 }
 
+type PartWithLegacy = Part & { legacyInstrument?: LegacyInstrumentCompatibility };
+
+function sameLegacyInstrument(
+  a?: LegacyInstrumentCompatibility,
+  b?: LegacyInstrumentCompatibility,
+): boolean {
+  const aSource = a?.source;
+  const bSource = b?.source;
+  const aEngine = a?.engine;
+  const bEngine = b?.engine;
+
+  return (
+    aSource?.source === bSource?.source
+    && aSource?.reason === bSource?.reason
+    && aSource?.migratedBySchema === bSource?.migratedBySchema
+    && aEngine?.engine === bEngine?.engine
+    && aEngine?.reason === bEngine?.reason
+    && aEngine?.migratedBySchema === bEngine?.migratedBySchema
+  );
+}
+
 export function canonicalizeRuntimeParts(parts: Part[]): { parts: Part[]; changed: boolean } {
   let changed = false;
   const next = parts.map((part) => {
-    const migrated = migratePartToV13(part) as Part;
-    const legacyBefore = (part as Part & { legacyInstrument?: unknown }).legacyInstrument;
-    const legacyAfter = (migrated as Part & { legacyInstrument?: unknown }).legacyInstrument;
+    const migrated = migratePartToV13(part) as PartWithLegacy;
+    const before = part as PartWithLegacy;
     const engineChanged = migrated.synth?.engine !== part.synth?.engine;
-    if (migrated.source !== part.source || legacyAfter !== legacyBefore || engineChanged) changed = true;
+    const legacyChanged = !sameLegacyInstrument(before.legacyInstrument, migrated.legacyInstrument);
+    if (migrated.source !== part.source || engineChanged || legacyChanged) changed = true;
     return migrated;
   });
   return { parts: next, changed };
