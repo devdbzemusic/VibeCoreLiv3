@@ -72,13 +72,11 @@ export function Bass3DPage() {
   const b = p?.bass3d ?? defaultBass3D();
   if (!p) return null;
 
-  // One-touch Piano Roll routing: navigate to GROOVE/ROLL with this part selected
   const goToPianoRoll = () => {
     selectPart(p.id);
     setTab("ROLL");
   };
 
-  // AI Generate Bassline
   const handleGenerateBassline = () => {
     const clock = masterClock.getState();
     const pattern = patterns[selectedPattern];
@@ -88,7 +86,7 @@ export function Bass3DPage() {
     const sceneLen = scene?.length ?? 16;
     const notes = buildMelody({
       scale: "minorPent",
-      rootMidi: 36,   // Bass register
+      rootMidi: 36,
       density: 0.55,
       seed: (Date.now() & 0xFFFFFF) >>> 0,
       beatsPerBar: clock.beatsPerBar,
@@ -101,7 +99,6 @@ export function Bass3DPage() {
 
   return (
     <div className="space-y-3">
-      {/* Voice picker */}
       <div className="panel p-2">
         <div className="font-mono text-[8px] text-muted-foreground tracking-widest mb-1.5">VOICE</div>
         <div className="no-scrollbar overflow-x-auto touch-scroll-x -mx-1 px-1">
@@ -119,7 +116,6 @@ export function Bass3DPage() {
         </div>
       </div>
 
-      {/* 6 primary parameters */}
       <div className="panel p-3">
         <div className="flex items-center justify-between mb-2">
           <div className="font-display text-xs text-primary">CORE · SUB · PUNCH · DRIVE · FILTER · WIDTH</div>
@@ -170,7 +166,6 @@ export function Bass3DPage() {
         </div>
       </div>
 
-      {/* Portamento / Glide — full width */}
       <div className="panel p-3">
         <div className="font-display text-xs text-primary mb-2">PORTAMENTO · GLIDE</div>
         <div className="hairline mb-3" />
@@ -195,12 +190,12 @@ export function Bass3DPage() {
 
       <InstrumentKeyboard
         partId={p.id}
+        instrument="bass3d"
         title={`BASS KEYS · ${p.name}`}
         baseOctave={2}
         gateSec={1}
       />
 
-      {/* One-touch Piano Roll access */}
       <button
         onClick={goToPianoRoll}
         className="w-full h-11 panel-inset rounded-md flex items-center justify-center gap-2 font-display text-[11px] text-neon-cyan hover:neon-border transition-colors"
@@ -209,7 +204,6 @@ export function Bass3DPage() {
         PIANO ROLL · {p.name}
       </button>
 
-      {/* Deep editor — collapsible */}
       <div className="panel p-3">
         <button
           onClick={() => setDeepOpen((o) => !o)}
