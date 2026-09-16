@@ -59,11 +59,17 @@ void VoicePool::trigger(const Trigger& t) noexcept {
     v.targetVolume  = v.volume;
     v.envRelease    = mDefaultRelease;
 
-    // Pitch shift: note 60 = unity (pitchStepQ16 = 65536)
-    // Simple 2× per octave ratio — for drum mode usually note==60 (unity)
-    const float semitones   = static_cast<float>(t.note) - 60.0f;
-    const float pitchRatio  = powf(2.0f, semitones / 12.0f);
-    v.pitchStepQ16  = static_cast<int64_t>(pitchRatio * 65536.0f);
+    // Playback increment must account for BOTH musical pitch and the source
+    // sample-rate relative to the active output stream. Without the rate ratio,
+    // a 44.1 kHz sample rendered by a 48 kHz stream plays too slowly/flat.
+    // note 60 = unity musical pitch; equal source/output rates = 65536 Q16.
+    const float semitones      = static_cast<float>(t.note) - 60.0f;
+    const float pitchRatio     = powf(2.0f, semitones / 12.0f);
+    const float sourceRate     = buf.sampleRate > 0 ? static_cast<float>(buf.sampleRate)
+                                                    : static_cast<float>(mSampleRate);
+    const float outputRate     = mSampleRate > 0 ? static_cast<float>(mSampleRate) : 48000.0f;
+    const float sampleRateRatio = sourceRate / outputRate;
+    v.pitchStepQ16 = static_cast<int64_t>(pitchRatio * sampleRateRatio * 65536.0f);
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────────

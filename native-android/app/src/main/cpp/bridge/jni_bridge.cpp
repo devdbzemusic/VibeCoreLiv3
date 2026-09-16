@@ -360,6 +360,59 @@ Java_com_vibecore_audio_NativeAudioBridge_nativeGrooveIsPlaying(JNIEnv*, jobject
     markUIThread(); return static_cast<jboolean>(groove().isPlaying());
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Audio Asset Service — Groove cold-load PCM (same engine()/groove() authority)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+JNIEXPORT jboolean JNICALL
+Java_com_vibecore_audio_NativeGrooveAssetBridge_nativeCanLoad(JNIEnv*, jobject) {
+    markUIThread();
+    return static_cast<jboolean>(!engine().isRunning());
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_vibecore_audio_NativeGrooveAssetBridge_nativeLoadSample(
+        JNIEnv* env, jobject, jint sampleId, jfloatArray pcm, jint sampleRate) {
+    markUIThread();
+    if (engine().isRunning() || pcm == nullptr || sampleRate <= 0) return JNI_FALSE;
+    if (sampleId < 0 || sampleId >= vibecore::kMaxSamples) return JNI_FALSE;
+
+    const jsize length = env->GetArrayLength(pcm);
+    if (length <= 0) return JNI_FALSE;
+
+    jboolean isCopy = JNI_FALSE;
+    jfloat* data = env->GetFloatArrayElements(pcm, &isCopy);
+    if (data == nullptr) return JNI_FALSE;
+
+    const bool loaded = groove().loadSample(
+        static_cast<int32_t>(sampleId),
+        data,
+        static_cast<int32_t>(length),
+        static_cast<int32_t>(sampleRate));
+
+    // GrooveEngine copied the incoming PCM into engine-owned storage.
+    env->ReleaseFloatArrayElements(pcm, data, JNI_ABORT);
+    return static_cast<jboolean>(loaded);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_vibecore_audio_NativeGrooveAssetBridge_nativeClearSample(
+        JNIEnv*, jobject, jint sampleId) {
+    markUIThread();
+    if (engine().isRunning()) return JNI_FALSE;
+    if (sampleId < 0 || sampleId >= vibecore::kMaxSamples) return JNI_FALSE;
+    groove().clearSample(static_cast<int32_t>(sampleId));
+    return JNI_TRUE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_vibecore_audio_NativeGrooveAssetBridge_nativeSampleLoaded(
+        JNIEnv*, jobject, jint sampleId) {
+    markUIThread();
+    if (sampleId < 0 || sampleId >= vibecore::kMaxSamples) return JNI_FALSE;
+    return static_cast<jboolean>(groove().sampleLoaded(static_cast<int32_t>(sampleId)));
+}
+
 // ─── Phase 5: Bass (included here to share bass() helper) ─────────────────────
 #include "jni_bass_bridge.cpp"
 

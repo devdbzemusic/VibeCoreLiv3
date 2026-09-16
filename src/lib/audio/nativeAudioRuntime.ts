@@ -5,8 +5,12 @@
  * native backend, and a native startup error is reported instead of silently
  * activating a second WebAudio transport.
  */
-import { createAudioBackend, isNativeOboeAvailable, type AudioBackend } from "./AudioBackend";
+import { createAudioBackend, type AudioBackend } from "./AudioBackend";
 import { useGroove } from "@/lib/store";
+import { probeRuntimeCapability } from "@/lib/capabilities/registry";
+import { asSixteenthStep, sixteenthToNativePpq } from "@/lib/runtime/timing";
+import { mirrorCurrentSceneToNative, type NativeMirrorReport } from "@/lib/runtime/projectMirror";
+import { nativeGrooveAssetReadiness } from "@/lib/runtime/nativeGrooveAssets";
 
 export interface NativeAudioStatus {
   available: boolean;
@@ -17,11 +21,23 @@ export interface NativeAudioStatus {
   error: string | null;
 }
 
+export interface NativeProjectMirrorStatus {
+  attempted: boolean;
+  succeeded: boolean;
+  report: NativeMirrorReport | null;
+  error: string | null;
+}
+
 let backend: AudioBackend | null = null;
 let bound = false;
 let lastError: string | null = null;
 let transportWork: Promise<void> = Promise.resolve();
-const NATIVE_TICKS_PER_STEP = 480; // VibeCoreSync PPQ 1920 / 4 sixteenth-notes.
+let lastMirrorStatus: NativeProjectMirrorStatus = {
+  attempted: false,
+  succeeded: false,
+  report: null,
+  error: null,
+};
 
 function reportError(error: unknown) {
   lastError = error instanceof Error ? error.message : String(error);
@@ -29,25 +45,71 @@ function reportError(error: unknown) {
   console.error("[native-audio]", lastError);
 }
 
+/**
+ * Project mirroring is deliberately non-fatal for audio activation. A stale or
+ * incompatible bridge must be diagnosable without forcing the engine offline.
+ */
+function hydrateCurrentScene(state: ReturnType<typeof useGroove.getState>): void {
+  try {
+    const report = mirrorCurrentSceneToNative(state);
+    const bridgeUnavailable = report.warnings.includes("native bridge unavailable");
+    lastMirrorStatus = {
+      attempted: true,
+      succeeded: !bridgeUnavailable,
+      report,
+      error: bridgeUnavailable ? "native bridge unavailable during project mirror" : null,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    lastMirrorStatus = {
+      attempted: true,
+      succeeded: false,
+      report: null,
+      error: message,
+    };
+    console.warn("[native-audio] project mirror failed", message);
+  }
+}
+
+/**
+ * Side-effect-free runtime-path check. Capability Registry is the single
+ * frontend owner for Native availability; activation remains separate.
+ */
 export function isNativeAudioPath(): boolean {
-  return isNativeOboeAvailable();
+  return probeRuntimeCapability("audio.native").available;
 }
 
 export function getNativeAudioBackend(): AudioBackend | null {
   return backend;
 }
 
+export function getNativeProjectMirrorStatus(): NativeProjectMirrorStatus {
+  return {
+    ...lastMirrorStatus,
+    report: lastMirrorStatus.report
+      ? { ...lastMirrorStatus.report, warnings: [...lastMirrorStatus.report.warnings] }
+      : null,
+  };
+}
+
 export function getNativeAudioStatus(): NativeAudioStatus {
-  const available = isNativeOboeAvailable();
-  if (!available) {
-    return { available: false, active: false, engineRunning: false, latencyMs: -1, diagnostic: "browser:webaudio", error: null };
+  const capability = probeRuntimeCapability("audio.native");
+  if (!capability.available) {
+    return {
+      available: false,
+      active: false,
+      engineRunning: false,
+      latencyMs: -1,
+      diagnostic: capability.reason ?? "browser:webaudio",
+      error: null,
+    };
   }
   return {
     available: true,
     active: backend?.kind === "oboe-native",
     engineRunning: backend?.isEngineRunning() ?? false,
     latencyMs: backend?.getOutputLatencyMs() ?? -1,
-    diagnostic: backend?.getDiagnosticStatus() ?? "native:ready",
+    diagnostic: backend?.getDiagnosticStatus() ?? capability.reason ?? "native:ready",
     error: lastError,
   };
 }
@@ -59,10 +121,21 @@ export async function activateNativeAudio(): Promise<boolean> {
     backend ??= createAudioBackend();
     if (!backend) return false;
     await backend.init();
-    await backend.startEngine();
+
     const state = useGroove.getState();
+    const assetReadiness = nativeGrooveAssetReadiness(state.parts);
+    if (!assetReadiness.ready) {
+      throw new Error(
+        `Native Groove assets not ready: ${assetReadiness.registeredSampleParts}/${assetReadiness.expectedSampleParts} registered; missing ${assetReadiness.missingPartNames.join(", ")}`,
+      );
+    }
+
+    // Asset hydration is a cold-load contract. Never start Oboe until every
+    // project-declared Groove sample has been acknowledged by Native.
+    await backend.startEngine();
     backend.setTempo(state.bpm);
     backend.setMasterGain(state.masterVolume / 100);
+    hydrateCurrentScene(state);
     syncNativeSeek(state);
     lastError = null;
     useGroove.setState({ audioReady: true });
@@ -90,8 +163,9 @@ function syncNativeSeek(state: ReturnType<typeof useGroove.getState>): void {
   const scene = pattern.scenes[sceneIdx];
   const step = Math.max(0, Math.min(Math.max(0, (scene?.length ?? 1) - 1), seek.step));
   const songSteps = previousSteps + step;
+  const nativeTick = sixteenthToNativePpq(asSixteenthStep(songSteps));
 
-  backend.setPosition(songSteps * NATIVE_TICKS_PER_STEP);
+  backend.setPosition(nativeTick);
   useGroove.setState({
     transport: {
       ...state.transport,

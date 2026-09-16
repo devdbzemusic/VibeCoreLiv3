@@ -1,16 +1,19 @@
 #include "GrooveEngine.h"
 #include "../platform/VibeCoreLog.h"
+#include <cstring>
 
 namespace vibecore {
 
 GrooveEngine::GrooveEngine(GrooveNode& node) : mNode(node) {
     // UI mirror starts as default-constructed (all tracks empty, inactive)
+    mSampleLengths.fill(0);
+    mSampleRates.fill(0);
 }
 
 // ─── Internal: snapshot + apply ───────────────────────────────────────────────
 
 void GrooveEngine::snapshotBefore(int t) {
-    if (!validTrack(t)) return;
+    if (!validTrack(t) || isProjectLoading()) return;
     PatternSnapshot snap;
     snap.trackIndex = t;
     snap.bankIndex  = mUITracks[t].activeBank;
@@ -56,12 +59,10 @@ void GrooveEngine::replayPatternToNode(int t, const Pattern& pat) {
 void GrooveEngine::setStep(int t, int s, bool active, uint8_t vel, uint8_t note) {
     if (!validTrack(t) || !validStep(s)) return;
     snapshotBefore(t);
-    // Update UI mirror
     Step& st        = mUITracks[t].activePattern().steps[s];
     st.active       = active;
     st.velocity     = vel;
     st.note         = note;
-    // Send to Audio Thread
     mNode.setStep(t, s, active, vel, note);
 }
 
@@ -88,13 +89,14 @@ void GrooveEngine::setStepProbability(int t, int s, uint8_t prob) {
 
 void GrooveEngine::setStepMuted(int t, int s, bool muted) {
     if (!validTrack(t) || !validStep(s)) return;
-    // No undo snapshot for non-destructive toggle
+    snapshotBefore(t);
     mUITracks[t].activePattern().steps[s].muted = muted;
     mNode.setStepMuted(t, s, muted);
 }
 
 void GrooveEngine::setStepAccent(int t, int s, bool accent) {
     if (!validTrack(t) || !validStep(s)) return;
+    snapshotBefore(t);
     mUITracks[t].activePattern().steps[s].accent = accent;
     mNode.setStepAccent(t, s, accent);
 }
@@ -149,11 +151,10 @@ void GrooveEngine::clearPattern(int t) {
     VLOG_I("GrooveEngine: clearPattern track=%d", t);
 }
 
-// ─── Copy / Paste (fully implemented) ─────────────────────────────────────────
+// ─── Copy / Paste ─────────────────────────────────────────────────────────────
 
 void GrooveEngine::copyPattern(int t) {
     if (!validTrack(t)) return;
-    // Copy from UI mirror — always consistent, no Audio Thread access needed
     mClipboard      = mUITracks[t].activePattern();
     mClipboardValid = true;
     VLOG_I("GrooveEngine: copyPattern track=%d length=%d", t, mClipboard.length);
@@ -162,11 +163,7 @@ void GrooveEngine::copyPattern(int t) {
 void GrooveEngine::pastePattern(int t) {
     if (!validTrack(t) || !mClipboardValid) return;
     snapshotBefore(t);
-
-    // Update UI mirror
     mUITracks[t].activePattern() = mClipboard;
-
-    // Replay to GrooveNode
     replayPatternToNode(t, mClipboard);
     VLOG_I("GrooveEngine: pastePattern track=%d length=%d", t, mClipboard.length);
 }
@@ -176,7 +173,6 @@ void GrooveEngine::pastePattern(int t) {
 bool GrooveEngine::undo() {
     const PatternSnapshot* snap = mUndoStack.undo();
     if (!snap) return false;
-    // Restore UI mirror + GrooveNode to the snapshotted state
     applySnapshot(*snap);
     VLOG_I("GrooveEngine: undo → track=%d", snap->trackIndex);
     return true;
@@ -190,7 +186,7 @@ bool GrooveEngine::redo() {
     return true;
 }
 
-// ─── Track ────────────────────────────────────────────────────────────────────
+// ─── Track ─────────────────────────────────────────────────────────────────────
 
 void GrooveEngine::setTrackMute(int t, bool muted) {
     if (!validTrack(t)) return;
@@ -222,7 +218,55 @@ void GrooveEngine::setTrackMode(int t, TrackMode mode) {
     mNode.setTrackMode(t, mode);
 }
 
-// ─── Piano Roll ───────────────────────────────────────────────────────────────
+// ─── Sample storage (cold-load only) ─────────────────────────────────────────
+
+bool GrooveEngine::loadSample(int32_t id, const float* monoData,
+                              int32_t lengthFrames, int32_t sampleRate) {
+    if (id < 0 || id >= kMaxSamples || monoData == nullptr || lengthFrames <= 0 || sampleRate <= 0)
+        return false;
+
+    auto storage = std::unique_ptr<float[]>(new float[static_cast<size_t>(lengthFrames)]);
+    std::memcpy(storage.get(), monoData, sizeof(float) * static_cast<size_t>(lengthFrames));
+
+    // PRECONDITION: stream stopped. Replacing storage while the callback can
+    // read Voice::buffer would require epoch/deferred reclamation (VoiceEngine
+    // already provides the reference design for the later hot-swap contract).
+    mSampleStorage[id] = std::move(storage);
+    mSampleLengths[id] = lengthFrames;
+    mSampleRates[id]   = sampleRate;
+
+    SampleBuffer view;
+    view.data       = mSampleStorage[id].get();
+    view.length     = lengthFrames;
+    view.sampleRate = sampleRate;
+    view.looping    = false;
+    view.loopStart  = 0;
+    view.loopEnd    = lengthFrames;
+    view.valid      = true;
+    mNode.registerSample(id, view);
+
+    VLOG_I("GrooveEngine: cold-loaded sample id=%d frames=%d sr=%d", id, lengthFrames, sampleRate);
+    return true;
+}
+
+void GrooveEngine::clearSample(int32_t id) {
+    if (id < 0 || id >= kMaxSamples) return;
+
+    // PRECONDITION: stream stopped; see loadSample().
+    mNode.registerSample(id, SampleBuffer{});
+    mSampleStorage[id].reset();
+    mSampleLengths[id] = 0;
+    mSampleRates[id] = 0;
+}
+
+bool GrooveEngine::sampleLoaded(int32_t id) const noexcept {
+    return id >= 0 && id < kMaxSamples
+        && mSampleStorage[id] != nullptr
+        && mSampleLengths[id] > 0
+        && mSampleRates[id] > 0;
+}
+
+// ─── Piano Roll ────────────────────────────────────────────────────────────────
 
 void GrooveEngine::addPianoRollNote(int t, int64_t start, int64_t end,
                                      uint8_t note, uint8_t vel) {
