@@ -10,13 +10,25 @@ import { resolveSourceWrite } from "./sourcePolicy";
 let bound = false;
 let applying = false;
 
+export const SOURCE_BOUNDARY_REJECTED_EVENT = "vibecore:source-boundary-rejected";
+
+export interface SourceBoundaryRejectedDetail {
+  partId: number;
+  partName: string;
+  requested: SourceMode;
+  canonical: SourceMode;
+  authority: "sample-domain" | "synth3d" | "bass3d";
+  reason?: string;
+}
+
 export function canonicalizeRuntimeParts(parts: Part[]): { parts: Part[]; changed: boolean } {
   let changed = false;
   const next = parts.map((part) => {
     const migrated = migratePartToV13(part) as Part;
     const legacyBefore = (part as Part & { legacyInstrument?: unknown }).legacyInstrument;
     const legacyAfter = (migrated as Part & { legacyInstrument?: unknown }).legacyInstrument;
-    if (migrated.source !== part.source || legacyAfter !== legacyBefore) changed = true;
+    const engineChanged = migrated.synth?.engine !== part.synth?.engine;
+    if (migrated.source !== part.source || legacyAfter !== legacyBefore || engineChanged) changed = true;
     return migrated;
   });
   return { parts: next, changed };
@@ -56,7 +68,7 @@ export function configureProjectPersistenceV13(): void {
  * declares schema v12. The guard does not create a second state store: it
  * rewrites the existing authoritative `parts` array through Zustand and the
  * existing persist middleware serializes the resulting Part objects, including
- * reversible `legacyInstrument.source` metadata.
+ * reversible `legacyInstrument` metadata.
  */
 export function migrateLiveProjectSourcesToV13(): boolean {
   const state = useGroove.getState();
@@ -69,6 +81,22 @@ export function migrateLiveProjectSourcesToV13(): boolean {
     applying = false;
   }
   return true;
+}
+
+function publishRejectedWrite(part: Part, requested: SourceMode): void {
+  if (typeof window === "undefined" || typeof CustomEvent === "undefined") return;
+  const write = resolveSourceWrite(part, requested);
+  if (write.accepted) return;
+
+  const detail: SourceBoundaryRejectedDetail = {
+    partId: part.id,
+    partName: part.name,
+    requested,
+    canonical: write.source,
+    authority: write.decision.authority,
+    reason: write.decision.legacyReason,
+  };
+  window.dispatchEvent(new CustomEvent<SourceBoundaryRejectedDetail>(SOURCE_BOUNDARY_REJECTED_EVENT, { detail }));
 }
 
 /**
@@ -99,15 +127,16 @@ export function bindCanonicalSourceGuard(): void {
       const part = state.parts.find((candidate) => candidate.id === id);
       if (!part) return;
 
+      const write = resolveSourceWrite(part, requested);
       const nextPart = applyCanonicalSourceWrite(part, requested);
       if (nextPart === part) return;
 
-      const write = resolveSourceWrite(part, requested);
       if (write.accepted) {
         originalSetPartSource(id, write.source);
         return;
       }
 
+      publishRejectedWrite(part, requested);
       applying = true;
       try {
         useGroove.setState({
