@@ -1,7 +1,7 @@
 import { ensureAudio, getCtx, triggerPart } from "@/lib/audio/engine";
 import { activateNativeAudio } from "@/lib/audio/nativeAudioRuntime";
-import { killAllNotes3D, releaseNote3D } from "@/lib/synth3d/voiceEngine";
-import { killAllNotes3DBass, releaseNote3DBass } from "@/lib/bass3d/voiceEngine";
+import { killAllNotes3D, releaseNote3D, waitForNoteStart3D } from "@/lib/synth3d/voiceEngine";
+import { killAllNotes3DBass, releaseNote3DBass, waitForNoteStart3DBass } from "@/lib/bass3d/voiceEngine";
 import { useGroove } from "@/lib/store";
 import { selectedRuntimeKind } from "./selection";
 
@@ -41,15 +41,16 @@ export function inferPerformanceInstrument(partId: number): PerformanceInstrumen
 /**
  * Backend-neutral live performance note-on.
  *
- * Important authority rule:
- * - Native Android may never fall through to an audible WebAudio renderer.
- * - Native Bass has a source-proven bridge and therefore uses it directly.
- * - Native 3D Synth is intentionally rejected until a real native synth path
- *   exists/is source-proven. TrackMode::Synth alone is not renderer evidence.
- * - Browser mode reuses the existing WebAudio triggerPart implementation.
+ * Authority rules:
+ * - Native Android never falls through to an audible WebAudio renderer.
+ * - Native Bass uses its source-proven bridge.
+ * - Native 3D Synth remains unsupported until a real native synth path exists.
+ * - Browser reuses triggerPart, but for 3D instruments does not report success
+ *   until the existing voice engine acknowledges actual note registration.
  */
 export async function performanceNoteOn(note: PerformanceNote): Promise<PerformanceInputResult> {
   const midi = clampMidi(note.midiNote);
+  const semitone = midi - 60;
   const velocity = clampVelocity(note.velocity ?? 110);
   const runtime = selectedRuntimeKind();
 
@@ -106,17 +107,35 @@ export async function performanceNoteOn(note: PerformanceNote): Promise<Performa
     };
   }
 
+  // Arm the acknowledgement BEFORE triggerPart. triggerPart intentionally
+  // keeps its scheduler-friendly void API and starts 3D dynamic imports
+  // asynchronously; the voice engines provide the actual registration signal.
+  const registration = note.instrument === "synth3d"
+    ? waitForNoteStart3D(note.partId, semitone)
+    : note.instrument === "bass3d"
+      ? waitForNoteStart3DBass(note.partId, semitone)
+      : null;
+
   triggerPart(note.partId, ctx.currentTime, {
     velocity,
-    semitone: midi - 60,
+    semitone,
     gateSec: note.gateSec,
   });
 
-  return {
-    accepted: true,
-    runtime: "webaudio",
-    releaseMode: note.instrument === "synth3d" || note.instrument === "bass3d" ? "explicit" : "gate",
-  };
+  if (registration) {
+    const started = await registration;
+    if (!started) {
+      return {
+        accepted: false,
+        runtime: "webaudio",
+        releaseMode: "none",
+        reason: `${note.instrument} voice registration timed out`,
+      };
+    }
+    return { accepted: true, runtime: "webaudio", releaseMode: "explicit" };
+  }
+
+  return { accepted: true, runtime: "webaudio", releaseMode: "gate" };
 }
 
 /** Explicit live performance release where the selected runtime supports it. */
