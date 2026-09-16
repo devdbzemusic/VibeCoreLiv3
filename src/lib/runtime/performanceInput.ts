@@ -1,6 +1,7 @@
 import { ensureAudio, getCtx, triggerPart } from "@/lib/audio/engine";
 import { activateNativeAudio } from "@/lib/audio/nativeAudioRuntime";
 import { probeRuntimeCapability, type RuntimeCapabilityId } from "@/lib/capabilities/registry";
+import { runtimeSourcePlanForPart } from "@/lib/instruments/runtimeSourcePlan";
 import { killAllNotes3D, releaseNote3D, waitForNoteStart3D } from "@/lib/synth3d/voiceEngine";
 import { killAllNotes3DBass, releaseNote3DBass, waitForNoteStart3DBass } from "@/lib/bass3d/voiceEngine";
 import { useGroove } from "@/lib/store";
@@ -44,11 +45,14 @@ function instrumentCapability(
   return runtime === "webaudio" ? "audio.web" : null;
 }
 
-/** Resolve a live-performance route from the canonical Part model. */
+/** Resolve a live-performance route from canonical v4 instrument ownership. */
 export function inferPerformanceInstrument(partId: number): PerformanceInstrument {
   const part = useGroove.getState().parts.find((candidate) => candidate.id === partId);
-  if (part?.synth.engine === "3D Bass") return "bass3d";
-  if (part?.synth.engine === "3D") return "synth3d";
+  if (!part) return "part";
+
+  const plan = runtimeSourcePlanForPart(part);
+  if (plan.renderer === "bass3d") return "bass3d";
+  if (plan.renderer === "synth3d") return "synth3d";
   return "part";
 }
 
