@@ -3,20 +3,20 @@ import { Cpu, Pause, Play, Square, Circle, ChevronDown, ChevronUp, Disc3, Volume
 import { useGroove, type QualityMode } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { GithubSyncDialog } from "./GithubSyncDialog";
-import { setMasterVolume } from "@/lib/audio/engine";
 import { tapTempo } from "@/lib/clock/tapTempo";
 import { DiagnosticsModal } from "./DiagnosticsModal";
 import { useDiagnosticsTrigger } from "@/hooks/useDiagnosticsTrigger";
 import { useMeter } from "@/hooks/useMeter";
 import { toggleRuntimePlay } from "@/lib/runtime/transport";
+import { setParameter } from "@/lib/parameters/hub";
 
 const QUALITY_CYCLE: QualityMode[] = ["AUTO", "HIGH", "MEDIUM", "LOW"];
 
 export function TopBar() {
   const {
-    bpm, setBpm, cpu, activeVoices, voices, transport, recording, toggleRec,
+    bpm, cpu, activeVoices, voices, transport, recording, toggleRec,
     selectedPattern, patterns,
-    audioReady, masterVolume, setMasterVolume: setMV,
+    audioReady, masterVolume,
     showDiag, toggleDiag,
     qualityProfile, currentQuality, fps, setQualityProfile,
     resetTransport,
@@ -55,7 +55,7 @@ export function TopBar() {
     await toggleRuntimePlay();
   };
 
-  const onMaster = (v: number) => { setMV(v); setMasterVolume(v); };
+  const onMaster = (v: number) => { setParameter("master.volume", v); };
 
   const cycleQuality = () => {
     const i = QUALITY_CYCLE.indexOf(qualityProfile);
@@ -104,18 +104,18 @@ export function TopBar() {
           <div className="font-mono text-[9px] opacity-70">BPM</div>
           <div className="font-display text-lg tabular-nums leading-none">{bpm.toFixed(1)}</div>
           <div className="flex flex-col -my-1">
-            <button onClick={() => setBpm(bpm + 1)} className="h-3.5 w-5 grid place-items-center opacity-70 hover:opacity-100">
+            <button onClick={() => setParameter("transport.bpm", bpm + 1)} className="h-3.5 w-5 grid place-items-center opacity-70 hover:opacity-100">
               <ChevronUp className="h-3 w-3" />
             </button>
-            <button onClick={() => setBpm(bpm - 1)} className="h-3.5 w-5 grid place-items-center opacity-70 hover:opacity-100">
+            <button onClick={() => setParameter("transport.bpm", bpm - 1)} className="h-3.5 w-5 grid place-items-center opacity-70 hover:opacity-100">
               <ChevronDown className="h-3 w-3" />
             </button>
           </div>
         </div>
 
-        {/* VibeCore-Sync · Tap-Tempo — median of recent taps → store.bpm */}
+        {/* VibeCore-Sync · Tap-Tempo — median of recent taps → ParameterHub → store.bpm */}
         <button
-          onClick={() => { const v = tapTempo(); if (v) setBpm(v); }}
+          onClick={() => { const v = tapTempo(); if (v) setParameter("transport.bpm", v); }}
           className="hw-screen h-9 min-w-[2.75rem] px-2 grid place-items-center font-display text-[10px] tracking-wider touch-none active:scale-95 transition-transform select-none"
           aria-label="Tap tempo"
           title="Tap tempo"
