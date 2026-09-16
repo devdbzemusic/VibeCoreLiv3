@@ -27,6 +27,18 @@ describe("canonicalizeRuntimeParts", () => {
     });
   });
 
+  it("promotes legacy default Synth/Bass engines to the canonical 3D renderers", () => {
+    const result = canonicalizeRuntimeParts(buildDefaultParts());
+    const synths = result.parts.filter((part) => part.category === "synth");
+    const basses = result.parts.filter((part) => part.category === "bass");
+
+    expect(result.changed).toBe(true);
+    expect(synths.every((part) => part.source === "synth" && part.synth.engine === "3D")).toBe(true);
+    expect(basses.every((part) => part.source === "synth" && part.synth.engine === "3D Bass")).toBe(true);
+    expect(synths.every((part) => (part as any).legacyInstrument?.engine?.engine === "Synth")).toBe(true);
+    expect(basses.every((part) => (part as any).legacyInstrument?.engine?.engine === "Bass")).toBe(true);
+  });
+
   it("canonicalizes hybrid on synth authority while preserving the request", () => {
     const parts = buildDefaultParts();
     const synth = parts.find((part) => part.category === "synth")!;
@@ -38,6 +50,7 @@ describe("canonicalizeRuntimeParts", () => {
     };
 
     expect(migrated.source).toBe("synth");
+    expect(migrated.synth.engine).toBe("3D");
     expect(migrated.legacyInstrument?.source?.source).toBe("hybrid");
     expect(migrated.legacyInstrument?.source?.reason).toBe("legacy-hybrid-source");
   });
@@ -50,6 +63,7 @@ describe("canonicalizeRuntimeParts", () => {
     expect(first.changed).toBe(true);
     expect(second.changed).toBe(false);
     expect(second.parts.map((part) => part.source)).toEqual(first.parts.map((part) => part.source));
+    expect(second.parts.map((part) => part.synth.engine)).toEqual(first.parts.map((part) => part.synth.engine));
   });
 });
 
@@ -61,6 +75,7 @@ describe("applyCanonicalSourceWrite", () => {
 
     expect(result).toBe(canonical);
     expect(result.source).toBe("synth");
+    expect(result.synth.engine).toBe("3D");
   });
 
   it("rejects hybrid as active bass source and preserves it as legacy metadata", () => {
@@ -70,6 +85,7 @@ describe("applyCanonicalSourceWrite", () => {
     };
 
     expect(result.source).toBe("synth");
+    expect(result.synth.engine).toBe("3D Bass");
     expect(result.legacyInstrument?.source).toEqual({
       source: "hybrid",
       reason: "legacy-hybrid-source",
