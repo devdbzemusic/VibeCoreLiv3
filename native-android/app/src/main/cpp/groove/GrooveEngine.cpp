@@ -10,7 +10,7 @@ GrooveEngine::GrooveEngine(GrooveNode& node) : mNode(node) {
 // ─── Internal: snapshot + apply ───────────────────────────────────────────────
 
 void GrooveEngine::snapshotBefore(int t) {
-    if (!validTrack(t)) return;
+    if (!validTrack(t) || isProjectLoading()) return;
     PatternSnapshot snap;
     snap.trackIndex = t;
     snap.bankIndex  = mUITracks[t].activeBank;
@@ -56,12 +56,10 @@ void GrooveEngine::replayPatternToNode(int t, const Pattern& pat) {
 void GrooveEngine::setStep(int t, int s, bool active, uint8_t vel, uint8_t note) {
     if (!validTrack(t) || !validStep(s)) return;
     snapshotBefore(t);
-    // Update UI mirror
     Step& st        = mUITracks[t].activePattern().steps[s];
     st.active       = active;
     st.velocity     = vel;
     st.note         = note;
-    // Send to Audio Thread
     mNode.setStep(t, s, active, vel, note);
 }
 
@@ -88,7 +86,6 @@ void GrooveEngine::setStepProbability(int t, int s, uint8_t prob) {
 
 void GrooveEngine::setStepMuted(int t, int s, bool muted) {
     if (!validTrack(t) || !validStep(s)) return;
-    // No undo snapshot for non-destructive toggle
     mUITracks[t].activePattern().steps[s].muted = muted;
     mNode.setStepMuted(t, s, muted);
 }
@@ -149,11 +146,10 @@ void GrooveEngine::clearPattern(int t) {
     VLOG_I("GrooveEngine: clearPattern track=%d", t);
 }
 
-// ─── Copy / Paste (fully implemented) ─────────────────────────────────────────
+// ─── Copy / Paste ─────────────────────────────────────────────────────────────
 
 void GrooveEngine::copyPattern(int t) {
     if (!validTrack(t)) return;
-    // Copy from UI mirror — always consistent, no Audio Thread access needed
     mClipboard      = mUITracks[t].activePattern();
     mClipboardValid = true;
     VLOG_I("GrooveEngine: copyPattern track=%d length=%d", t, mClipboard.length);
@@ -162,11 +158,7 @@ void GrooveEngine::copyPattern(int t) {
 void GrooveEngine::pastePattern(int t) {
     if (!validTrack(t) || !mClipboardValid) return;
     snapshotBefore(t);
-
-    // Update UI mirror
     mUITracks[t].activePattern() = mClipboard;
-
-    // Replay to GrooveNode
     replayPatternToNode(t, mClipboard);
     VLOG_I("GrooveEngine: pastePattern track=%d length=%d", t, mClipboard.length);
 }
@@ -176,7 +168,6 @@ void GrooveEngine::pastePattern(int t) {
 bool GrooveEngine::undo() {
     const PatternSnapshot* snap = mUndoStack.undo();
     if (!snap) return false;
-    // Restore UI mirror + GrooveNode to the snapshotted state
     applySnapshot(*snap);
     VLOG_I("GrooveEngine: undo → track=%d", snap->trackIndex);
     return true;
@@ -190,7 +181,7 @@ bool GrooveEngine::redo() {
     return true;
 }
 
-// ─── Track ────────────────────────────────────────────────────────────────────
+// ─── Track ─────────────────────────────────────────────────────────────────────
 
 void GrooveEngine::setTrackMute(int t, bool muted) {
     if (!validTrack(t)) return;
@@ -222,7 +213,7 @@ void GrooveEngine::setTrackMode(int t, TrackMode mode) {
     mNode.setTrackMode(t, mode);
 }
 
-// ─── Piano Roll ───────────────────────────────────────────────────────────────
+// ─── Piano Roll ────────────────────────────────────────────────────────────────
 
 void GrooveEngine::addPianoRollNote(int t, int64_t start, int64_t end,
                                      uint8_t note, uint8_t vel) {
