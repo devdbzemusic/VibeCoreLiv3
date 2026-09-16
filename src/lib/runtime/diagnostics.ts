@@ -22,7 +22,9 @@ export interface RuntimeDiagnosticsSnapshot {
     totalParts: number;
     canonicalParts: number;
     invalidActiveSources: number;
+    invalidRendererEngines: number;
     legacyCompatibilityParts: number;
+    legacyEngineCompatibilityParts: number;
   };
   reportedMetrics: {
     cpu: number;
@@ -53,15 +55,26 @@ export function getRuntimeDiagnosticsSnapshot(): RuntimeDiagnosticsSnapshot {
   const nativeSelected = backend.kind === "oboe-native";
   let canonicalParts = 0;
   let invalidActiveSources = 0;
+  let invalidRendererEngines = 0;
   let legacyCompatibilityParts = 0;
+  let legacyEngineCompatibilityParts = 0;
 
   for (const part of state.parts) {
     const decision = sourceBoundaryDecision(part.category, part.source);
     if (decision.compatible) canonicalParts += 1;
     else invalidActiveSources += 1;
-    if ((part as typeof part & { legacyInstrument?: unknown }).legacyInstrument) {
-      legacyCompatibilityParts += 1;
+
+    if (part.category === "synth" && part.synth.engine !== "3D") {
+      invalidRendererEngines += 1;
+    } else if (part.category === "bass" && part.synth.engine !== "3D Bass") {
+      invalidRendererEngines += 1;
     }
+
+    const legacyInstrument = (part as typeof part & {
+      legacyInstrument?: { engine?: unknown; source?: unknown };
+    }).legacyInstrument;
+    if (legacyInstrument) legacyCompatibilityParts += 1;
+    if (legacyInstrument?.engine) legacyEngineCompatibilityParts += 1;
   }
 
   return {
@@ -82,7 +95,9 @@ export function getRuntimeDiagnosticsSnapshot(): RuntimeDiagnosticsSnapshot {
       totalParts: state.parts.length,
       canonicalParts,
       invalidActiveSources,
+      invalidRendererEngines,
       legacyCompatibilityParts,
+      legacyEngineCompatibilityParts,
     },
     reportedMetrics: {
       cpu: state.cpu,
