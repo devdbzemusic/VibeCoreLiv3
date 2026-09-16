@@ -1,43 +1,85 @@
 # ADR-0002 — Runtime Authority & Call-Graph Truth
 
-Status: ACCEPTED AS PRECONDITION
+Status: ACTIVE — STATIC GRAPH PARTIALLY PROVEN
 Date: 2026-09-16
 
 ## Context
 
 The v4.0 architecture requires one authoritative audio/runtime path and one authoritative musical timebase. Existing source and documentation strongly suggest this target, but target architecture is not runtime proof.
 
-The repository currently contains browser WebAudio code, an `AudioBackend` contract, `NativeOboeBackend`, `nativeAudioRuntime`, an Android `@JavascriptInterface` bridge, JNI, C++ engine code, Oboe stream code, Groove/Bass/Voice engines, and a browser-side `masterClock`.
+The repository contains browser WebAudio code, an `AudioBackend` contract, `NativeOboeBackend`, `nativeAudioRuntime`, Android `@JavascriptInterface`, JNI, C++ engine code, Oboe, Groove/Bass/Voice engines, browser `masterClock`, and a browser look-ahead scheduler.
 
-Historical reports also mention possible duplicate or parallel paths such as `engine.ts`, `trigger.ts`, `voiceEngine.ts`, `types.ts`, and preset/runtime helpers. Those historical claims are not accepted as current truth until re-proven against the current HEAD.
+Historical duplicate-path claims are not accepted unless re-proven against current HEAD.
 
 ## Decision
 
-No runtime migration, consolidation refactor, scheduler rewrite, backend replacement, Sample/Synth runtime migration, or timing ownership change may proceed until the current call graph is statically proven end to end.
+No runtime migration, consolidation refactor, scheduler rewrite, backend replacement, Sample/Synth runtime migration, or timing ownership change may proceed until the observed call graph is documented and the remaining unknowns are explicit.
 
-The audit must establish, with source-level evidence:
+## Proven static graph
 
-1. Exact `AudioBackend` contract.
-2. Every implementation of that contract.
-3. Every instantiation of `NativeOboeBackend`.
-4. Every invocation/use of `nativeAudioRuntime`.
-5. TypeScript → Kotlin bridge mapping, method by method.
-6. Kotlin → JNI symbol mapping.
-7. JNI → C++ engine method mapping.
-8. C++ → `oboe::AudioStream` / data callback ownership.
-9. Audio callback → mixer/DSP → output path.
-10. Full `masterClock.ts` ownership and consumers.
-11. Scheduler creation and lifecycle.
-12. Scheduler → trigger connection.
-13. Trigger → voice allocation / voice start.
-14. Voice → audio runtime / DSP path.
-15. Repository-wide timing scan of `setInterval`, `setTimeout`, `requestAnimationFrame`, `Date.now`, `performance.now`, and native clock APIs, classified into UI-only, diagnostics, scheduling, musical timing, or unsafe/unknown.
+Current source proves the Native path:
+
+```text
+Index.tsx startup
+→ bindNativeAudioRuntime()
+→ nativeAudioRuntime
+→ createAudioBackend()
+→ NativeOboeBackend
+→ window.VibeCoreNative
+→ NativeAudioBridge.kt
+→ JNI bridge
+→ VibeCoreAudioEngine
+→ Oboe DataCallback
+→ VibeCoreSync
+→ AudioGraphManager
+→ GrooveNode / BassNode / VoiceNode
+→ voice/DSP processing
+→ leaf AudioBus mix
+→ final Float output buffer
+→ Oboe stream
+```
+
+The browser scheduler is also installed at startup, but its transport subscriber exits before scheduler start whenever `isNativeAudioPath()` is true. This provides static evidence against simultaneous browser/native transport scheduling.
+
+## Proven native callback ordering
+
+`VibeCoreAudioEngine::onAudioReady()` performs:
+
+```text
+command drain
+→ VibeCoreSync callback processing
+→ sync-event dispatch
+→ AudioGraph process
+→ master gain
+→ latency sample
+→ sample-position advance
+```
+
+`GrooveNode` receives native tick events, runs `StepSequencer`, fills a trigger queue, then routes triggers to its sample VoicePool, `BassNode`, or `VoiceNode` before the instrument nodes render in the same callback.
+
+## Timing-domain finding
+
+At least three timing representations exist:
+
+1. browser `masterClock`: `tick = beat * 24`
+2. browser scheduler: `globalTick` / `songTicks` in sixteenth-note steps
+3. native `VibeCoreSync`: PPQ 1920; one sixteenth = 480 native ticks
+
+This is a contract concern. Coexistence is acceptable only if units and conversion boundaries are explicit and tested. Raw `tick` values must never be silently interchangeable across these domains.
+
+## Browser scheduler classification
+
+Browser scheduling uses `window.setInterval` only as wake-up. Actual musical event timestamps are based on `AudioContext.currentTime`, `nextTickTime` and look-ahead scheduling.
+
+`masterClock` uses `requestAnimationFrame` for subscriber notification, not for audio scheduling.
+
+Known `performance.now` and `Date.now` usages in the scheduler are diagnostic/UI throttling, not the audio timebase.
 
 ## Verification rule
 
 Documentation, comments, naming and architecture diagrams are evidence of intent only. They are not sufficient proof of runtime realization.
 
-The existing E2E simulation matrix is an input to verification but does not prove the native call graph, callback ownership, timing authority, latency, xRuns, or real device behavior.
+The existing E2E simulation matrix is an input to verification but does not prove callback ownership, bridge selection, timing authority, latency, xRuns or real-device behavior.
 
 ## Performance status
 
@@ -50,26 +92,31 @@ Until executed measurements exist:
 - Latency: `UNKNOWN`
 - Callback execution budget: `UNKNOWN`
 
-The configured/native target values may be documented as configuration only and must not be presented as measured performance.
+Configured values are configuration only, not measurements.
 
-## UX scope
+## Remaining mandatory audit work
 
-No UX redesign is part of this ADR. This audit is architecture/runtime-only. Its goal is to determine whether live actions actually converge on one authoritative audio path and one authoritative sync path.
+- complete method-by-method TypeScript → Kotlin mapping
+- complete Kotlin native declaration → JNI mapping
+- complete caller inventory for the larger Groove/Bass/Voice Kotlin surface
+- complete repository-wide timing API classification
+- trace browser `triggerPart()` through WebAudio voice/DSP to output
+- trace Bass native trigger/voice/DSP path to output
+- prove all tick-domain conversions
+- define contract/null/timing tests against the observed graph
+- execute Native Android runtime evidence later
 
 ## Risk
 
-The primary risk is false certainty: declaring `ONE AUDIO AUTHORITY` or `ONE MASTER CLOCK` based on intended architecture while a live parallel path still exists.
-
-## Consequence
-
-Revision order changes. Runtime Authority Audit becomes Gate B0 and blocks destructive/runtime-affecting migration work.
+Primary risk remains false certainty: `ONE AUDIO AUTHORITY` and `ONE MASTER CLOCK` are now strongly supported statically, but are still not runtime `VERIFIED`.
 
 ## Exit criteria
 
 This ADR gate is complete only when:
 
-- the static call graph is documented end to end,
+- static call graph is documented end to end,
 - ambiguous/parallel paths are classified,
-- missing links are explicitly marked `UNKNOWN`,
-- contract/null/timing tests are defined against the observed graph,
-- no performance or runtime result is claimed without execution evidence.
+- missing links are marked `UNKNOWN`,
+- contract/null/timing tests are defined,
+- tick-domain conversions are explicit,
+- no performance/runtime result is claimed without execution evidence.
