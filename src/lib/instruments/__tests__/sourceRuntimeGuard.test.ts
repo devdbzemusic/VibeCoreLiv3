@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { buildDefaultParts } from "@/lib/model";
-import { applyCanonicalSourceWrite, canonicalizeRuntimeParts } from "../sourceRuntimeGuard";
+import { useGroove } from "@/lib/store";
+import {
+  applyCanonicalSourceWrite,
+  canonicalizeRuntimeParts,
+  configureProjectPersistenceV13,
+} from "../sourceRuntimeGuard";
 
 describe("canonicalizeRuntimeParts", () => {
   it("canonicalizes legacy drum synth sources and preserves compatibility metadata", () => {
@@ -81,5 +86,12 @@ describe("applyCanonicalSourceWrite", () => {
     expect(result.source).toBe("sample");
     expect(result.legacyInstrument?.source?.source).toBe("synth");
     expect(result.legacyInstrument?.source?.reason).toBe("legacy-synth-on-sample-domain");
+  });
+});
+
+describe("configureProjectPersistenceV13", () => {
+  it("promotes the active Zustand persist contract to schema 13", () => {
+    configureProjectPersistenceV13();
+    expect(useGroove.persist.getOptions().version).toBe(13);
   });
 });
