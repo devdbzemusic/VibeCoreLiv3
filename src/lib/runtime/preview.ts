@@ -7,6 +7,28 @@ export interface RuntimePreviewResult {
   reason?: string;
 }
 
+export interface RuntimePreviewCapability {
+  available: boolean;
+  runtime: "webaudio" | "oboe-native";
+  reason?: string;
+}
+
+/**
+ * Query preview capability without initializing any renderer. UI modules use
+ * this before render/decode work that would otherwise call ensureAudio().
+ */
+export function runtimePreviewCapability(): RuntimePreviewCapability {
+  const runtime = selectedRuntimeKind();
+  if (runtime === "oboe-native") {
+    return {
+      available: false,
+      runtime,
+      reason: "Native preview buffer contract is not implemented yet",
+    };
+  }
+  return { available: true, runtime: "webaudio" };
+}
+
 /**
  * Audition an arbitrary AudioBuffer without allowing Native Android to silently
  * start an audible WebAudio renderer.
@@ -20,12 +42,12 @@ export async function runtimePreviewBuffer(
   startNorm = 0,
   endNorm = 1,
 ): Promise<RuntimePreviewResult> {
-  const runtime = selectedRuntimeKind();
-  if (runtime === "oboe-native") {
+  const capability = runtimePreviewCapability();
+  if (!capability.available) {
     return {
       accepted: false,
-      runtime,
-      reason: "Native preview buffer contract is not implemented yet",
+      runtime: capability.runtime,
+      reason: capability.reason,
     };
   }
 
@@ -45,11 +67,11 @@ export async function runtimePreviewPartRegion(
   endNorm: number,
   velocity = 110,
 ): Promise<RuntimePreviewResult> {
-  const runtime = selectedRuntimeKind();
-  if (runtime === "oboe-native") {
+  const capability = runtimePreviewCapability();
+  if (!capability.available) {
     return {
       accepted: false,
-      runtime,
+      runtime: capability.runtime,
       reason: "Native part-region preview contract is not implemented yet",
     };
   }
