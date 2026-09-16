@@ -1,8 +1,11 @@
 package com.vibecore.app.nativeui
 
 import android.app.Application
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,10 +14,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class VibeCoreViewModel(application: Application) : AndroidViewModel(application) {
+    private val app = application
     private val runtime = NativeRuntime(application)
     private val repository = NativeProjectRepository(application)
+    private val decoder = AndroidAudioDecoder(application)
 
     private val initialState = repository.load(
         VibeCoreUiState(
@@ -34,6 +40,7 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
 
     init {
         hydrateProjectToNative(initialState)
+        restorePersistedSamples()
         startUiPolling()
     }
 
@@ -69,6 +76,10 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun togglePlay() {
+        if (_state.value.sampleBusy) {
+            _state.update { it.copy(sampleStatus = "Sample assets are still loading — Play is held until cold-load completes.") }
+            return
+        }
         val currentlyPlaying = runtime.isPlaying()
         if (currentlyPlaying) {
             runtime.stop()
@@ -127,6 +138,57 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         persist()
     }
 
+    fun loadSampleForSelected(uri: Uri) {
+        val trackIndex = _state.value.selectedTrack
+        val track = _state.value.tracks.getOrNull(trackIndex) ?: return
+        if (track.kind != TrackKind.DRUM && track.kind != TrackKind.SAMPLE) {
+            _state.update { it.copy(sampleStatus = "${track.name} is ${track.kind}; audio-file assignment is only valid for Drum/Sample tracks.") }
+            return
+        }
+        if (_state.value.sampleBusy) return
+
+        try {
+            app.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (_: SecurityException) {
+            // Some providers grant session access only; decode can still succeed now.
+        }
+
+        viewModelScope.launch {
+            _state.update { it.copy(sampleBusy = true, sampleStatus = "Decoding ${track.name}…") }
+            try {
+                val decoded = withContext(Dispatchers.IO) { decoder.decode(uri) }
+
+                // Native Groove sample replacement is deliberately cold-load only.
+                runtime.stopEngine()
+                runtime.setTrackMode(track.id, track.kind)
+                val loaded = runtime.loadSample(track.id, decoded.mono, decoded.sampleRate)
+                check(loaded) { "Native Groove rejected decoded PCM" }
+                runtime.setTrackSample(track.id, track.id)
+
+                _state.update { state ->
+                    state.copy(
+                        sampleBusy = false,
+                        sampleStatus = "${decoded.displayName} → ${track.name} • ${decoded.sampleRate} Hz • ${decoded.sourceChannels} ch",
+                        tracks = state.tracks.mapIndexed { index, value ->
+                            if (index == trackIndex) value.copy(
+                                sampleName = decoded.displayName,
+                                sampleUri = uri.toString(),
+                            ) else value
+                        },
+                    )
+                }
+                persist()
+            } catch (error: Exception) {
+                _state.update {
+                    it.copy(
+                        sampleBusy = false,
+                        sampleStatus = "Sample load failed: ${error.message ?: error::class.java.simpleName}",
+                    )
+                }
+            }
+        }
+    }
+
     fun onAudioFocusGained() {
         runtime.onAudioFocusGained()
         refreshRuntimeState()
@@ -141,12 +203,46 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
     private fun hydrateProjectToNative(state: VibeCoreUiState) {
         runtime.setTempo(state.bpm)
         state.tracks.forEach { track ->
+            runtime.setTrackMode(track.id, track.kind)
             runtime.setPatternLength(track.id, track.steps.size)
             runtime.setTrackMute(track.id, track.muted)
             runtime.setTrackSolo(track.id, track.soloed)
             runtime.setTrackVolume(track.id, track.volume)
             track.steps.forEachIndexed { stepIndex, step ->
                 runtime.setStep(track.id, stepIndex, step.active, step.velocity, step.note)
+            }
+        }
+    }
+
+    private fun restorePersistedSamples() {
+        val assets = initialState.tracks.mapIndexedNotNull { index, track ->
+            val uri = track.sampleUri?.let(Uri::parse) ?: return@mapIndexedNotNull null
+            if (track.kind != TrackKind.DRUM && track.kind != TrackKind.SAMPLE) return@mapIndexedNotNull null
+            Triple(index, track, uri)
+        }
+        if (assets.isEmpty()) return
+
+        viewModelScope.launch {
+            _state.update { it.copy(sampleBusy = true, sampleStatus = "Restoring ${assets.size} native sample asset(s)…") }
+            runtime.stopEngine()
+            var restored = 0
+            assets.forEach { (_, track, uri) ->
+                try {
+                    val decoded = withContext(Dispatchers.IO) { decoder.decode(uri) }
+                    runtime.setTrackMode(track.id, track.kind)
+                    if (runtime.loadSample(track.id, decoded.mono, decoded.sampleRate)) {
+                        runtime.setTrackSample(track.id, track.id)
+                        restored += 1
+                    }
+                } catch (_: Exception) {
+                    // Missing/revoked assets remain visible by sampleName and can be reselected.
+                }
+            }
+            _state.update {
+                it.copy(
+                    sampleBusy = false,
+                    sampleStatus = "Restored $restored/${assets.size} persisted native sample asset(s).",
+                )
             }
         }
     }
