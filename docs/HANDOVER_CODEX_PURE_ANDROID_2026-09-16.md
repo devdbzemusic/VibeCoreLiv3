@@ -151,6 +151,29 @@ Hinweis:
 - Der Test nutzte wegen bereits persistierter Track-Auswahl den Snare-Track, nicht Kick.
 - Sample-Persistenz ist weiterhin offen, bis eine reale Audiodatei ueber den Android-Dateipicker geladen wurde.
 
+## Sprint 4 Landscape Default
+
+Status: `DEVICE VERIFIED` fuer App-Start im Querformat.
+
+Evidence:
+
+```text
+evidence\2026-09-16_11-36-16-landscape-default\
+```
+
+Geaendert:
+
+- `MainActivity` startet standardmaessig mit `android:screenOrientation="landscape"`.
+
+Geprueft:
+
+- Debug-APK erfolgreich gebaut.
+- APK auf `RZCY91QYC9N` installiert.
+- App startet fokussiert als `com.vibecore.app/.MainActivity`.
+- WindowManager meldet `SCREEN_ORIENTATION_LANDSCAPE`.
+- Screenshot zeigt VibeCore Compose UI im Querformat.
+- Kein Fatal/ANR/SIGSEGV/SIGABRT/UnsatisfiedLinkError im frischen Logcat.
+
 Optional installieren:
 
 ```powershell
