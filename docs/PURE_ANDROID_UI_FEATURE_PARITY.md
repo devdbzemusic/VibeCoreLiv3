@@ -56,6 +56,16 @@ Sprint 7 (`Sample Import Failure Handling`) ist fuer den Android-SAF-Abbruchpfad
 
 Weiterhin offen: vollautomatischer SAF-Dateiauswahl-Nachweis, hoerbarer Sample-Playback-E2E und Sample-Restore mit echter persistierter URI.
 
+Sprint 8 (`Bass/Synth Performance Keyboard`) ist fuer den Native-Bass-Keyboard-Slice `DEVICE VERIFIED`:
+
+- `BASS` ist als eigener Compose-Screen in der unteren Navigation erreichbar.
+- 3D Bass zeigt im Landscape-Viewport eine 12-Tasten-Tastatur plus `ALL OFF`, aktive Note, Voice- und Level-Meter.
+- Bass-Note-On/Off laeuft ueber Kotlin/JNI in den Native `BassEngine`/`BassNode` und startet den Oboe/AAudio-Stream.
+- Logcat bestaetigt `BassNode: prepared` und `Engine running` nach Keyboard-Tap.
+- 3D Synth zeigt die Keyboard-Oberflaeche, bleibt aber explizit `NATIVE SYNTH GAP`; kein WebAudio-/WebView-Fallback.
+
+Weiterhin offen: vollstaendige Bass3D-Parameter-/Deep-Editor-Paritaet, hoerbarer Audio-Abgleich und dedizierter Native Synth3D Renderer.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.
@@ -108,8 +118,8 @@ Statuswerte:
 | Scene / Pattern Banks | Web Scene/Pattern workflow | Native Scene/Pattern screen | REFERENCE | OPEN | OPEN | PARTIAL CORE | OPEN | OPEN | REFERENCE |
 | Mixer | `MixTab` / `ChannelStrip` | `MixerScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE CORE PARTIAL | OPEN | OPEN | REFERENCE |
 | Sample Forge | `SmplTab.tsx` / `ForgeTab.tsx` | `SampleForgeScreen.kt` | SHELL | WIRED | WIRED | NATIVE ASSET CORE PARTIAL | PARTIAL | PARTIAL | WIRED |
-| Synth 3D | `Synth3DPage.tsx` / subtabs | `Synth3DScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE SYNTH GAP | OPEN | OPEN | REFERENCE |
-| Bass 3D | `Bass3DPage.tsx` / subtabs | `Bass3DScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE BASS CORE EXISTS | OPEN | OPEN | REFERENCE |
+| Synth 3D | `Synth3DPage.tsx` / subtabs | `Synth3DScreen.kt` | SHELL | WIRED KEYBOARD UI | PARTIAL | NATIVE SYNTH GAP | OPEN | PARTIAL | GAP VISIBLE |
+| Bass 3D | `Bass3DPage.tsx` / subtabs | `Bass3DScreen.kt` | SHELL | WIRED KEYBOARD | PARTIAL | WIRED BASS KEYBOARD | OPEN | PARTIAL | DEVICE VERIFIED SLICE |
 | Voice | `VoiceTab.tsx` | `VoiceScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE VOICE CORE EXISTS | OPEN | OPEN | REFERENCE |
 | FX / Sends | FX tabs / channel sends | `FxScreen.kt` / Mixer | REFERENCE | OPEN | OPEN | PARTIAL CORE | OPEN | OPEN | REFERENCE |
 | Piano Roll | Web piano-roll controls | `PianoRollScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE GROOVE API EXISTS | OPEN | OPEN | REFERENCE |
@@ -172,7 +182,7 @@ Ein Screen darf erst `VERIFIED` erhalten, wenn:
 1. Pattern/Scene Vollparität + Persistenz
 2. Mixer
 3. Sample Forge + Android SAF + Native PCM Asset Store
-4. Bass 3D
+4. Bass 3D Restparitaet
 5. Voice
 6. Synth 3D Native Renderer
 7. FX / Sends

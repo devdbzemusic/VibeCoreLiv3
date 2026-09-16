@@ -42,11 +42,16 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
 
     init {
         hydrateProjectToNative(initialState)
+        runtime.prepareBassInstrument()
         restorePersistedSamples()
         startUiPolling()
     }
 
     fun selectScreen(screen: NativeScreen) {
+        if (_state.value.screen == NativeScreen.BASS && screen != NativeScreen.BASS) {
+            runtime.bassAllNotesOff()
+            _state.update { it.copy(activePerformanceNote = null) }
+        }
         _state.update { it.copy(screen = screen) }
     }
 
@@ -211,6 +216,55 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun performanceNoteOn(note: Int, source: NativeScreen) {
+        when (source) {
+            NativeScreen.BASS -> {
+                val ok = runtime.bassNoteOn(note)
+                _state.update {
+                    it.copy(
+                        performanceStatus = if (ok) "Bass note $note -> Native Bass / Oboe" else "Bass note failed: native engine unavailable.",
+                        activePerformanceNote = if (ok) note else null,
+                    )
+                }
+            }
+            NativeScreen.SYNTH -> _state.update {
+                it.copy(
+                    performanceStatus = "Synth keyboard UI ready; native Synth3D renderer is still an open sprint.",
+                    activePerformanceNote = note,
+                )
+            }
+            NativeScreen.VOICE -> _state.update {
+                it.copy(
+                    performanceStatus = "Voice performance keyboard is not routed in this Compose slice yet.",
+                    activePerformanceNote = note,
+                )
+            }
+            else -> Unit
+        }
+    }
+
+    fun performanceNoteOff(note: Int, source: NativeScreen) {
+        if (source == NativeScreen.BASS) {
+            runtime.bassNoteOff(note)
+        }
+        _state.update {
+            it.copy(
+                performanceStatus = when (source) {
+                    NativeScreen.SYNTH -> "Synth keyboard UI ready; native Synth3D renderer is still an open sprint."
+                    NativeScreen.VOICE -> "Voice performance keyboard is not routed in this Compose slice yet."
+                    NativeScreen.BASS -> "Bass note $note released."
+                    else -> it.performanceStatus
+                },
+                activePerformanceNote = null,
+            )
+        }
+    }
+
+    fun allPerformanceNotesOff() {
+        runtime.bassAllNotesOff()
+        _state.update { it.copy(activePerformanceNote = null, performanceStatus = "All performance notes released.") }
+    }
+
     fun onAudioFocusGained() {
         runtime.onAudioFocusGained()
         refreshRuntimeState()
@@ -299,12 +353,15 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
                 currentStep = runtime.currentStep(selectedTrackId).coerceAtLeast(0),
                 latencyMs = runtime.latencyMs(),
                 diagnostic = runtime.diagnostic(),
+                bassActiveVoices = runtime.bassActiveVoices(),
+                bassOutputLevel = runtime.bassOutputLevel(),
             )
         }
     }
 
     override fun onCleared() {
         meterJob?.cancel()
+        runtime.bassAllNotesOff()
         persist()
         runtime.shutdown()
         super.onCleared()

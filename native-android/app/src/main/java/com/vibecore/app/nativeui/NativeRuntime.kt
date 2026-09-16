@@ -86,6 +86,36 @@ class NativeRuntime(context: Context) {
         bridge.grooveSetTrackSample(track, sampleId)
     }
 
+    fun prepareBassInstrument() {
+        if (!bridge.isAvailable()) return
+        bridge.bassSetVoiceMode(2) // Poly4 keeps the on-screen keyboard forgiving.
+        bridge.bassSetWaveform(2)
+        bridge.bassSetVolume(0.85f)
+        bridge.bassSetCutoff(2600f)
+        bridge.bassSetResonance(0.18f)
+        bridge.bassSetGlideMs(35f)
+        bridge.bassSetStereoEnabled(true)
+        bridge.bassSetStereoWidth(1.1f)
+    }
+
+    fun bassNoteOn(note: Int, velocity: Int = 108): Boolean {
+        prepareBassInstrument()
+        if (!ensureStarted()) return false
+        bridge.bassNoteOn(note.coerceIn(0, 127), velocity.coerceIn(1, 127))
+        return true
+    }
+
+    fun bassNoteOff(note: Int) {
+        bridge.bassNoteOff(note.coerceIn(0, 127))
+    }
+
+    fun bassAllNotesOff() {
+        bridge.bassAllNotesOff()
+    }
+
+    fun bassActiveVoices(): Int = bridge.bassActiveVoices()
+    fun bassOutputLevel(): Float = bridge.bassOutputLevel()
+
     fun canColdLoadSample(): Boolean = grooveAssets.canLoad()
 
     fun loadSample(sampleId: Int, monoPcm: FloatArray, sampleRate: Int): Boolean {

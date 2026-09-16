@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -36,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -117,10 +119,35 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                         },
                         modifier = Modifier.weight(1f),
                     )
-                    NativeScreen.SYNTH -> MigrationPlaceholder(
-                        "SYNTH 3D",
-                        "Visual parity remains the target; a native Synth3D renderer is the next missing audio core.",
-                        Modifier.weight(1f),
+                    NativeScreen.BASS -> PerformanceKeyboardPanel(
+                        title = "3D BASS",
+                        detail = "Native Bass keyboard -> BassEngine noteOn/noteOff -> Oboe",
+                        status = state.performanceStatus,
+                        activeNote = state.activePerformanceNote,
+                        activeVoices = state.bassActiveVoices,
+                        outputLevel = state.bassOutputLevel,
+                        compact = compactLandscape,
+                        enabled = true,
+                        screen = NativeScreen.BASS,
+                        onNoteOn = viewModel::performanceNoteOn,
+                        onNoteOff = viewModel::performanceNoteOff,
+                        onAllNotesOff = viewModel::allPerformanceNotesOff,
+                        modifier = Modifier.weight(1f),
+                    )
+                    NativeScreen.SYNTH -> PerformanceKeyboardPanel(
+                        title = "SYNTH 3D",
+                        detail = "Keyboard UI is present; native Synth3D renderer is still the next audio-core sprint.",
+                        status = state.performanceStatus,
+                        activeNote = state.activePerformanceNote,
+                        activeVoices = 0,
+                        outputLevel = 0f,
+                        compact = compactLandscape,
+                        enabled = false,
+                        screen = NativeScreen.SYNTH,
+                        onNoteOn = viewModel::performanceNoteOn,
+                        onNoteOff = viewModel::performanceNoteOff,
+                        onAllNotesOff = viewModel::allPerformanceNotesOff,
+                        modifier = Modifier.weight(1f),
                     )
                     NativeScreen.VOICE -> MigrationPlaceholder(
                         "VOICE",
@@ -531,6 +558,201 @@ private fun SampleAssetCard(
                     ) { Text(if (busy) "LOADING..." else "CHOOSE AUDIO", fontWeight = FontWeight.Black) }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PerformanceKeyboardPanel(
+    title: String,
+    detail: String,
+    status: String,
+    activeNote: Int?,
+    activeVoices: Int,
+    outputLevel: Float,
+    compact: Boolean,
+    enabled: Boolean,
+    screen: NativeScreen,
+    onNoteOn: (Int, NativeScreen) -> Unit,
+    onNoteOff: (Int, NativeScreen) -> Unit,
+    onAllNotesOff: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val notes = listOf(
+        48 to "C2",
+        50 to "D2",
+        52 to "E2",
+        53 to "F2",
+        55 to "G2",
+        57 to "A2",
+        59 to "B2",
+        60 to "C3",
+        62 to "D3",
+        64 to "E3",
+        65 to "F3",
+        67 to "G3",
+    )
+
+    Panel(modifier) {
+        if (compact) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Column(modifier = Modifier.width(520.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(title, color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                            Text(detail, color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 8.sp, maxLines = 1)
+                        }
+                        Button(
+                            onClick = onAllNotesOff,
+                            colors = ButtonDefaults.buttonColors(containerColor = VibeCoreColors.Surface3, contentColor = VibeCoreColors.Foreground),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.height(34.dp),
+                        ) { Text("ALL OFF", fontWeight = FontWeight.Black, fontSize = 9.sp) }
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        PerformanceMeter("VOICES", activeVoices.toString(), true, Modifier.weight(1f))
+                        PerformanceMeter("LEVEL", "${(outputLevel * 100f).toInt().coerceIn(0, 100)}%", true, Modifier.weight(1f))
+                        PerformanceMeter("ACTIVE", activeNote?.toString() ?: "--", true, Modifier.weight(1f))
+                    }
+                    Text(
+                        status,
+                        color = if (enabled) VibeCoreColors.Lime else VibeCoreColors.Amber,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 8.sp,
+                        maxLines = 2,
+                    )
+                }
+                Column(modifier = Modifier.fillMaxHeight().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    repeat(2) { row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            notes.drop(row * 6).take(6).forEach { (note, label) ->
+                                PerformanceKey(
+                                    note = note,
+                                    label = label,
+                                    active = activeNote == note,
+                                    enabled = enabled,
+                                    compact = true,
+                                    onNoteOn = { onNoteOn(note, screen) },
+                                    onNoteOff = { onNoteOff(note, screen) },
+                                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(title, color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 22.sp)
+                        Text(detail, color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 10.sp, maxLines = 1)
+                    }
+                    Button(
+                        onClick = onAllNotesOff,
+                        colors = ButtonDefaults.buttonColors(containerColor = VibeCoreColors.Surface3, contentColor = VibeCoreColors.Foreground),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.height(42.dp),
+                    ) { Text("ALL OFF", fontWeight = FontWeight.Black, fontSize = 10.sp) }
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PerformanceMeter("VOICES", activeVoices.toString(), false, Modifier.weight(1f))
+                    PerformanceMeter("LEVEL", "${(outputLevel * 100f).toInt().coerceIn(0, 100)}%", false, Modifier.weight(1f))
+                    PerformanceMeter("ACTIVE", activeNote?.toString() ?: "--", false, Modifier.weight(1f))
+                }
+
+                Text(
+                    status,
+                    color = if (enabled) VibeCoreColors.Lime else VibeCoreColors.Amber,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 10.sp,
+                    maxLines = 1,
+                )
+
+                Column(modifier = Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    repeat(2) { row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            notes.drop(row * 6).take(6).forEach { (note, label) ->
+                                PerformanceKey(
+                                    note = note,
+                                    label = label,
+                                    active = activeNote == note,
+                                    enabled = enabled,
+                                    compact = false,
+                                    onNoteOn = { onNoteOn(note, screen) },
+                                    onNoteOff = { onNoteOff(note, screen) },
+                                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PerformanceMeter(label: String, value: String, compact: Boolean, modifier: Modifier = Modifier) {
+    Surface(
+        color = VibeCoreColors.Surface0,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, VibeCoreColors.Border),
+        modifier = modifier.height(if (compact) 42.dp else 50.dp),
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text(value, color = VibeCoreColors.Foreground, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black, fontSize = if (compact) 12.sp else 14.sp)
+            Text(label, color = VibeCoreColors.Muted, fontSize = 8.sp)
+        }
+    }
+}
+
+@Composable
+private fun PerformanceKey(
+    note: Int,
+    label: String,
+    active: Boolean,
+    enabled: Boolean,
+    compact: Boolean,
+    onNoteOn: () -> Unit,
+    onNoteOff: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val keyColor = when {
+        active -> VibeCoreColors.Primary.copy(alpha = 0.32f)
+        enabled -> VibeCoreColors.Surface2
+        else -> VibeCoreColors.Surface0
+    }
+    Surface(
+        color = keyColor,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, if (active) VibeCoreColors.Primary else VibeCoreColors.Border),
+        modifier = modifier.pointerInput(note, enabled) {
+            detectTapGestures(
+                onPress = {
+                    onNoteOn()
+                    tryAwaitRelease()
+                    onNoteOff()
+                },
+            )
+        },
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text(label, color = if (enabled) VibeCoreColors.Foreground else VibeCoreColors.Muted, fontWeight = FontWeight.Black, fontSize = if (compact) 14.sp else 16.sp)
+            Text(note.toString(), color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 8.sp)
         }
     }
 }

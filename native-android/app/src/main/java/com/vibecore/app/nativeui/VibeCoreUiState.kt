@@ -1,6 +1,6 @@
 package com.vibecore.app.nativeui
 
-enum class NativeScreen { PATTERN, MIXER, SAMPLE, SYNTH, VOICE }
+enum class NativeScreen { PATTERN, MIXER, SAMPLE, BASS, SYNTH, VOICE }
 enum class TrackKind(val nativeMode: Int) { DRUM(0), BASS(1), SYNTH(2), SAMPLE(3), VOICE(4) }
 
 data class StepState(
@@ -33,6 +33,10 @@ data class VibeCoreUiState(
     val screen: NativeScreen = NativeScreen.PATTERN,
     val sampleBusy: Boolean = false,
     val sampleStatus: String = "Select a Sample-domain track and choose an audio file.",
+    val performanceStatus: String = "Bass keyboard ready. Synth keyboard awaits native Synth3D renderer.",
+    val activePerformanceNote: Int? = null,
+    val bassActiveVoices: Int = 0,
+    val bassOutputLevel: Float = 0f,
     val tracks: List<TrackState> = defaultTracks(),
 )
 

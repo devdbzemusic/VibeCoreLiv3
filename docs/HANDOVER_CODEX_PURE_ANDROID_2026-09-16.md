@@ -258,6 +258,36 @@ Failure/Error Handling Revision Todo:
 
 - DONE: Picker-Start als sichtbaren UI-Status melden.
 - DONE: Picker-Abbruch als sichtbaren UI-Status melden.
+
+## Sprint 8 Bass/Synth Performance Keyboard
+
+Status: `DEVICE VERIFIED` fuer den Native-Bass-Keyboard-Slice, `GAP VISIBLE` fuer Synth3D.
+
+Geaendert:
+
+- Untere Navigation enthaelt jetzt `BASS` als eigenen Native-Screen.
+- 3D Bass zeigt eine touch-faehige 12-Tasten-Performance-Tastatur im Landscape-Viewport.
+- Bass-Tasten rufen direkt `BassEngine noteOn/noteOff -> Oboe` ueber Kotlin/JNI/C++ auf.
+- Bass wird vor Engine-Start vorbereitet, damit der `BassNode` im AudioGraph vorhanden ist.
+- `ALL OFF`, aktive Note, aktive Bass-Voices und Output-Level sind sichtbar.
+- 3D Synth zeigt dieselbe Keyboard-Oberflaeche, aber bewusst nur mit Gap-Status: kein WebAudio-Fallback, kein falscher Native-Synth-Claim.
+
+Geprueft:
+
+- Debug-APK erfolgreich gebaut.
+- APK auf `RZCY91QYC9N` installiert.
+- App startet im Querformat als `com.vibecore.app/.MainActivity`.
+- `BASS`-Screen zeigt Header `3D BASS`, `ALL OFF`, `VOICES`, `LEVEL`, `ACTIVE` und alle 12 Keyboard-Tasten.
+- Tap auf `C3` erzeugt sichtbaren Status `Bass note 60 released.`.
+- Logcat zeigt Native-Engine-Start, `GrooveNode`, `BassNode`, AAudio/Oboe Exclusive Stream mit 48 kHz.
+- `SYNTH`-Screen zeigt Keyboard-Tasten und die Meldung `native Synth3D renderer is still an open sprint`.
+- Kein Fatal/ANR/SIGSEGV/SIGABRT/UnsatisfiedLinkError im gefilterten App-Logcat.
+
+Offen:
+
+- Hoerbarer Bass-Audio-Abgleich per Mess-/Audio-Protokoll statt nur Device/UI/Logcat-Nachweis.
+- Vollstaendige Bass3D-Paritaet: Parameter, Mod Matrix, AI Bassline, Piano-Roll-Access, Deep Editor.
+- Native Synth3D Renderer/JNI/Compose-Paritaet.
 - DONE: Decode-/Native-Load-Fehler mit Stacktrace in Logcat schreiben.
 - DONE: Persisted-Sample-Restore-Teilfehler sichtbar machen statt stumm zu schlucken.
 - OPEN: Vollautomatische SAF-Dateiauswahl robust machen oder als manuellen Device-Testschritt behandeln.
