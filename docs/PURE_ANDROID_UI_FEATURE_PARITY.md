@@ -41,6 +41,12 @@ Sprint 5 (`Landscape UX Fit`) ist fuer Pattern im Querformat `DEVICE VERIFIED`:
 - Alle 16 Pattern-Steps sind im Landscape-Startzustand sichtbar.
 - Pattern bleibt touch-bedienbar und visuell im VibeCore-Stil.
 
+Sprint 6 (`Landscape Mixer/Sample Fit`) ist fuer Mixer und Sample im Querformat `DEVICE VERIFIED`:
+
+- Mixer zeigt im Landscape-Startviewport mehrere direkt bedienbare Kanalreihen.
+- Sample Forge zeigt Track-Auswahl, Status und `CHOOSE AUDIO` im ersten Landscape-Viewport.
+- Beide Screens bleiben im VibeCore-Stil und ohne aktive WebView/WebAudio-Oberflaeche.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.

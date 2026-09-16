@@ -96,6 +96,7 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                     NativeScreen.MIXER -> MixerPanel(
                         tracks = state.tracks,
                         selectedTrack = state.selectedTrack,
+                        compact = compactLandscape,
                         onSelect = viewModel::selectTrack,
                         onVolume = viewModel::setTrackVolume,
                         onMute = viewModel::toggleMute,
@@ -107,6 +108,7 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                         selectedTrack = state.selectedTrack,
                         busy = state.sampleBusy,
                         status = state.sampleStatus,
+                        compact = compactLandscape,
                         onSelect = viewModel::selectTrack,
                         onChooseAudio = { samplePicker.launch(arrayOf("audio/*")) },
                         modifier = Modifier.weight(1f),
@@ -307,6 +309,7 @@ private fun PatternPanel(
 private fun MixerPanel(
     tracks: List<TrackState>,
     selectedTrack: Int,
+    compact: Boolean,
     onSelect: (Int) -> Unit,
     onVolume: (Int, Int) -> Unit,
     onMute: (Int) -> Unit,
@@ -314,14 +317,18 @@ private fun MixerPanel(
     modifier: Modifier = Modifier,
 ) {
     Panel(modifier) {
-        Column(modifier = Modifier.fillMaxSize().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("MIXER", color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 19.sp)
-            Text("16 PARTS • NATIVE GROOVE LEVELS", color = VibeCoreColors.Muted, fontSize = 10.sp)
-            Column(modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(modifier = Modifier.fillMaxSize().padding(if (compact) 8.dp else 10.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                Text("MIXER", color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = if (compact) 17.sp else 19.sp)
+                Spacer(Modifier.width(10.dp))
+                Text("16 PARTS • NATIVE GROOVE LEVELS", color = VibeCoreColors.Muted, fontSize = if (compact) 9.sp else 10.sp)
+            }
+            Column(modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp)) {
                 tracks.forEachIndexed { index, track ->
                     MixerRow(
                         track = track,
                         selected = index == selectedTrack,
+                        compact = compact,
                         onSelect = { onSelect(index) },
                         onVolume = { onVolume(index, it) },
                         onMute = { onMute(index) },
@@ -337,6 +344,7 @@ private fun MixerPanel(
 private fun MixerRow(
     track: TrackState,
     selected: Boolean,
+    compact: Boolean,
     onSelect: () -> Unit,
     onVolume: (Int) -> Unit,
     onMute: () -> Unit,
@@ -346,16 +354,19 @@ private fun MixerRow(
         color = if (selected) VibeCoreColors.Primary.copy(alpha = 0.08f) else VibeCoreColors.Surface2,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, if (selected) VibeCoreColors.Primary else VibeCoreColors.Border),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onSelect),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(if (compact) 48.dp else 58.dp)
+            .clickable(onClick = onSelect),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 9.dp, vertical = 5.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 9.dp, vertical = if (compact) 3.dp else 5.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(
                 text = track.name,
-                modifier = Modifier.width(72.dp),
+                modifier = Modifier.width(if (compact) 86.dp else 72.dp),
                 color = if (selected) VibeCoreColors.PrimaryGlow else VibeCoreColors.Foreground,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
@@ -385,6 +396,7 @@ private fun SampleForgePanel(
     selectedTrack: Int,
     busy: Boolean,
     status: String,
+    compact: Boolean,
     onSelect: (Int) -> Unit,
     onChooseAudio: () -> Unit,
     modifier: Modifier = Modifier,
@@ -394,40 +406,125 @@ private fun SampleForgePanel(
     }
     val selected = tracks[selectedTrack]
     Panel(modifier) {
-        Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("SAMPLE FORGE", color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 19.sp)
-            Text("ANDROID SAF → MEDIACODEC → MONO PCM → NATIVE GROOVE", color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 9.sp)
-
-            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                eligible.forEach { (index, track) ->
-                    val active = index == selectedTrack
-                    Surface(
-                        color = if (active) VibeCoreColors.Magenta.copy(alpha = 0.14f) else VibeCoreColors.Surface2,
-                        shape = RoundedCornerShape(11.dp),
-                        border = BorderStroke(1.dp, if (active) VibeCoreColors.Magenta else VibeCoreColors.Border),
-                        modifier = Modifier.width(92.dp).height(44.dp).clickable { onSelect(index) },
-                    ) { Box(contentAlignment = Alignment.Center) { Text(track.name, color = if (active) VibeCoreColors.Magenta else VibeCoreColors.Foreground, fontSize = 10.sp, fontWeight = FontWeight.Bold) } }
-                }
-            }
-
-            Surface(
-                color = VibeCoreColors.Surface0,
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, VibeCoreColors.Border),
-                modifier = Modifier.fillMaxWidth().weight(1f),
+        if (compact) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(modifier = Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(selected.name, color = VibeCoreColors.Foreground, fontWeight = FontWeight.Black, fontSize = 22.sp)
-                        Text(selected.sampleName ?: "NO SAMPLE ASSIGNED", color = if (selected.sampleName != null) VibeCoreColors.Lime else VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
-                        Text(status, color = VibeCoreColors.Muted, textAlign = TextAlign.Center, fontSize = 11.sp)
+                Column(modifier = Modifier.width(520.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("SAMPLE FORGE", color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 17.sp)
+                    Text("ANDROID SAF -> MEDIACODEC -> MONO PCM -> NATIVE GROOVE", color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 8.sp)
+                    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        eligible.forEach { (index, track) ->
+                            val active = index == selectedTrack
+                            Surface(
+                                color = if (active) VibeCoreColors.Magenta.copy(alpha = 0.14f) else VibeCoreColors.Surface2,
+                                shape = RoundedCornerShape(11.dp),
+                                border = BorderStroke(1.dp, if (active) VibeCoreColors.Magenta else VibeCoreColors.Border),
+                                modifier = Modifier.width(94.dp).height(38.dp).clickable { onSelect(index) },
+                            ) { Box(contentAlignment = Alignment.Center) { Text(track.name, color = if (active) VibeCoreColors.Magenta else VibeCoreColors.Foreground, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1) } }
+                        }
+                    }
+                }
+                SampleAssetCard(
+                    selected = selected,
+                    status = status,
+                    busy = busy,
+                    onChooseAudio = onChooseAudio,
+                    compact = true,
+                    modifier = Modifier.fillMaxHeight().weight(1f),
+                )
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("SAMPLE FORGE", color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 19.sp)
+                Text("ANDROID SAF → MEDIACODEC → MONO PCM → NATIVE GROOVE", color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 9.sp)
+
+                Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    eligible.forEach { (index, track) ->
+                        val active = index == selectedTrack
+                        Surface(
+                            color = if (active) VibeCoreColors.Magenta.copy(alpha = 0.14f) else VibeCoreColors.Surface2,
+                            shape = RoundedCornerShape(11.dp),
+                            border = BorderStroke(1.dp, if (active) VibeCoreColors.Magenta else VibeCoreColors.Border),
+                            modifier = Modifier.width(92.dp).height(44.dp).clickable { onSelect(index) },
+                        ) { Box(contentAlignment = Alignment.Center) { Text(track.name, color = if (active) VibeCoreColors.Magenta else VibeCoreColors.Foreground, fontSize = 10.sp, fontWeight = FontWeight.Bold) } }
+                    }
+                }
+
+                SampleAssetCard(
+                    selected = selected,
+                    status = status,
+                    busy = busy,
+                    onChooseAudio = onChooseAudio,
+                    compact = false,
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SampleAssetCard(
+    selected: TrackState,
+    status: String,
+    busy: Boolean,
+    onChooseAudio: () -> Unit,
+    compact: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        color = VibeCoreColors.Surface0,
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, VibeCoreColors.Border),
+        modifier = modifier,
+    ) {
+        Box(modifier = Modifier.fillMaxSize().padding(if (compact) 10.dp else 16.dp), contentAlignment = Alignment.Center) {
+            if (compact) {
+                val statusLine = if (selected.kind == TrackKind.DRUM || selected.kind == TrackKind.SAMPLE) {
+                    status
+                } else {
+                    "Select a Drum/Sample track."
+                }
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text(
+                            selected.name,
+                            color = VibeCoreColors.Foreground,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 17.sp,
+                            maxLines = 1,
+                            modifier = Modifier.weight(1f),
+                        )
                         Button(
                             onClick = onChooseAudio,
                             enabled = !busy && (selected.kind == TrackKind.DRUM || selected.kind == TrackKind.SAMPLE),
                             colors = ButtonDefaults.buttonColors(containerColor = VibeCoreColors.Magenta, contentColor = VibeCoreColors.Background),
                             shape = RoundedCornerShape(12.dp),
-                        ) { Text(if (busy) "LOADING…" else "CHOOSE AUDIO", fontWeight = FontWeight.Black) }
+                            modifier = Modifier.width(178.dp).height(38.dp),
+                        ) { Text(if (busy) "LOADING..." else "CHOOSE AUDIO", fontWeight = FontWeight.Black, fontSize = 11.sp) }
                     }
+                    Text(selected.sampleName ?: "NO SAMPLE ASSIGNED", color = if (selected.sampleName != null) VibeCoreColors.Lime else VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 8.sp, maxLines = 1)
+                    Text(statusLine, color = VibeCoreColors.Muted, fontSize = 8.sp, maxLines = 1)
+                }
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(selected.name, color = VibeCoreColors.Foreground, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                    Text(selected.sampleName ?: "NO SAMPLE ASSIGNED", color = if (selected.sampleName != null) VibeCoreColors.Lime else VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                    Text(status, color = VibeCoreColors.Muted, textAlign = TextAlign.Center, fontSize = 10.sp)
+                    Button(
+                        onClick = onChooseAudio,
+                        enabled = !busy && (selected.kind == TrackKind.DRUM || selected.kind == TrackKind.SAMPLE),
+                        colors = ButtonDefaults.buttonColors(containerColor = VibeCoreColors.Magenta, contentColor = VibeCoreColors.Background),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.height(44.dp),
+                    ) { Text(if (busy) "LOADING..." else "CHOOSE AUDIO", fontWeight = FontWeight.Black) }
                 }
             }
         }

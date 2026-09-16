@@ -201,6 +201,35 @@ Geprueft:
 - App bleibt fokussiert als `com.vibecore.app/.MainActivity`.
 - Kein Fatal/ANR/SIGSEGV/SIGABRT/UnsatisfiedLinkError im frischen Logcat.
 
+## Sprint 6 Landscape Mixer/Sample Fit
+
+Status: `DEVICE VERIFIED` fuer Mixer- und Sample-Landscape-Fit.
+
+Evidence:
+
+```text
+evidence\2026-09-16_11-49-16-landscape-mixer-sample-fit-final2\
+evidence\2026-09-16_11-53-08-landscape-sample-name-final\
+```
+
+Geaendert:
+
+- Mixer nutzt im Landscape-Modus kompaktere Kopfzeile und dichtere Kanalzeilen.
+- Mixer zeigt im ersten Landscape-Viewport mehrere direkt bedienbare Kanalreihen.
+- Sample Forge nutzt im Landscape-Modus eine zweispaltige Ansicht.
+- Sample-Track-Auswahl bleibt horizontal bedienbar.
+- Sample-Asset-Karte zeigt Status und `CHOOSE AUDIO` direkt im ersten Landscape-Viewport.
+- Sample-Button-Breite wurde begrenzt, damit Statusbereich und Aktion nicht gegenseitig verdrängen.
+
+Geprueft:
+
+- Debug-APK erfolgreich gebaut.
+- APK auf `RZCY91QYC9N` installiert.
+- Mixer- und Sample-Screen im Querformat sichtbar und fokussiert.
+- App bleibt fokussiert als `com.vibecore.app/.MainActivity`.
+- WindowManager meldet `SCREEN_ORIENTATION_LANDSCAPE`.
+- Kein Fatal/ANR/SIGSEGV/SIGABRT/UnsatisfiedLinkError im frischen Logcat.
+
 Optional installieren:
 
 ```powershell
