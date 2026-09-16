@@ -1,6 +1,7 @@
 import { runtimeCapabilitySnapshot } from "@/lib/capabilities/registry";
 import { getNativeAudioStatus, getNativeProjectMirrorStatus } from "@/lib/audio/nativeAudioRuntime";
 import { useGroove } from "@/lib/store";
+import { sourceBoundaryDecision } from "@/lib/instruments/sourceBoundary";
 import { runtimeSelectionInfo } from "./selection";
 
 export interface RuntimeDiagnosticsSnapshot {
@@ -16,6 +17,12 @@ export interface RuntimeDiagnosticsSnapshot {
     currentStep: number;
     selectedPart: number;
     audioReady: boolean;
+  };
+  instrumentSources: {
+    totalParts: number;
+    canonicalParts: number;
+    invalidActiveSources: number;
+    legacyCompatibilityParts: number;
   };
   reportedMetrics: {
     cpu: number;
@@ -44,6 +51,18 @@ export function getRuntimeDiagnosticsSnapshot(): RuntimeDiagnosticsSnapshot {
   const state = useGroove.getState();
   const backend = runtimeSelectionInfo();
   const nativeSelected = backend.kind === "oboe-native";
+  let canonicalParts = 0;
+  let invalidActiveSources = 0;
+  let legacyCompatibilityParts = 0;
+
+  for (const part of state.parts) {
+    const decision = sourceBoundaryDecision(part.category, part.source);
+    if (decision.compatible) canonicalParts += 1;
+    else invalidActiveSources += 1;
+    if ((part as typeof part & { legacyInstrument?: unknown }).legacyInstrument) {
+      legacyCompatibilityParts += 1;
+    }
+  }
 
   return {
     backend,
@@ -58,6 +77,12 @@ export function getRuntimeDiagnosticsSnapshot(): RuntimeDiagnosticsSnapshot {
       currentStep: state.transport.currentStep,
       selectedPart: state.selectedPart,
       audioReady: state.audioReady,
+    },
+    instrumentSources: {
+      totalParts: state.parts.length,
+      canonicalParts,
+      invalidActiveSources,
+      legacyCompatibilityParts,
     },
     reportedMetrics: {
       cpu: state.cpu,
