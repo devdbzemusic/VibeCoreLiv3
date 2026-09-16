@@ -1,11 +1,12 @@
 import { runtimeCapabilitySnapshot } from "@/lib/capabilities/registry";
-import { getNativeAudioStatus } from "@/lib/audio/nativeAudioRuntime";
+import { getNativeAudioStatus, getNativeProjectMirrorStatus } from "@/lib/audio/nativeAudioRuntime";
 import { useGroove } from "@/lib/store";
 import { runtimeSelectionInfo } from "./selection";
 
 export interface RuntimeDiagnosticsSnapshot {
   backend: ReturnType<typeof runtimeSelectionInfo>;
   native: ReturnType<typeof getNativeAudioStatus> | null;
+  nativeProjectMirror: ReturnType<typeof getNativeProjectMirrorStatus> | null;
   capabilities: ReturnType<typeof runtimeCapabilitySnapshot>;
   project: {
     playing: boolean;
@@ -42,10 +43,12 @@ export interface RuntimeDiagnosticsSnapshot {
 export function getRuntimeDiagnosticsSnapshot(): RuntimeDiagnosticsSnapshot {
   const state = useGroove.getState();
   const backend = runtimeSelectionInfo();
+  const nativeSelected = backend.kind === "oboe-native";
 
   return {
     backend,
-    native: backend.kind === "oboe-native" ? getNativeAudioStatus() : null,
+    native: nativeSelected ? getNativeAudioStatus() : null,
+    nativeProjectMirror: nativeSelected ? getNativeProjectMirrorStatus() : null,
     capabilities: runtimeCapabilitySnapshot(),
     project: {
       playing: state.transport.playing,
