@@ -4,6 +4,7 @@ import type { NativeGrooveAssetBridge } from "../nativeGrooveAssets";
 import {
   NATIVE_GROOVE_MAX_SAMPLES,
   clearNativeGrooveAsset,
+  nativeGrooveAssetReadiness,
   nativeGrooveAssetRegistry,
   nativeGrooveSampleIdForPart,
   uploadNativeGrooveAsset,
@@ -44,6 +45,35 @@ describe("native groove asset registry", () => {
     expect(nativeGrooveAssetRegistry.isRegistered(part)).toBe(true);
     nativeGrooveAssetRegistry.clearSession();
     expect(nativeGrooveAssetRegistry.isRegistered(part)).toBe(false);
+  });
+});
+
+describe("native groove project readiness", () => {
+  it("does not block projects whose sample-domain parts have no assigned sample metadata", () => {
+    const parts = buildDefaultParts().map((part) => ({ ...part, sampleName: "" }));
+    const readiness = nativeGrooveAssetReadiness(parts);
+
+    expect(readiness.ready).toBe(true);
+    expect(readiness.expectedSampleParts).toBe(0);
+    expect(readiness.missingPartIds).toEqual([]);
+  });
+
+  it("reports assigned sample-domain parts until native registration is acknowledged", () => {
+    const parts = buildDefaultParts().map((part) => ({ ...part }));
+    const samplePart = parts.find((part) => part.category === "sample")!;
+    samplePart.sampleName = "loop.wav";
+
+    const before = nativeGrooveAssetReadiness(parts);
+    expect(before.ready).toBe(false);
+    expect(before.expectedSampleParts).toBe(1);
+    expect(before.registeredSampleParts).toBe(0);
+    expect(before.missingPartIds).toEqual([samplePart.id]);
+
+    nativeGrooveAssetRegistry.markRegistered(samplePart, 48000, 24000);
+    const after = nativeGrooveAssetReadiness(parts);
+    expect(after.ready).toBe(true);
+    expect(after.registeredSampleParts).toBe(1);
+    expect(after.missingPartIds).toEqual([]);
   });
 });
 
