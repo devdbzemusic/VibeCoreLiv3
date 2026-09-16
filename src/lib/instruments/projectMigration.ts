@@ -1,5 +1,9 @@
 import type { Part, PartCategory, SourceMode, SynthEngine } from "@/lib/model";
-import { migratePersistedSource, type LegacySourceSnapshot } from "./sourceBoundary";
+import {
+  canonicalSynthEngineForCategory,
+  migratePersistedSource,
+  type LegacySourceSnapshot,
+} from "./sourceBoundary";
 
 export const PROJECT_SCHEMA_VERSION = 13 as const;
 
@@ -43,12 +47,6 @@ function isSynthEngine(value: unknown): value is SynthEngine {
     || value === "Synth" || value === "3D" || value === "3D Bass";
 }
 
-function canonicalInstrumentEngine(category: PartCategory): SynthEngine | null {
-  if (category === "synth") return "3D";
-  if (category === "bass") return "3D Bass";
-  return null;
-}
-
 /**
  * Migrate one persisted Part to the v4 ownership boundary.
  *
@@ -81,7 +79,7 @@ export function migratePartToV13(part: unknown): unknown {
     };
   }
 
-  const canonicalEngine = canonicalInstrumentEngine(record.category);
+  const canonicalEngine = canonicalSynthEngineForCategory(record.category);
   const synth = record.synth;
   if (canonicalEngine && synth && typeof synth === "object") {
     const synthRecord = synth as Record<string, unknown>;
