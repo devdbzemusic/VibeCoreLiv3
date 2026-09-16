@@ -3,11 +3,11 @@ package com.vibecore.app.nativeui
 import android.content.Context
 
 /**
- * Small native persistence layer for the first Compose parity slice.
+ * Native persistence layer for the first Compose parity slices.
  *
- * It stores only state that is already represented by the current Pure-Android
- * UI. This avoids inventing a second incomplete project schema while the full
- * v13 project model is ported screen-by-screen.
+ * Stores only state already represented by the current Pure-Android UI. The
+ * full v13 project schema will replace/extend this incrementally without
+ * creating a second competing runtime store.
  */
 class NativeProjectRepository(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -22,6 +22,7 @@ class NativeProjectRepository(context: Context) {
                 muted = prefs.getBoolean("track_${track.id}_mute", track.muted),
                 soloed = prefs.getBoolean("track_${track.id}_solo", track.soloed),
                 volume = prefs.getInt("track_${track.id}_volume", track.volume).coerceIn(0, 127),
+                sampleName = prefs.getString("track_${track.id}_sample_name", track.sampleName),
             )
         }
         return default.copy(
@@ -47,12 +48,15 @@ class NativeProjectRepository(context: Context) {
                 .putBoolean("track_${track.id}_mute", track.muted)
                 .putBoolean("track_${track.id}_solo", track.soloed)
                 .putInt("track_${track.id}_volume", track.volume)
+
+            if (track.sampleName == null) editor.remove("track_${track.id}_sample_name")
+            else editor.putString("track_${track.id}_sample_name", track.sampleName)
         }
         editor.apply()
     }
 
     companion object {
         private const val PREFS_NAME = "vibecore_native_project_v1"
-        private const val SCHEMA_VERSION = 1
+        private const val SCHEMA_VERSION = 2
     }
 }
