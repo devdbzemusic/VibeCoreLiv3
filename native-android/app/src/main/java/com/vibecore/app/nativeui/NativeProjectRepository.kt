@@ -23,6 +23,7 @@ class NativeProjectRepository(context: Context) {
                 soloed = prefs.getBoolean("track_${track.id}_solo", track.soloed),
                 volume = prefs.getInt("track_${track.id}_volume", track.volume).coerceIn(0, 127),
                 sampleName = prefs.getString("track_${track.id}_sample_name", track.sampleName),
+                sampleUri = prefs.getString("track_${track.id}_sample_uri", track.sampleUri),
             )
         }
         return default.copy(
@@ -51,12 +52,15 @@ class NativeProjectRepository(context: Context) {
 
             if (track.sampleName == null) editor.remove("track_${track.id}_sample_name")
             else editor.putString("track_${track.id}_sample_name", track.sampleName)
+
+            if (track.sampleUri == null) editor.remove("track_${track.id}_sample_uri")
+            else editor.putString("track_${track.id}_sample_uri", track.sampleUri)
         }
         editor.apply()
     }
 
     companion object {
         private const val PREFS_NAME = "vibecore_native_project_v1"
-        private const val SCHEMA_VERSION = 2
+        private const val SCHEMA_VERSION = 3
     }
 }
