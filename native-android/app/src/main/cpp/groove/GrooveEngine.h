@@ -11,21 +11,15 @@
  *     · UndoStack              — fixed-depth (kMaxUndoDepth = 64) snapshot ring
  *     · mClipboard             — copy/paste pattern buffer
  *
- *   EVERY mutation:
+ *   EVERY user mutation:
  *     1. Updates mUITracks (UI Thread — immediately consistent)
  *     2. Sends GrooveCommand to GrooveNode queue (applied on Audio Thread)
  *     3. Pushes a PatternSnapshot to UndoStack (for undo-able ops)
  *
- *   This guarantees:
- *     · undo() / redo() always work from real pattern data
- *     · copyPattern() always copies real pattern data
- *     · no gap between UI state and Audio Thread state (eventual consistency)
- *
- *   UI Mirror contract:
- *     · mUITracks is ONLY written on UI Thread
- *     · mUITracks is NEVER read on Audio Thread
- *     · Audio Thread owns mTracks inside GrooveNode (separate copy)
- *     · Commands are the synchronisation mechanism — not shared pointers
+ *   Project-load replay is the one explicit exception: beginProjectLoad() /
+ *   endProjectLoad() suppress undo snapshots while the authoritative JS project
+ *   is mirrored into the native renderer. This prevents startup hydration from
+ *   becoming fake user-edit history.
  *
  * Thread model: ALL GrooveEngine methods → UI Thread only.
  */
@@ -40,10 +34,6 @@ namespace vibecore {
 
 static constexpr int kMaxUndoDepth = 64;
 
-// ─── PatternSnapshot ──────────────────────────────────────────────────────────
-// One snapshot = one track's full pattern at one point in time.
-// Stored in the undo ring. Never heap-allocated.
-
 struct PatternSnapshot {
     int32_t trackIndex = 0;
     int32_t bankIndex  = 0;
@@ -51,15 +41,13 @@ struct PatternSnapshot {
     bool    valid      = false;
 };
 
-// ─── UndoStack ────────────────────────────────────────────────────────────────
-
 class UndoStack {
 public:
     bool canUndo() const noexcept { return mSize > 0 && mCursor > 0; }
     bool canRedo() const noexcept { return mCursor < mSize; }
 
     void push(const PatternSnapshot& snap) noexcept {
-        mSize   = mCursor;  // truncate redo history
+        mSize   = mCursor;
         const int32_t slot = mCursor % kMaxUndoDepth;
         mStack[slot] = snap;
         mCursor++;
@@ -87,8 +75,6 @@ private:
     int32_t mCursor = 0;
 };
 
-// ─── UITrack — UI-Thread-side track mirror ────────────────────────────────────
-
 struct UITrack {
     std::array<Pattern, kMaxPatternsPerBank> banks  = {};
     int32_t   activeBank   = 0;
@@ -105,14 +91,11 @@ struct UITrack {
     const Pattern& bank(int32_t b)       const noexcept { return banks[b % kMaxPatternsPerBank]; }
 };
 
-// ─── GrooveEngine ─────────────────────────────────────────────────────────────
-
 class GrooveEngine {
 public:
     explicit GrooveEngine(GrooveNode& node);
     ~GrooveEngine() = default;
 
-    // ── Step editing (with undo) ──────────────────────────────────────────
     void setStep           (int t, int s, bool active, uint8_t vel = 100, uint8_t note = 60);
     void setStepVelocity   (int t, int s, uint8_t vel);
     void setStepNote       (int t, int s, uint8_t note);
@@ -123,53 +106,49 @@ public:
     void setStepFlam       (int t, int s, bool flam);
     void setStepMicroTiming(int t, int s, int16_t ticks);
 
-    // ── Pattern (with undo) ───────────────────────────────────────────────
     void setPatternLength(int t, int steps);
     void setSwing        (int t, uint8_t swing);
     void setHumanize     (int t, uint8_t humanize);
     void clearPattern    (int t);
 
-    // ── Copy / Paste (fully implemented) ─────────────────────────────────
-    void copyPattern (int t);                  // snapshot active pattern to clipboard
-    void pastePattern(int t);                  // paste clipboard → track t (with undo)
+    void copyPattern (int t);
+    void pastePattern(int t);
     bool hasClipboard() const noexcept { return mClipboardValid; }
     const Pattern& clipboard() const noexcept  { return mClipboard; }
 
-    // ── Undo / Redo ────────────────────────────────────────────────────────
     bool undo();
     bool redo();
     bool canUndo() const noexcept { return mUndoStack.canUndo(); }
     bool canRedo() const noexcept { return mUndoStack.canRedo(); }
     void clearUndoHistory() noexcept { mUndoStack.clear(); }
 
-    // ── Track ──────────────────────────────────────────────────────────────
+    /** Hydration boundary: suppress undo snapshots during authoritative project replay. */
+    void beginProjectLoad() noexcept { mProjectLoadDepth++; }
+    void endProjectLoad() noexcept { if (mProjectLoadDepth > 0) --mProjectLoadDepth; }
+    bool isProjectLoading() const noexcept { return mProjectLoadDepth > 0; }
+
     void setTrackMute  (int t, bool muted);
     void setTrackSolo  (int t, bool soloed);
     void setTrackVolume(int t, uint8_t vol);
     void setTrackSample(int t, int sampleId);
     void setTrackMode  (int t, TrackMode mode);
 
-    // ── Scene ──────────────────────────────────────────────────────────────
     void queueSceneChange(int32_t sceneIdx) { mNode.queueSceneChange(sceneIdx); }
 
-    // ── Piano Roll ──────────────────────────────────────────────────────────
     void addPianoRollNote   (int t, int64_t start, int64_t end, uint8_t note, uint8_t vel);
     void removePianoRollNote(int t, int32_t index);
     void clearPianoRoll     (int t);
 
-    // ── Sample ─────────────────────────────────────────────────────────────
     void registerSample(int32_t id, const SampleBuffer& buf) {
         mNode.registerSample(id, buf);
     }
 
-    // ── UI-mirror reads (UI Thread only) ──────────────────────────────────
     const UITrack&  uiTrack(int t)          const noexcept { return mUITracks[t]; }
     const Pattern&  uiActivePattern(int t)  const noexcept { return mUITracks[t].activePattern(); }
     const Step&     uiStep(int t, int s)    const noexcept { return mUITracks[t].activePattern().steps[s]; }
     bool            uiTrackMuted(int t)     const noexcept { return mUITracks[t].muted; }
     bool            uiTrackSoloed(int t)    const noexcept { return mUITracks[t].soloed; }
 
-    // ── Live query (approximate, any thread) ──────────────────────────────
     int32_t activeVoiceCount()  const noexcept { return mNode.activeVoiceCount(); }
     int32_t currentStep(int t)  const noexcept { return mNode.currentStep(t); }
     int32_t activeScene()       const noexcept { return mNode.activeScene(); }
@@ -183,23 +162,15 @@ private:
     UndoStack    mUndoStack;
     Pattern      mClipboard;
     bool         mClipboardValid = false;
+    int32_t      mProjectLoadDepth = 0;
 
-    // UI-Thread mirror of all track state
     std::array<UITrack, kMaxTracks> mUITracks = {};
 
-    // ── Internal helpers ──────────────────────────────────────────────────
     bool validTrack(int t) const noexcept { return t >= 0 && t < kMaxTracks; }
     bool validStep (int s) const noexcept { return s >= 0 && s < kMaxSteps;  }
 
-    // Snapshot the current active pattern of track t BEFORE mutation.
-    // Must be called before any destructive step/pattern change.
     void snapshotBefore(int t);
-
-    // Apply a PatternSnapshot to both the UI mirror and GrooveNode.
-    // Used by undo() and redo().
     void applySnapshot(const PatternSnapshot& snap);
-
-    // Replay the full content of `pat` to the GrooveNode for track t.
     void replayPatternToNode(int t, const Pattern& pat);
 };
 
