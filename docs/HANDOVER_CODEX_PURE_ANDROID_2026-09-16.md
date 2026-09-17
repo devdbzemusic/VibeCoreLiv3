@@ -524,6 +524,24 @@ Geprueft:
 - Lokale Evidenz: `evidence/vibecore-sprint17-mixer.png`, `evidence/vibecore-sprint17-mixer-edited.png`, `evidence/vibecore-sprint17-mixer-relaunch.png`.
 - Offen: hoerbarer Pan-/Gain-A/B-Test mit geladenem Referenzsample. Send-/FX-Busse existieren im aktuellen Native Graph noch nicht und sind eigener Sprint.
 
+## Sprint 18 — Audible Bass Device Gate
+
+Geprueft:
+
+- Verbundenes Zielgeraet: `RZCY91QYC9N` (`SM-A566B`), Medienlautstaerke `12/15`.
+- Reale Bedienkette: Compose Bass-Taste -> `VibeCoreViewModel` -> Native Runtime/JNI -> `BassEngine` -> Oboe -> Geraetelautsprecher.
+- Samsung Voice Recorder zeichnete den Lautsprecher ueber das Geraetemikrofon mit `48 kHz`, Mono, AAC auf.
+- Fuenf getrennte Bass-Ereignisse lagen zwischen klaren Stillefenstern; Spektralspitzen: `146.7`, `164.6`, `173.8`, `195.5`, `220.3 Hz`.
+- Gesamtaufnahme: `69.652 s`, Peak `-25.0 dBFS`; die ansteigende Frequenzfolge stimmt mit den ausgefuehrten aufsteigenden Bass-Tasten ueberein.
+- Die UI bestaetigte den korrigierten Touch-Pfad beispielhaft mit `Bass note 48 released.`.
+- Lokale Evidenz: `evidence/device-mic-bass-events-260917-105840.m4a`, abgeleitete WAV-Datei und Recorder-/UI-Screenshots. Diese Dateien sind absichtlich nicht Teil des Commits.
+
+Bewertung:
+
+- `DEVICE VERIFIED` fuer hoerbare Native-Bass-Ausgabe ueber Oboe.
+- Einer von sechs automatisierten Tastendruecken wurde nicht als separates Mikrofonereignis erkannt; fuenf Ereignisse sind eindeutig messbar.
+- Nicht dadurch bewiesen: Sample-Wiedergabe, Mixer-Gain/Pan-A/B fuer Samples, Voice-Live-Input und Send-/FX-Routing.
+
 ## Compiler-first Regel
 
 Keine Architektur neu erfinden. Compilerfehler in den neuen Compose-Dateien zuerst minimal beheben.

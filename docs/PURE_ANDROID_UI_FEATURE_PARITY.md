@@ -159,6 +159,15 @@ Sprint 17 (`Native Mixer Gain / Pan`) ist als Slice `DEVICE VERIFIED`:
 - Device-Test auf `RZCY91QYC9N`: Kick auf Level `72`, Pan `R58` und Mute gesetzt; Force-Stop/Relaunch stellte alle drei Werte wieder her, Transport blieb stabil, keine `FATAL EXCEPTION`.
 - Offen: hoerbarer Pan-/Gain-A/B-Test mit geladenem Referenzsample sowie Send-/FX-Busse.
 
+Sprint 18 (`Audible Bass Device Gate`) ist fuer den Native-Bass-Pfad `DEVICE VERIFIED`:
+
+- Die Bass-Tastatur wurde auf `RZCY91QYC9N` ueber den realen Compose -> Kotlin -> JNI -> BassEngine -> Oboe-Pfad angesteuert.
+- Das Geraetemikrofon zeichnete die Lautsprecherausgabe mit Samsung Voice Recorder bei Medienlautstaerke `12/15` auf.
+- Fuenf getrennte Notenereignisse wurden zwischen Stillefenstern erkannt; ihre dominanten Spektralspitzen steigen mit der gespielten Tonfolge: `146.7`, `164.6`, `173.8`, `195.5`, `220.3 Hz`.
+- Die Aufnahme erreichte `-25.0 dBFS` Peak bei `48 kHz` Mono. Damit ist die Bass-Ausgabe nicht nur ueber Engine-Status, sondern akustisch belegt.
+- Lokale Audio-/Screenshot-Evidenz bleibt ignoriert und wird nicht committed.
+- Grenze: Einer von sechs automatisierten Tastendruecken wurde nicht als getrenntes Audioereignis erkannt. Sample-Gain/Pan-A/B sowie Send-/FX-Busse bleiben offen.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.
