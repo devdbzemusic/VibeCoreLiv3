@@ -108,6 +108,20 @@ class NativeRuntime(context: Context) {
         bridge.grooveSetTrackVolume(track, value)
     }
 
+    fun setTrackPan(track: Int, value: Int) {
+        bridge.grooveSetTrackPan(track, value)
+    }
+
+    fun setBassPan(value: Float) {
+        prepareBassInstrument()
+        bridge.bassSetPan(value.coerceIn(-1f, 1f))
+    }
+
+    fun setVoicePan(value: Float) {
+        prepareVoiceInstrument()
+        bridge.voiceSetStereoPan(value.coerceIn(-1f, 1f))
+    }
+
     fun setTrackMode(track: Int, kind: TrackKind) {
         bridge.grooveSetTrackMode(track, kind.nativeMode)
     }

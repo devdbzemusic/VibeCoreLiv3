@@ -322,6 +322,11 @@ Java_com_vibecore_audio_NativeAudioBridge_nativeGrooveSetPatternBank(
     markUIThread(); groove().setPatternBank(track, bank);
 }
 JNIEXPORT void JNICALL
+Java_com_vibecore_audio_NativeAudioBridge_nativeGrooveSetTrackPan(
+        JNIEnv*, jobject, jint t, jint pan) {
+    markUIThread(); groove().setTrackPan(t, static_cast<int8_t>(pan));
+}
+JNIEXPORT void JNICALL
 Java_com_vibecore_audio_NativeAudioBridge_nativeGrooveConfigureSceneBank(
         JNIEnv*, jobject, jint scene, jint track, jint bank) {
     markUIThread(); groove().configureSceneBank(scene, track, bank);

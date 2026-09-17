@@ -212,6 +212,12 @@ void GrooveEngine::setTrackVolume(int t, uint8_t vol) {
     mNode.setTrackVolume(t, vol);
 }
 
+void GrooveEngine::setTrackPan(int t, int8_t pan) {
+    if (!validTrack(t)) return;
+    mUITracks[t].pan = pan;
+    mNode.setTrackPan(t, pan);
+}
+
 void GrooveEngine::setTrackSample(int t, int id) {
     if (!validTrack(t)) return;
     mUITracks[t].sampleId = id;

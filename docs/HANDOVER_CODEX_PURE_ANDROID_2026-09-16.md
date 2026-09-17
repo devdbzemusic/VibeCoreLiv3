@@ -505,6 +505,25 @@ Naechster grosser Sprint:
 - Pattern-/Scene-Banks als zusammenhaengendes Projektmodell mit bar-synchronem Native-Groove-Wechsel und Persistenz.
 - Danach Mixer-Paritaet mit Pan, Sends und FX-Routing auf Basis der vorhandenen Native Contracts.
 
+## Sprint 17 — Native Mixer Gain / Pan
+
+Geaendert:
+
+- Groove-Track-Volume wird im Native `VoicePool` auf aktive Drum-/Sample-Voices angewendet.
+- Stereo-Pan als neuer lockfreier Groove-Command und laufzeitwirksame VoicePool-Balance implementiert.
+- Bass/Voice Mixer-Level und Pan werden in die vorhandenen Native-Instrumentparameter gespiegelt.
+- Compose-Mixer um getrennte Level-/Pan-Regler erweitert; Mute/Solo bleiben direkt erreichbar.
+- Track-Pan in Persistenzschema 9 aufgenommen und beim Start hydriert.
+
+Geprueft:
+
+- `:app:assembleDebug` mit JDK 17 fuer alle drei ABIs erfolgreich.
+- APK auf `RZCY91QYC9N` installiert; Landscape-Mixer ohne Ueberlappung sichtbar.
+- Kick auf Level `72`, Pan `R58` und Mute gesetzt; Force-Stop/Relaunch stellte alle Werte wieder her.
+- Play/Stop nach Relaunch stabil; keine `FATAL EXCEPTION`.
+- Lokale Evidenz: `evidence/vibecore-sprint17-mixer.png`, `evidence/vibecore-sprint17-mixer-edited.png`, `evidence/vibecore-sprint17-mixer-relaunch.png`.
+- Offen: hoerbarer Pan-/Gain-A/B-Test mit geladenem Referenzsample. Send-/FX-Busse existieren im aktuellen Native Graph noch nicht und sind eigener Sprint.
+
 ## Compiler-first Regel
 
 Keine Architektur neu erfinden. Compilerfehler in den neuen Compose-Dateien zuerst minimal beheben.

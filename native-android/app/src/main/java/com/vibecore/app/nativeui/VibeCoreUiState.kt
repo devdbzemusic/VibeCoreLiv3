@@ -21,6 +21,7 @@ data class TrackState(
     val muted: Boolean = false,
     val soloed: Boolean = false,
     val volume: Int = 100,
+    val pan: Int = 0,
     val sampleName: String? = null,
     val sampleUri: String? = null,
 )

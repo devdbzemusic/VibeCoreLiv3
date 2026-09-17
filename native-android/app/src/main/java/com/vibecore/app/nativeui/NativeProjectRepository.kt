@@ -18,6 +18,7 @@ class NativeProjectRepository(context: Context) {
                 muted = prefs.getBoolean("track_${track.id}_mute", track.muted),
                 soloed = prefs.getBoolean("track_${track.id}_solo", track.soloed),
                 volume = prefs.getInt("track_${track.id}_volume", track.volume).coerceIn(0, 127),
+                pan = prefs.getInt("track_${track.id}_pan", track.pan).coerceIn(-100, 100),
                 sampleName = prefs.getString("track_${track.id}_sample_name", track.sampleName),
                 sampleUri = prefs.getString("track_${track.id}_sample_uri", track.sampleUri),
             )
@@ -78,6 +79,7 @@ class NativeProjectRepository(context: Context) {
                 .putBoolean("track_${track.id}_mute", track.muted)
                 .putBoolean("track_${track.id}_solo", track.soloed)
                 .putInt("track_${track.id}_volume", track.volume)
+                .putInt("track_${track.id}_pan", track.pan.coerceIn(-100, 100))
 
             if (track.sampleName == null) editor.remove("track_${track.id}_sample_name")
             else editor.putString("track_${track.id}_sample_name", track.sampleName)
@@ -116,6 +118,6 @@ class NativeProjectRepository(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "vibecore_native_project_v1"
-        private const val SCHEMA_VERSION = 8
+        private const val SCHEMA_VERSION = 9
     }
 }

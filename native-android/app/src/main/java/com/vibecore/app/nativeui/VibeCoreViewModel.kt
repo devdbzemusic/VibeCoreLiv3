@@ -308,10 +308,34 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         val state = _state.value
         if (trackIndex !in state.tracks.indices) return
         val next = volume.coerceIn(0, 127)
-        runtime.setTrackVolume(state.tracks[trackIndex].id, next)
+        val track = state.tracks[trackIndex]
+        runtime.setTrackVolume(track.id, next)
+        val instrumentGain = next / 127f * 1.5f
+        if (track.kind == TrackKind.BASS) runtime.setBassVolume(instrumentGain)
+        if (track.kind == TrackKind.VOICE) runtime.setVoiceVolume(instrumentGain)
         _state.update { current ->
-            current.copy(tracks = current.tracks.mapIndexed { index, track ->
-                if (index == trackIndex) track.copy(volume = next) else track
+            current.copy(
+                bassVolume = if (track.kind == TrackKind.BASS) instrumentGain else current.bassVolume,
+                voiceVolume = if (track.kind == TrackKind.VOICE) instrumentGain else current.voiceVolume,
+                tracks = current.tracks.mapIndexed { index, item ->
+                    if (index == trackIndex) item.copy(volume = next) else item
+                },
+            )
+        }
+        persist()
+    }
+
+    fun setTrackPan(trackIndex: Int, pan: Int) {
+        val state = _state.value
+        if (trackIndex !in state.tracks.indices) return
+        val next = pan.coerceIn(-100, 100)
+        val track = state.tracks[trackIndex]
+        runtime.setTrackPan(track.id, next)
+        if (track.kind == TrackKind.BASS) runtime.setBassPan(next / 100f)
+        if (track.kind == TrackKind.VOICE) runtime.setVoicePan(next / 100f)
+        _state.update { current ->
+            current.copy(tracks = current.tracks.mapIndexed { index, item ->
+                if (index == trackIndex) item.copy(pan = next) else item
             })
         }
         persist()
@@ -535,6 +559,9 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
             runtime.setTrackMute(track.id, track.muted)
             runtime.setTrackSolo(track.id, track.soloed)
             runtime.setTrackVolume(track.id, track.volume)
+            runtime.setTrackPan(track.id, track.pan)
+            if (track.kind == TrackKind.BASS) runtime.setBassPan(track.pan / 100f)
+            if (track.kind == TrackKind.VOICE) runtime.setVoicePan(track.pan / 100f)
             track.patternBanks.forEachIndexed { bank, steps ->
                 runtime.configureSceneBank(bank, track.id, bank)
                 runtime.setPatternBank(track.id, bank)

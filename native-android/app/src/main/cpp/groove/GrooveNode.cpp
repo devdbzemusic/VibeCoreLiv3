@@ -249,6 +249,11 @@ void GrooveNode::handleCommand(const GrooveCommand& c) noexcept {
         break;
     case GrooveCommand::Type::SetTrackVolume:
         mTracks[t].volume = static_cast<uint8_t>(c.int32Val);
+        mVoicePool.setTrackVolume(t, mTracks[t].volume);
+        break;
+    case GrooveCommand::Type::SetTrackPan:
+        mTracks[t].pan = static_cast<int8_t>(c.int32Val);
+        mVoicePool.setTrackPan(t, mTracks[t].pan);
         break;
     case GrooveCommand::Type::SetTrackSample:
         mTracks[t].sampleId = c.int32Val;
@@ -380,6 +385,9 @@ void GrooveNode::setTrackMode(int t, TrackMode mode) noexcept {
 }
 void GrooveNode::queueSceneChange(int32_t sceneIdx) noexcept {
     GrooveCommand c; c.type=GrooveCommand::Type::QueueSceneChange; c.int32Val=sceneIdx; sendCommand(c);
+}
+void GrooveNode::setTrackPan(int t, int8_t pan) noexcept {
+    GrooveCommand c; c.type=GrooveCommand::Type::SetTrackPan; c.trackIdx=t; c.int32Val=pan; sendCommand(c);
 }
 void GrooveNode::setActiveScene(int32_t sceneIdx) noexcept {
     GrooveCommand c; c.type=GrooveCommand::Type::SetActiveScene; c.int32Val=sceneIdx; sendCommand(c);

@@ -123,6 +123,7 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                         compact = compactLandscape,
                         onSelect = viewModel::selectTrack,
                         onVolume = viewModel::setTrackVolume,
+                        onPan = viewModel::setTrackPan,
                         onMute = viewModel::toggleMute,
                         onSolo = viewModel::toggleSolo,
                         modifier = Modifier.weight(1f),
@@ -782,6 +783,7 @@ private fun MixerPanel(
     compact: Boolean,
     onSelect: (Int) -> Unit,
     onVolume: (Int, Int) -> Unit,
+    onPan: (Int, Int) -> Unit,
     onMute: (Int) -> Unit,
     onSolo: (Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -801,6 +803,7 @@ private fun MixerPanel(
                         compact = compact,
                         onSelect = { onSelect(index) },
                         onVolume = { onVolume(index, it) },
+                        onPan = { onPan(index, it) },
                         onMute = { onMute(index) },
                         onSolo = { onSolo(index) },
                     )
@@ -817,6 +820,7 @@ private fun MixerRow(
     compact: Boolean,
     onSelect: () -> Unit,
     onVolume: (Int) -> Unit,
+    onPan: (Int) -> Unit,
     onMute: () -> Unit,
     onSolo: () -> Unit,
 ) {
@@ -842,11 +846,12 @@ private fun MixerRow(
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
             )
+            Text("V", color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 8.sp)
             Slider(
                 value = track.volume.toFloat(),
                 onValueChange = { onVolume(it.toInt()) },
                 valueRange = 0f..127f,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(0.62f),
                 colors = SliderDefaults.colors(
                     thumbColor = VibeCoreColors.Primary,
                     activeTrackColor = VibeCoreColors.Primary,
@@ -854,6 +859,30 @@ private fun MixerRow(
                 ),
             )
             Text(track.volume.toString(), color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 9.sp, modifier = Modifier.width(24.dp), textAlign = TextAlign.End)
+            Text("P", color = VibeCoreColors.Muted, fontFamily = FontFamily.Monospace, fontSize = 8.sp)
+            Slider(
+                value = track.pan.toFloat(),
+                onValueChange = { onPan(it.toInt()) },
+                valueRange = -100f..100f,
+                modifier = Modifier.weight(0.38f),
+                colors = SliderDefaults.colors(
+                    thumbColor = VibeCoreColors.Magenta,
+                    activeTrackColor = VibeCoreColors.Magenta,
+                    inactiveTrackColor = VibeCoreColors.SurfaceElevated,
+                ),
+            )
+            Text(
+                when {
+                    track.pan < 0 -> "L${-track.pan}"
+                    track.pan > 0 -> "R${track.pan}"
+                    else -> "C"
+                },
+                color = VibeCoreColors.Muted,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 9.sp,
+                modifier = Modifier.width(30.dp),
+                textAlign = TextAlign.End,
+            )
             ToggleChip("M", track.muted, VibeCoreColors.Crimson, onMute)
             ToggleChip("S", track.soloed, VibeCoreColors.Amber, onSolo)
         }

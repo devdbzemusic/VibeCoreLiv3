@@ -84,6 +84,7 @@ struct UITrack {
     TrackMode mode         = TrackMode::Drum;
     int32_t   sampleId     = -1;
     uint8_t   volume       = 100;
+    int8_t    pan          = 0;
     uint8_t   chokeGroup   = 0;
     bool      muted        = false;
     bool      soloed       = false;
@@ -133,6 +134,7 @@ public:
     void setTrackMute  (int t, bool muted);
     void setTrackSolo  (int t, bool soloed);
     void setTrackVolume(int t, uint8_t vol);
+    void setTrackPan   (int t, int8_t pan);
     void setTrackSample(int t, int sampleId);
     void setTrackMode  (int t, TrackMode mode);
 

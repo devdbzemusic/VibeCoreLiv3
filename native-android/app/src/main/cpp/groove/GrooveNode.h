@@ -99,6 +99,7 @@ public:
     void setTrackMute  (int track, bool muted)   noexcept;
     void setTrackSolo  (int track, bool soloed)  noexcept;
     void setTrackVolume(int track, uint8_t vol)  noexcept;
+    void setTrackPan   (int track, int8_t pan)   noexcept;
     void setTrackSample(int track, int sampleId) noexcept;
     void setTrackMode  (int track, TrackMode mode) noexcept;
 

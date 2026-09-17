@@ -149,6 +149,16 @@ Sprint 16 (`Pattern / Scene Banks`) ist `DEVICE VERIFIED`:
 - Device-Test auf `RZCY91QYC9N`: Bank 2 mit eigenem Step 2 erstellt und ueber Relaunch erhalten; Bank 1 behielt unabhaengig ihre Sprint-15-Stepwerte.
 - Laufender Wechsel Scene 1 -> 2 zeigte zuerst `PENDING 2` und danach `ACTIVE 2` mit Status `Native Groove bar boundary`; keine `FATAL EXCEPTION`.
 
+Sprint 17 (`Native Mixer Gain / Pan`) ist als Slice `DEVICE VERIFIED`:
+
+- Track-Volume wirkt fuer Drum-/Sample-Voices jetzt tatsaechlich im Native `VoicePool`; der bisher nur gespeicherte Groove-Wert ist damit audiowirksam.
+- Stereo-Pan `-100..100` ist als lockfreier Groove-Command bis in die Sample-Voice-Ausgabe verdrahtet.
+- Bass- und Voice-Kanaele spiegeln Mixer-Level/Pan in ihre vorhandenen Native-Instrumentparameter; Synth bleibt bis zum Native-Synth-Sprint ohne Audioziel.
+- Compose zeigt fuer alle 16 Kanaele getrennte Level- und Pan-Regler sowie Mute/Solo ohne Landscape-Ueberlappung.
+- Level, Pan und Mute werden mit Persistenzschema 9 gespeichert und beim Start in Native Runtime hydriert.
+- Device-Test auf `RZCY91QYC9N`: Kick auf Level `72`, Pan `R58` und Mute gesetzt; Force-Stop/Relaunch stellte alle drei Werte wieder her, Transport blieb stabil, keine `FATAL EXCEPTION`.
+- Offen: hoerbarer Pan-/Gain-A/B-Test mit geladenem Referenzsample sowie Send-/FX-Busse.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.
@@ -199,7 +209,7 @@ Statuswerte:
 | 16-Step Pattern | Pattern/Performance views | Compose PatternPanel | SHELL | WIRED DEEP EDIT | WIRED | WIRED | WIRED SCHEMA 7 | DEVICE VERIFIED | DEVICE VERIFIED SLICE |
 | Mute / Solo | Channel/Pattern controls | Compose PatternPanel | SHELL | WIRED | WIRED | WIRED | OPEN | OPEN | WIRED |
 | Scene / Pattern Banks | Web Scene/Pattern workflow | Native Scene/Pattern screen | SHELL | WIRED 8 BANKS | WIRED | WIRED BAR SYNC | WIRED SCHEMA 8 | DEVICE VERIFIED | DEVICE VERIFIED |
-| Mixer | `MixTab` / `ChannelStrip` | `MixerScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE CORE PARTIAL | OPEN | OPEN | REFERENCE |
+| Mixer | `MixTab` / `ChannelStrip` | Compose MixerPanel | SHELL | WIRED LEVEL PAN MUTE SOLO | WIRED | WIRED GAIN PAN | WIRED SCHEMA 9 | PARTIAL DEVICE | DEVICE VERIFIED SLICE |
 | Sample Forge | `SmplTab.tsx` / `ForgeTab.tsx` | `SampleForgeScreen.kt` | SHELL | WIRED | WIRED | NATIVE ASSET CORE PARTIAL | PARTIAL | PARTIAL | WIRED |
 | Synth 3D | `Synth3DPage.tsx` / subtabs | `Synth3DScreen.kt` | SHELL | WIRED KEYBOARD UI | PARTIAL | NATIVE SYNTH GAP | OPEN | PARTIAL | GAP VISIBLE |
 | Bass 3D | `Bass3DPage.tsx` / subtabs | `Bass3DScreen.kt` | SHELL | WIRED KEYBOARD + MACROS | PARTIAL | WIRED BASS KEYBOARD + PARAMS | PARTIAL MACROS | PARTIAL | DEVICE VERIFIED SLICE |

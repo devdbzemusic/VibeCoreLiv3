@@ -59,6 +59,7 @@ struct GrooveCommand {
         SetTrackVolume       = 52,  // trackIdx, int32Val (0-127)
         SetTrackSample       = 53,  // trackIdx, int32Val=sampleId
         SetTrackMode         = 54,  // trackIdx, int32Val=TrackMode
+        SetTrackPan          = 55,  // trackIdx, int32Val=-100..100
 
         // Piano Roll
         AddPianoRollNote     = 60,  // trackIdx, int64Val=startTick, int64Val2=endTick,
