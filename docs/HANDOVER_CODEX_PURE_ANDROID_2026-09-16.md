@@ -444,6 +444,46 @@ Geprueft:
 - C2 gespielt; Engine startete mit `VoiceNode`.
 - Logcat: `VoiceNode: prepared`, Oboe/AAudio `Engine running`, keine `FATAL EXCEPTION`.
 
+## Sprint 14 — Transport Lifecycle Safety
+
+Geaendert:
+
+- Transportstatus fuer Play, Stop, Tempo, Sample-Cold-Load und Audio Focus sichtbar gemacht.
+- Stop und Audio-Focus-Verlust senden Bass/Voice All-Notes-Off vor dem Transport-Stop.
+- `NativeRuntime.play()` liefert nach erfolgreichem Engine-Start einen belastbaren Start-Acceptance-Wert.
+
+Geprueft:
+
+- `:app:assembleDebug` mit JDK 17 erfolgreich.
+- APK auf `RZCY91QYC9N` installiert.
+- Play zeigte `TRANSPORT PLAYING` und `Transport playing through Native Oboe.` bei stabiler Native-Diagnose.
+- Stop zeigte `Transport stopped; performance notes released.`; keine `FATAL EXCEPTION`.
+
+## Sprint 15 — Pattern Deep Edit
+
+Geaendert:
+
+- Step-Editor fuer Velocity, Probability, Accent und Roll in Compose ergaenzt.
+- Clear, Copy/Paste sowie Undo/Redo arbeiten auf dem kanonischen Kotlin-Projektzustand und replayen das Ergebnis nach Native Groove.
+- Persistenzschema auf 7 erweitert; alle neuen Step-Parameter werden geladen, gespeichert und beim Start in Native Groove hydriert.
+- Pattern-Status macht jede Editoraktion sichtbar.
+
+Geprueft:
+
+- `:app:assembleDebug` mit JDK 17 erfolgreich.
+- Kotlin und JNI/C++ fuer `arm64-v8a`, `armeabi-v7a` und `x86_64` gebaut.
+- APK auf `RZCY91QYC9N` installiert und Landscape-Layout sichtbar geprueft.
+- Step 1 auf `VEL 95`, `CH 90%`, Accent und `R1` editiert; Undo/Redo sowie Clear/Undo ausgefuehrt.
+- Force-Stop/Relaunch stellte alle editierten Step-Werte aus Persistenzschema 7 wieder her.
+- Keine `FATAL EXCEPTION` in Logcat.
+- Lokale Evidenz: `evidence/vibecore-sprint15-layout-fixed.png`, `evidence/vibecore-sprint15-edited.png`, `evidence/vibecore-sprint15-relaunch.png`, `evidence/vibecore-sprint15-playing.png`, `evidence/vibecore-sprint15-stopped.png`.
+- Portrait-Abnahme bleibt fuer einen spaeteren Layout-Gate offen.
+
+Naechster grosser Sprint:
+
+- Pattern-/Scene-Banks als zusammenhaengendes Projektmodell mit bar-synchronem Native-Groove-Wechsel und Persistenz.
+- Danach Mixer-Paritaet mit Pan, Sends und FX-Routing auf Basis der vorhandenen Native Contracts.
+
 ## Compiler-first Regel
 
 Keine Architektur neu erfinden. Compilerfehler in den neuen Compose-Dateien zuerst minimal beheben.

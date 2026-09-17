@@ -17,7 +17,13 @@ class NativeProjectRepository(context: Context) {
             val mask = prefs.getInt("track_${track.id}_steps", 0)
             track.copy(
                 steps = track.steps.mapIndexed { index, step ->
-                    step.copy(active = (mask and (1 shl index)) != 0)
+                    step.copy(
+                        active = (mask and (1 shl index)) != 0,
+                        velocity = prefs.getInt("track_${track.id}_step_${index}_velocity", step.velocity).coerceIn(1, 127),
+                        probability = prefs.getInt("track_${track.id}_step_${index}_probability", step.probability).coerceIn(0, 100),
+                        accent = prefs.getBoolean("track_${track.id}_step_${index}_accent", step.accent),
+                        rollCount = prefs.getInt("track_${track.id}_step_${index}_roll", step.rollCount).coerceIn(0, 8),
+                    )
                 },
                 muted = prefs.getBoolean("track_${track.id}_mute", track.muted),
                 soloed = prefs.getBoolean("track_${track.id}_solo", track.soloed),
@@ -65,6 +71,11 @@ class NativeProjectRepository(context: Context) {
             var mask = 0
             track.steps.forEachIndexed { index, step ->
                 if (step.active) mask = mask or (1 shl index)
+                editor
+                    .putInt("track_${track.id}_step_${index}_velocity", step.velocity.coerceIn(1, 127))
+                    .putInt("track_${track.id}_step_${index}_probability", step.probability.coerceIn(0, 100))
+                    .putBoolean("track_${track.id}_step_${index}_accent", step.accent)
+                    .putInt("track_${track.id}_step_${index}_roll", step.rollCount.coerceIn(0, 8))
             }
             editor
                 .putInt("track_${track.id}_steps", mask)
@@ -83,6 +94,6 @@ class NativeProjectRepository(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "vibecore_native_project_v1"
-        private const val SCHEMA_VERSION = 6
+        private const val SCHEMA_VERSION = 7
     }
 }

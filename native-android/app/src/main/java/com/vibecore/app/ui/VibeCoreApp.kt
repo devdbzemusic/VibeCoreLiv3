@@ -73,6 +73,7 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                 TransportPanel(
                     bpm = state.bpm,
                     playing = state.playing,
+                    status = state.transportStatus,
                     nativeAvailable = state.nativeAvailable,
                     engineRunning = state.engineRunning,
                     latencyMs = state.latencyMs,
@@ -87,9 +88,20 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                         TrackStrip(state.tracks, state.selectedTrack, compactLandscape, viewModel::selectTrack)
                         PatternPanel(
                             track = state.tracks[state.selectedTrack],
+                            selectedStep = state.selectedStep,
                             currentStep = state.currentStep,
+                            status = state.patternStatus,
                             compact = compactLandscape,
                             onToggleStep = viewModel::toggleStep,
+                            onVelocity = viewModel::setStepVelocity,
+                            onProbability = viewModel::setStepProbability,
+                            onAccent = viewModel::toggleStepAccent,
+                            onRoll = viewModel::cycleStepRoll,
+                            onClear = viewModel::clearPattern,
+                            onCopy = viewModel::copyPattern,
+                            onPaste = viewModel::pastePattern,
+                            onUndo = viewModel::undoPattern,
+                            onRedo = viewModel::redoPattern,
                             onMute = { viewModel.toggleMute() },
                             onSolo = { viewModel.toggleSolo() },
                             modifier = Modifier.weight(1f),
@@ -238,6 +250,7 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
 private fun TransportPanel(
     bpm: Double,
     playing: Boolean,
+    status: String,
     nativeAvailable: Boolean,
     engineRunning: Boolean,
     latencyMs: Double,
@@ -294,10 +307,12 @@ private fun TransportPanel(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    runtimeLabel,
+                    "$runtimeLabel • $status",
                     color = runtimeColor,
                     fontSize = 9.sp,
                     fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
                 )
                 Text(
                     if (latencyMs >= 0) "${String.format("%.2f", latencyMs)} ms" else "LATENCY --",
@@ -335,9 +350,20 @@ private fun TrackStrip(tracks: List<TrackState>, selected: Int, compact: Boolean
 @Composable
 private fun PatternPanel(
     track: TrackState,
+    selectedStep: Int,
     currentStep: Int,
+    status: String,
     compact: Boolean,
     onToggleStep: (Int) -> Unit,
+    onVelocity: (Int) -> Unit,
+    onProbability: (Int) -> Unit,
+    onAccent: () -> Unit,
+    onRoll: () -> Unit,
+    onClear: () -> Unit,
+    onCopy: () -> Unit,
+    onPaste: () -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
     onMute: () -> Unit,
     onSolo: () -> Unit,
     modifier: Modifier = Modifier,
@@ -349,13 +375,20 @@ private fun PatternPanel(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.width(180.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(track.name, color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 17.sp)
-                    Text("PATTERN 01 • 16 STEPS", color = VibeCoreColors.Muted, fontSize = 9.sp)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        ToggleChip("M", track.muted, VibeCoreColors.Crimson, onMute)
-                        ToggleChip("S", track.soloed, VibeCoreColors.Amber, onSolo)
+                Column(modifier = Modifier.width(420.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(track.name, color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                        Text("PAT 01 | STEP ${selectedStep + 1}", color = VibeCoreColors.Muted, fontSize = 8.sp)
                     }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                        PatternToggleButton("M", track.muted, VibeCoreColors.Crimson, onMute)
+                        PatternToggleButton("S", track.soloed, VibeCoreColors.Amber, onSolo)
+                        PatternToggleButton("A", track.steps[selectedStep].accent, VibeCoreColors.Amber, onAccent)
+                        PatternToggleButton("R${track.steps[selectedStep].rollCount}", track.steps[selectedStep].rollCount > 0, VibeCoreColors.Magenta, onRoll)
+                        PatternValueControls(track.steps[selectedStep], true, onVelocity, onProbability)
+                    }
+                    PatternOperationRow(true, onUndo, onRedo, onCopy, onPaste, onClear)
+                    Text(status, color = VibeCoreColors.Lime, fontFamily = FontFamily.Monospace, fontSize = 8.sp, maxLines = 1)
                 }
                 Column(modifier = Modifier.fillMaxHeight().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     repeat(2) { row ->
@@ -380,12 +413,19 @@ private fun PatternPanel(
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(track.name, color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 19.sp)
-                        Text("PATTERN 01 • 16 STEPS", color = VibeCoreColors.Muted, fontSize = 10.sp)
+                        Text("PATTERN 01 | STEP ${selectedStep + 1}", color = VibeCoreColors.Muted, fontSize = 10.sp)
                     }
                     ToggleChip("M", track.muted, VibeCoreColors.Crimson, onMute)
                     Spacer(Modifier.width(6.dp))
                     ToggleChip("S", track.soloed, VibeCoreColors.Amber, onSolo)
+                    Spacer(Modifier.width(6.dp))
+                    ToggleChip("A", track.steps[selectedStep].accent, VibeCoreColors.Amber, onAccent)
+                    Spacer(Modifier.width(6.dp))
+                    ToggleChip("R${track.steps[selectedStep].rollCount}", track.steps[selectedStep].rollCount > 0, VibeCoreColors.Magenta, onRoll)
                 }
+                PatternValueControls(track.steps[selectedStep], false, onVelocity, onProbability)
+                PatternOperationRow(false, onUndo, onRedo, onCopy, onPaste, onClear)
+                Text(status, color = VibeCoreColors.Lime, fontFamily = FontFamily.Monospace, fontSize = 9.sp, maxLines = 1)
                 Column(modifier = Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)) {
                     repeat(4) { row ->
                         Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -403,6 +443,70 @@ private fun PatternPanel(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PatternValueControls(
+    step: com.vibecore.app.nativeui.StepState,
+    compact: Boolean,
+    onVelocity: (Int) -> Unit,
+    onProbability: (Int) -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("VEL ${step.velocity}", color = VibeCoreColors.Foreground, fontFamily = FontFamily.Monospace, fontSize = if (compact) 8.sp else 10.sp)
+        PatternToolButton("-", compact) { onVelocity(step.velocity - 5) }
+        PatternToolButton("+", compact) { onVelocity(step.velocity + 5) }
+        Spacer(Modifier.width(4.dp))
+        Text("CH ${step.probability}%", color = VibeCoreColors.Foreground, fontFamily = FontFamily.Monospace, fontSize = if (compact) 8.sp else 10.sp)
+        PatternToolButton("-", compact) { onProbability(step.probability - 10) }
+        PatternToolButton("+", compact) { onProbability(step.probability + 10) }
+    }
+}
+
+@Composable
+private fun PatternToggleButton(label: String, active: Boolean, accent: Color, onClick: () -> Unit) {
+    Surface(
+        color = if (active) accent.copy(alpha = 0.2f) else VibeCoreColors.Surface2,
+        shape = RoundedCornerShape(7.dp),
+        border = BorderStroke(1.dp, if (active) accent else VibeCoreColors.Border),
+        modifier = Modifier.size(24.dp).clickable(onClick = onClick),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(label, color = if (active) accent else VibeCoreColors.Muted, fontWeight = FontWeight.Black, fontSize = 8.sp, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun PatternOperationRow(
+    compact: Boolean,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onCopy: () -> Unit,
+    onPaste: () -> Unit,
+    onClear: () -> Unit,
+) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        PatternToolButton("UNDO", compact, onUndo)
+        PatternToolButton("REDO", compact, onRedo)
+        PatternToolButton("COPY", compact, onCopy)
+        PatternToolButton("PASTE", compact, onPaste)
+        PatternToolButton("CLEAR", compact, onClear)
+    }
+}
+
+@Composable
+private fun PatternToolButton(label: String, compact: Boolean, onClick: () -> Unit) {
+    Surface(
+        color = VibeCoreColors.Surface2,
+        shape = RoundedCornerShape(7.dp),
+        border = BorderStroke(1.dp, VibeCoreColors.Border),
+        modifier = Modifier.height(if (compact) 24.dp else 28.dp).clickable(onClick = onClick),
+    ) {
+        Box(modifier = Modifier.padding(horizontal = if (compact) 5.dp else 8.dp), contentAlignment = Alignment.Center) {
+            Text(label, color = VibeCoreColors.PrimaryGlow, fontWeight = FontWeight.Bold, fontSize = if (compact) 7.sp else 9.sp, maxLines = 1)
         }
     }
 }

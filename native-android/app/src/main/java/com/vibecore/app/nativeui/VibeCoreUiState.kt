@@ -7,6 +7,9 @@ data class StepState(
     val active: Boolean = false,
     val velocity: Int = 100,
     val note: Int = 60,
+    val probability: Int = 100,
+    val accent: Boolean = false,
+    val rollCount: Int = 0,
 )
 
 data class TrackState(
@@ -25,9 +28,12 @@ data class VibeCoreUiState(
     val nativeAvailable: Boolean = false,
     val engineRunning: Boolean = false,
     val playing: Boolean = false,
+    val transportStatus: String = "Transport ready. Native Oboe owns playback.",
     val bpm: Double = 120.0,
     val selectedTrack: Int = 0,
+    val selectedStep: Int = 0,
     val currentStep: Int = 0,
+    val patternStatus: String = "Pattern editor ready. Native Groove owns playback and timing.",
     val latencyMs: Double = -1.0,
     val diagnostic: String = "native:unknown",
     val masterGain: Float = 1.0f,

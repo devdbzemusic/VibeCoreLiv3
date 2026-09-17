@@ -33,7 +33,7 @@ class NativeRuntime(context: Context) {
     fun play(): Boolean {
         if (!ensureStarted()) return false
         bridge.play()
-        return bridge.isPlaying()
+        return true
     }
 
     fun stop() {
@@ -58,6 +58,22 @@ class NativeRuntime(context: Context) {
 
     fun setStep(track: Int, step: Int, active: Boolean, velocity: Int = 100, note: Int = 60) {
         bridge.grooveSetStep(track, step, active, velocity, note)
+    }
+
+    fun setStepVelocity(track: Int, step: Int, velocity: Int) {
+        bridge.grooveSetStepVelocity(track, step, velocity)
+    }
+
+    fun setStepProbability(track: Int, step: Int, probability: Int) {
+        bridge.grooveSetStepProbability(track, step, probability)
+    }
+
+    fun setStepAccent(track: Int, step: Int, accent: Boolean) {
+        bridge.grooveSetStepAccent(track, step, accent)
+    }
+
+    fun setStepRoll(track: Int, step: Int, count: Int) {
+        bridge.grooveSetStepRoll(track, step, count)
     }
 
     fun clearPattern(track: Int) {

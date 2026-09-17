@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.ArrayDeque
 
 class VibeCoreViewModel(application: Application) : AndroidViewModel(application) {
     private val logTag = "VibeCoreNativeUi"
@@ -39,6 +40,9 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
     val state: StateFlow<VibeCoreUiState> = _state.asStateFlow()
 
     private var meterJob: Job? = null
+    private var patternClipboard: List<StepState>? = null
+    private val patternUndo = mutableMapOf<Int, ArrayDeque<List<StepState>>>()
+    private val patternRedo = mutableMapOf<Int, ArrayDeque<List<StepState>>>()
 
     init {
         hydrateProjectToNative(initialState)
@@ -61,8 +65,12 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun selectTrack(track: Int) {
-        _state.update { it.copy(selectedTrack = track.coerceIn(0, it.tracks.lastIndex)) }
+        _state.update { it.copy(selectedTrack = track.coerceIn(0, it.tracks.lastIndex), selectedStep = 0) }
         persist()
+    }
+
+    fun selectStep(step: Int) {
+        _state.update { it.copy(selectedStep = step.coerceIn(0, 15)) }
     }
 
     fun toggleStep(step: Int) {
@@ -70,10 +78,13 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         val trackIndex = snapshot.selectedTrack
         val track = snapshot.tracks[trackIndex]
         if (step !in track.steps.indices) return
+        pushPatternUndo(trackIndex, track.steps)
         val nextActive = !track.steps[step].active
         runtime.setStep(track.id, step, nextActive, track.steps[step].velocity, track.steps[step].note)
         _state.update { state ->
             state.copy(
+                selectedStep = step,
+                patternStatus = "${track.name} step ${step + 1} ${if (nextActive) "enabled" else "disabled"}.",
                 tracks = state.tracks.mapIndexed { index, item ->
                     if (index != trackIndex) item
                     else item.copy(
@@ -89,15 +100,32 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
 
     fun togglePlay() {
         if (_state.value.sampleBusy) {
-            _state.update { it.copy(sampleStatus = "Sample assets are still loading — Play is held until cold-load completes.") }
+            _state.update {
+                it.copy(
+                    sampleStatus = "Sample assets are still loading — Play is held until cold-load completes.",
+                    transportStatus = "Play blocked while native sample assets are loading.",
+                )
+            }
             return
         }
         val currentlyPlaying = runtime.isPlaying()
         if (currentlyPlaying) {
+            runtime.bassAllNotesOff()
+            runtime.voiceAllNotesOff()
             runtime.stop()
+            _state.update { it.copy(activePerformanceNote = null, transportStatus = "Transport stopped; performance notes released.") }
         } else {
             runtime.setTempo(_state.value.bpm)
-            runtime.play()
+            val started = runtime.play()
+            _state.update {
+                it.copy(
+                    transportStatus = if (started) {
+                        "Transport playing through Native Oboe."
+                    } else {
+                        "Transport start failed: native engine unavailable."
+                    },
+                )
+            }
         }
         refreshRuntimeState()
     }
@@ -105,9 +133,64 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
     fun setTempo(bpm: Double) {
         val next = bpm.coerceIn(20.0, 300.0)
         runtime.setTempo(next)
-        _state.update { it.copy(bpm = next) }
+        _state.update { it.copy(bpm = next, transportStatus = "Tempo ${String.format("%.0f", next)} BPM -> Native transport.") }
         persist()
     }
+
+    fun setStepVelocity(value: Int) = updateSelectedStep("velocity ${value.coerceIn(1, 127)}") { track, step, current ->
+        val next = value.coerceIn(1, 127)
+        runtime.setStepVelocity(track.id, step, next)
+        current.copy(velocity = next)
+    }
+
+    fun setStepProbability(value: Int) = updateSelectedStep("probability ${value.coerceIn(0, 100)}%") { track, step, current ->
+        val next = value.coerceIn(0, 100)
+        runtime.setStepProbability(track.id, step, next)
+        current.copy(probability = next)
+    }
+
+    fun toggleStepAccent() = updateSelectedStep("accent toggled") { track, step, current ->
+        val next = !current.accent
+        runtime.setStepAccent(track.id, step, next)
+        current.copy(accent = next)
+    }
+
+    fun cycleStepRoll() = updateSelectedStep("roll advanced") { track, step, current ->
+        val next = (current.rollCount + 1) % 5
+        runtime.setStepRoll(track.id, step, next)
+        current.copy(rollCount = next)
+    }
+
+    fun clearPattern() {
+        val state = _state.value
+        val track = state.tracks[state.selectedTrack]
+        pushPatternUndo(state.selectedTrack, track.steps)
+        runtime.clearPattern(track.id)
+        replacePattern(state.selectedTrack, List(track.steps.size) { StepState() }, "${track.name} pattern cleared.")
+    }
+
+    fun copyPattern() {
+        val state = _state.value
+        val track = state.tracks[state.selectedTrack]
+        patternClipboard = track.steps.map { it.copy() }
+        _state.update { it.copy(patternStatus = "${track.name} pattern copied.") }
+    }
+
+    fun pastePattern() {
+        val copied = patternClipboard ?: run {
+            _state.update { it.copy(patternStatus = "Pattern clipboard is empty.") }
+            return
+        }
+        val state = _state.value
+        val track = state.tracks[state.selectedTrack]
+        pushPatternUndo(state.selectedTrack, track.steps)
+        applyPatternToNative(track.id, copied)
+        replacePattern(state.selectedTrack, copied, "Pattern pasted to ${track.name}.")
+    }
+
+    fun undoPattern() = restorePatternSnapshot(patternUndo, patternRedo, "Undo")
+
+    fun redoPattern() = restorePatternSnapshot(patternRedo, patternUndo, "Redo")
 
     fun nudgeTempo(delta: Double) = setTempo(_state.value.bpm + delta)
 
@@ -408,12 +491,16 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
 
     fun onAudioFocusGained() {
         runtime.onAudioFocusGained()
+        _state.update { it.copy(transportStatus = "Audio focus restored.") }
         refreshRuntimeState()
     }
 
     fun onAudioFocusLost(transient: Boolean) {
         runtime.onAudioFocusLost(transient)
+        runtime.bassAllNotesOff()
+        runtime.voiceAllNotesOff()
         runtime.stop()
+        _state.update { it.copy(activePerformanceNote = null, transportStatus = if (transient) "Audio focus lost transiently; transport stopped." else "Audio focus lost; transport stopped.") }
         refreshRuntimeState()
     }
 
@@ -438,8 +525,75 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
             runtime.setTrackVolume(track.id, track.volume)
             track.steps.forEachIndexed { stepIndex, step ->
                 runtime.setStep(track.id, stepIndex, step.active, step.velocity, step.note)
+                runtime.setStepProbability(track.id, stepIndex, step.probability)
+                runtime.setStepAccent(track.id, stepIndex, step.accent)
+                runtime.setStepRoll(track.id, stepIndex, step.rollCount)
             }
         }
+    }
+
+    private fun updateSelectedStep(
+        detail: String,
+        transform: (TrackState, Int, StepState) -> StepState,
+    ) {
+        val state = _state.value
+        val trackIndex = state.selectedTrack
+        val track = state.tracks[trackIndex]
+        val stepIndex = state.selectedStep.coerceIn(0, track.steps.lastIndex)
+        pushPatternUndo(trackIndex, track.steps)
+        val nextSteps = track.steps.mapIndexed { index, step ->
+            if (index == stepIndex) transform(track, stepIndex, step) else step
+        }
+        replacePattern(trackIndex, nextSteps, "${track.name} step ${stepIndex + 1}: $detail.")
+    }
+
+    private fun pushPatternUndo(trackIndex: Int, steps: List<StepState>) {
+        val stack = patternUndo.getOrPut(trackIndex) { ArrayDeque() }
+        stack.addLast(steps.map { it.copy() })
+        while (stack.size > 32) stack.removeFirst()
+        patternRedo.getOrPut(trackIndex) { ArrayDeque() }.clear()
+    }
+
+    private fun restorePatternSnapshot(
+        source: MutableMap<Int, ArrayDeque<List<StepState>>>,
+        destination: MutableMap<Int, ArrayDeque<List<StepState>>>,
+        action: String,
+    ) {
+        val state = _state.value
+        val trackIndex = state.selectedTrack
+        val track = state.tracks[trackIndex]
+        val stack = source.getOrPut(trackIndex) { ArrayDeque() }
+        if (stack.isEmpty()) {
+            _state.update { it.copy(patternStatus = "$action unavailable for ${track.name}.") }
+            return
+        }
+        destination.getOrPut(trackIndex) { ArrayDeque() }.addLast(track.steps.map { it.copy() })
+        val snapshot = stack.removeLast()
+        applyPatternToNative(track.id, snapshot)
+        replacePattern(trackIndex, snapshot, "$action applied to ${track.name}.")
+    }
+
+    private fun applyPatternToNative(trackId: Int, steps: List<StepState>) {
+        runtime.clearPattern(trackId)
+        runtime.setPatternLength(trackId, steps.size)
+        steps.forEachIndexed { index, step ->
+            runtime.setStep(trackId, index, step.active, step.velocity, step.note)
+            runtime.setStepProbability(trackId, index, step.probability)
+            runtime.setStepAccent(trackId, index, step.accent)
+            runtime.setStepRoll(trackId, index, step.rollCount)
+        }
+    }
+
+    private fun replacePattern(trackIndex: Int, steps: List<StepState>, status: String) {
+        _state.update { current ->
+            current.copy(
+                patternStatus = status,
+                tracks = current.tracks.mapIndexed { index, track ->
+                    if (index == trackIndex) track.copy(steps = steps.map { it.copy() }) else track
+                },
+            )
+        }
+        persist()
     }
 
     private fun restorePersistedSamples() {

@@ -121,6 +121,24 @@ Sprint 13 (`Voice Macro Controls`) ist fuer den ersten Native-Voice-Parameter-Sl
 
 Weiterhin offen: Sample-Slots, Recording/Permission, Live-Input, Takes-Liste, AI-Voice-Aktionen und hoerbarer Voice-E2E.
 
+Sprint 14 (`Transport Lifecycle Safety`) ist `DEVICE VERIFIED`:
+
+- Play meldet den tatsaechlich angeforderten Native-Oboe-Pfad sichtbar.
+- Stop sowie permanenter/transienter Audio-Focus-Verlust senden Bass/Voice All-Notes-Off und stoppen den Transport.
+- Sample-Cold-Load blockiert Play sichtbar statt einen widerspruechlichen Transportzustand zu zeigen.
+- Tempoaenderungen und Focus-Rueckkehr aktualisieren den sichtbaren Transportstatus.
+- Device-Test auf `RZCY91QYC9N`: Play zeigte `TRANSPORT PLAYING` und Native-Oboe-Status, Stop zeigte freigegebene Performance-Noten; keine `FATAL EXCEPTION`.
+
+Sprint 15 (`Pattern Deep Edit`) ist `DEVICE VERIFIED`:
+
+- Der ausgewaehlte 16-Step kann Velocity, Probability, Accent und Roll direkt in Native Groove schreiben.
+- Clear, Copy/Paste sowie lokales Undo/Redo halten Compose-Projektzustand und Native Pattern synchron.
+- Die neuen Step-Parameter werden mit Persistenzschema 7 gespeichert, geladen und beim Start in Native Groove hydriert.
+- Debug-APK mit Kotlin, JNI/C++ und allen drei konfigurierten ABIs erfolgreich gebaut.
+- Device-Test auf `RZCY91QYC9N`: Step 1 auf `VEL 95`, `CH 90%`, Accent und `R1` editiert; Undo/Redo und Clear/Undo sichtbar geprueft.
+- Force-Stop/Relaunch stellte Step, Velocity, Probability, Accent und Roll aus Schema 7 wieder her.
+- Landscape-Sichtpruefung bestaetigte alle Editorwerkzeuge ohne Ueberlappung im ersten Viewport.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.
@@ -168,7 +186,7 @@ Statuswerte:
 | App Shell | `Index.tsx` + globale Groovebox-Struktur | `VibeCoreApp.kt` | SHELL | SHELL | SHELL | n/a | OPEN | OPEN | SHELL |
 | Top Transport | `TopBar.tsx` | Compose TransportPanel | SHELL | WIRED | WIRED | WIRED | OPEN | OPEN | WIRED |
 | Track Selector | Groovebox part strip | Compose TrackStrip | SHELL | WIRED | WIRED | n/a | OPEN | OPEN | WIRED |
-| 16-Step Pattern | Pattern/Performance views | Compose PatternPanel | SHELL | WIRED | WIRED | WIRED | OPEN | OPEN | WIRED |
+| 16-Step Pattern | Pattern/Performance views | Compose PatternPanel | SHELL | WIRED DEEP EDIT | WIRED | WIRED | WIRED SCHEMA 7 | DEVICE VERIFIED | DEVICE VERIFIED SLICE |
 | Mute / Solo | Channel/Pattern controls | Compose PatternPanel | SHELL | WIRED | WIRED | WIRED | OPEN | OPEN | WIRED |
 | Scene / Pattern Banks | Web Scene/Pattern workflow | Native Scene/Pattern screen | SHELL | WIRED SCENE QUEUE | PARTIAL | PARTIAL CORE | OPEN | PARTIAL | DEVICE VERIFIED SLICE |
 | Mixer | `MixTab` / `ChannelStrip` | `MixerScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE CORE PARTIAL | OPEN | OPEN | REFERENCE |
