@@ -151,6 +151,9 @@ class NativeAudioBridge(private val context: Context) {
 
     // ── Phase 3: Groove — Scene ───────────────────────────────────────────────
 
+    @JavascriptInterface fun grooveSetPatternBank(track: Int, bank: Int) { if (isLoaded) try { nativeGrooveSetPatternBank(track, bank.coerceIn(0,7)) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun grooveConfigureSceneBank(scene: Int, track: Int, bank: Int) { if (isLoaded) try { nativeGrooveConfigureSceneBank(scene.coerceIn(0,7), track, bank.coerceIn(0,7)) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun grooveSetActiveScene(scene: Int) { if (isLoaded) try { nativeGrooveSetActiveScene(scene.coerceIn(0,7)) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
     @JavascriptInterface fun grooveQueueSceneChange(scene: Int) { if (isLoaded) try { nativeGrooveQueueSceneChange(scene) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
 
     // ── Phase 3: Groove — Piano Roll ──────────────────────────────────────────
@@ -313,6 +316,9 @@ class NativeAudioBridge(private val context: Context) {
     private external fun nativeGrooveSetTrackSample(t: Int, id: Int)
     private external fun nativeGrooveSetTrackMode(t: Int, mode: Int)
     private external fun nativeGrooveQueueSceneChange(scene: Int)
+    private external fun nativeGrooveSetPatternBank(track: Int, bank: Int)
+    private external fun nativeGrooveConfigureSceneBank(scene: Int, track: Int, bank: Int)
+    private external fun nativeGrooveSetActiveScene(scene: Int)
     private external fun nativeGrooveAddPianoRollNote(t: Int, start: Long, end: Long, note: Int, vel: Int)
     private external fun nativeGrooveRemovePianoRollNote(t: Int, idx: Int)
     private external fun nativeGrooveClearPianoRoll(t: Int)

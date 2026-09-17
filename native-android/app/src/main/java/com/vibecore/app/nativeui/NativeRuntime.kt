@@ -84,6 +84,18 @@ class NativeRuntime(context: Context) {
         bridge.grooveSetPatternLength(track, steps)
     }
 
+    fun setPatternBank(track: Int, bank: Int) {
+        bridge.grooveSetPatternBank(track, bank)
+    }
+
+    fun configureSceneBank(scene: Int, track: Int, bank: Int) {
+        bridge.grooveConfigureSceneBank(scene, track, bank)
+    }
+
+    fun setActiveScene(scene: Int) {
+        bridge.grooveSetActiveScene(scene)
+    }
+
     fun setTrackMute(track: Int, muted: Boolean) {
         bridge.grooveSetTrackMute(track, muted)
     }

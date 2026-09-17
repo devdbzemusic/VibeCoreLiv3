@@ -103,6 +103,9 @@ public:
     void setTrackMode  (int track, TrackMode mode) noexcept;
 
     // Scene
+    void setActiveScene(int32_t sceneIdx) noexcept;
+    void setPatternBank(int track, int bank) noexcept;
+    void configureSceneBank(int32_t sceneIdx, int track, int bank) noexcept;
     void queueSceneChange(int32_t sceneIdx) noexcept;
 
     // Piano Roll
@@ -152,7 +155,7 @@ private:
     uint32_t mRng = 0xC0FFEE42;
 
     // ── Cross-thread command queue ────────────────────────────────────────
-    AudioThreadSafeQueue<GrooveCommand, 256> mCommandQueue;
+    AudioThreadSafeQueue<GrooveCommand, 4096> mCommandQueue;
 
     // ── Atomic approximate state (for UI display) ─────────────────────────
     std::atomic<int32_t> mPublicActiveVoices{0};

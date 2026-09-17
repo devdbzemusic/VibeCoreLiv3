@@ -479,6 +479,27 @@ Geprueft:
 - Lokale Evidenz: `evidence/vibecore-sprint15-layout-fixed.png`, `evidence/vibecore-sprint15-edited.png`, `evidence/vibecore-sprint15-relaunch.png`, `evidence/vibecore-sprint15-playing.png`, `evidence/vibecore-sprint15-stopped.png`.
 - Portrait-Abnahme bleibt fuer einen spaeteren Layout-Gate offen.
 
+## Sprint 16 — Pattern / Scene Banks
+
+Geaendert:
+
+- Acht Pattern-Banks pro Track in `VibeCoreUiState` und `NativeProjectRepository` eingefuehrt.
+- Persistenzschema 8 migriert die bisherigen Schema-7-Pattern automatisch nach Bank 1.
+- Native Groove API um Pattern-Bank-Auswahl, Scene-Bank-Konfiguration und unmittelbare Scene-Aktivierung erweitert.
+- Alle acht Scenes mappen im Audio Thread jeden Track auf den gleichnamigen Pattern-Bankindex.
+- Groove-Command-Queue auf 4096 vorallozierte Eintraege erweitert, damit der komplette Bank-Replay vor Transportstart erhalten bleibt.
+- Pattern-Editor zeigt die aktuell bearbeitete Bank sichtbar an.
+
+Geprueft:
+
+- `:app:assembleDebug` mit JDK 17 fuer `arm64-v8a`, `armeabi-v7a` und `x86_64` erfolgreich.
+- APK auf `RZCY91QYC9N` installiert.
+- Bank 2 mit aktivem Step 2 angelegt; Force-Stop/Relaunch stellte Bank 2 wieder her.
+- Rueckwechsel zu Bank 1 bestaetigte isolierte Sprint-15-Werte `VEL 95`, `CH 90%`, Accent und `R1`.
+- Bei laufendem Transport blieb Scene 2 zunaechst `PENDING` und wurde erst an der Native-Bar-Grenze `ACTIVE`.
+- Keine `FATAL EXCEPTION` in Logcat.
+- Lokale Evidenz: `evidence/vibecore-sprint16-bank2-relaunch.png`, `evidence/vibecore-sprint16-bank1-return.png`, `evidence/vibecore-sprint16-scene2-pending.png`, `evidence/vibecore-sprint16-scene2-active.png`.
+
 Naechster grosser Sprint:
 
 - Pattern-/Scene-Banks als zusammenhaengendes Projektmodell mit bar-synchronem Native-Groove-Wechsel und Persistenz.

@@ -2,7 +2,7 @@
 /**
  * GrooveCommands.h — Commands from UI Thread to GrooveNode (Audio Thread).
  *
- * All commands pass through AudioThreadSafeQueue<GrooveCommand, 256>.
+ * All commands pass through AudioThreadSafeQueue<GrooveCommand, 4096>.
  * Must be trivially copyable (checked by static_assert).
  *
  * UI-thread state changes (pattern edits, mute, scene switch, etc.)
@@ -51,6 +51,7 @@ struct GrooveCommand {
         SetActiveScene       = 40,  // int32Val = scene index
         SetSceneBank         = 41,  // trackIdx, int32Val=bank
         QueueSceneChange     = 42,  // int32Val = target scene (applied on next bar)
+        ConfigureSceneBank   = 43,  // stepIdx=scene, trackIdx=track, int32Val=bank
 
         // Track
         SetTrackMute         = 50,  // trackIdx, boolVal

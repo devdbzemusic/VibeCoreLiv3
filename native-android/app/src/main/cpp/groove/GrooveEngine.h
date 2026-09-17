@@ -136,6 +136,11 @@ public:
     void setTrackSample(int t, int sampleId);
     void setTrackMode  (int t, TrackMode mode);
 
+    void setPatternBank(int t, int bank);
+    void configureSceneBank(int32_t sceneIdx, int t, int bank) {
+        mNode.configureSceneBank(sceneIdx, t, bank);
+    }
+    void setActiveScene(int32_t sceneIdx) { mNode.setActiveScene(sceneIdx); }
     void queueSceneChange(int32_t sceneIdx) { mNode.queueSceneChange(sceneIdx); }
 
     void addPianoRollNote   (int t, int64_t start, int64_t end, uint8_t note, uint8_t vel);

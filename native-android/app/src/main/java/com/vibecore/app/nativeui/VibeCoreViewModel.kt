@@ -77,21 +77,22 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         val snapshot = _state.value
         val trackIndex = snapshot.selectedTrack
         val track = snapshot.tracks[trackIndex]
-        if (step !in track.steps.indices) return
-        pushPatternUndo(trackIndex, track.steps)
-        val nextActive = !track.steps[step].active
-        runtime.setStep(track.id, step, nextActive, track.steps[step].velocity, track.steps[step].note)
+        val steps = selectedBankSteps(snapshot, trackIndex)
+        if (step !in steps.indices) return
+        pushPatternUndo(snapshot, trackIndex, steps)
+        val nextActive = !steps[step].active
+        runtime.setStep(track.id, step, nextActive, steps[step].velocity, steps[step].note)
         _state.update { state ->
             state.copy(
                 selectedStep = step,
                 patternStatus = "${track.name} step ${step + 1} ${if (nextActive) "enabled" else "disabled"}.",
                 tracks = state.tracks.mapIndexed { index, item ->
                     if (index != trackIndex) item
-                    else item.copy(
-                        steps = item.steps.mapIndexed { stepIndex, value ->
+                    else item.copy(patternBanks = item.patternBanks.mapIndexed { bank, bankSteps ->
+                        if (bank != state.selectedPatternBank) bankSteps else bankSteps.mapIndexed { stepIndex, value ->
                             if (stepIndex == step) value.copy(active = nextActive) else value
                         }
-                    )
+                    })
                 }
             )
         }
@@ -164,16 +165,17 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
     fun clearPattern() {
         val state = _state.value
         val track = state.tracks[state.selectedTrack]
-        pushPatternUndo(state.selectedTrack, track.steps)
+        val steps = selectedBankSteps(state, state.selectedTrack)
+        pushPatternUndo(state, state.selectedTrack, steps)
         runtime.clearPattern(track.id)
-        replacePattern(state.selectedTrack, List(track.steps.size) { StepState() }, "${track.name} pattern cleared.")
+        replacePattern(state.selectedTrack, List(steps.size) { StepState() }, "${track.name} bank ${state.selectedPatternBank + 1} cleared.")
     }
 
     fun copyPattern() {
         val state = _state.value
         val track = state.tracks[state.selectedTrack]
-        patternClipboard = track.steps.map { it.copy() }
-        _state.update { it.copy(patternStatus = "${track.name} pattern copied.") }
+        patternClipboard = selectedBankSteps(state, state.selectedTrack).map { it.copy() }
+        _state.update { it.copy(patternStatus = "${track.name} bank ${state.selectedPatternBank + 1} copied.") }
     }
 
     fun pastePattern() {
@@ -183,9 +185,9 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         }
         val state = _state.value
         val track = state.tracks[state.selectedTrack]
-        pushPatternUndo(state.selectedTrack, track.steps)
+        pushPatternUndo(state, state.selectedTrack, selectedBankSteps(state, state.selectedTrack))
         applyPatternToNative(track.id, copied)
-        replacePattern(state.selectedTrack, copied, "Pattern pasted to ${track.name}.")
+        replacePattern(state.selectedTrack, copied, "Pattern pasted to ${track.name} bank ${state.selectedPatternBank + 1}.")
     }
 
     fun undoPattern() = restorePatternSnapshot(patternUndo, patternRedo, "Undo")
@@ -443,17 +445,28 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
 
     fun queueScene(scene: Int) {
         val target = scene.coerceIn(0, 7)
-        val ok = runtime.queueSceneChange(target)
+        val playing = runtime.isPlaying()
+        val ok = if (playing) {
+            runtime.queueSceneChange(target)
+        } else {
+            _state.value.tracks.forEach { runtime.setPatternBank(it.id, target) }
+            runtime.setActiveScene(target)
+            true
+        }
         _state.update {
             it.copy(
-                pendingScene = if (ok) target else it.pendingScene,
+                activeScene = if (ok && !playing) target else it.activeScene,
+                selectedPatternBank = if (ok && !playing) target else it.selectedPatternBank,
+                pendingScene = if (ok && playing) target else null,
                 sceneStatus = if (ok) {
-                    "Scene ${target + 1} queued through Native Groove."
+                    if (playing) "Scene ${target + 1} queued for the next Native Groove bar."
+                    else "Scene ${target + 1} active; Pattern editor now uses bank ${target + 1}."
                 } else {
                     "Scene queue failed: native engine unavailable."
                 },
             )
         }
+        if (ok && !playing) persist()
     }
 
     fun addPianoRollNote(note: Int) {
@@ -519,17 +532,23 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         runtime.setVoiceGlideMs(state.voiceGlideMs)
         state.tracks.forEach { track ->
             runtime.setTrackMode(track.id, track.kind)
-            runtime.setPatternLength(track.id, track.steps.size)
             runtime.setTrackMute(track.id, track.muted)
             runtime.setTrackSolo(track.id, track.soloed)
             runtime.setTrackVolume(track.id, track.volume)
-            track.steps.forEachIndexed { stepIndex, step ->
-                runtime.setStep(track.id, stepIndex, step.active, step.velocity, step.note)
-                runtime.setStepProbability(track.id, stepIndex, step.probability)
-                runtime.setStepAccent(track.id, stepIndex, step.accent)
-                runtime.setStepRoll(track.id, stepIndex, step.rollCount)
+            track.patternBanks.forEachIndexed { bank, steps ->
+                runtime.configureSceneBank(bank, track.id, bank)
+                runtime.setPatternBank(track.id, bank)
+                runtime.setPatternLength(track.id, steps.size)
+                steps.forEachIndexed { stepIndex, step ->
+                    runtime.setStep(track.id, stepIndex, step.active, step.velocity, step.note)
+                    runtime.setStepProbability(track.id, stepIndex, step.probability)
+                    runtime.setStepAccent(track.id, stepIndex, step.accent)
+                    runtime.setStepRoll(track.id, stepIndex, step.rollCount)
+                }
             }
+            runtime.setPatternBank(track.id, state.selectedPatternBank)
         }
+        runtime.setActiveScene(state.selectedPatternBank)
     }
 
     private fun updateSelectedStep(
@@ -539,19 +558,21 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         val state = _state.value
         val trackIndex = state.selectedTrack
         val track = state.tracks[trackIndex]
-        val stepIndex = state.selectedStep.coerceIn(0, track.steps.lastIndex)
-        pushPatternUndo(trackIndex, track.steps)
-        val nextSteps = track.steps.mapIndexed { index, step ->
+        val steps = selectedBankSteps(state, trackIndex)
+        val stepIndex = state.selectedStep.coerceIn(0, steps.lastIndex)
+        pushPatternUndo(state, trackIndex, steps)
+        val nextSteps = steps.mapIndexed { index, step ->
             if (index == stepIndex) transform(track, stepIndex, step) else step
         }
         replacePattern(trackIndex, nextSteps, "${track.name} step ${stepIndex + 1}: $detail.")
     }
 
-    private fun pushPatternUndo(trackIndex: Int, steps: List<StepState>) {
-        val stack = patternUndo.getOrPut(trackIndex) { ArrayDeque() }
+    private fun pushPatternUndo(state: VibeCoreUiState, trackIndex: Int, steps: List<StepState>) {
+        val key = historyKey(trackIndex, state.selectedPatternBank)
+        val stack = patternUndo.getOrPut(key) { ArrayDeque() }
         stack.addLast(steps.map { it.copy() })
         while (stack.size > 32) stack.removeFirst()
-        patternRedo.getOrPut(trackIndex) { ArrayDeque() }.clear()
+        patternRedo.getOrPut(key) { ArrayDeque() }.clear()
     }
 
     private fun restorePatternSnapshot(
@@ -562,12 +583,14 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
         val state = _state.value
         val trackIndex = state.selectedTrack
         val track = state.tracks[trackIndex]
-        val stack = source.getOrPut(trackIndex) { ArrayDeque() }
+        val key = historyKey(trackIndex, state.selectedPatternBank)
+        val steps = selectedBankSteps(state, trackIndex)
+        val stack = source.getOrPut(key) { ArrayDeque() }
         if (stack.isEmpty()) {
             _state.update { it.copy(patternStatus = "$action unavailable for ${track.name}.") }
             return
         }
-        destination.getOrPut(trackIndex) { ArrayDeque() }.addLast(track.steps.map { it.copy() })
+        destination.getOrPut(key) { ArrayDeque() }.addLast(steps.map { it.copy() })
         val snapshot = stack.removeLast()
         applyPatternToNative(track.id, snapshot)
         replacePattern(trackIndex, snapshot, "$action applied to ${track.name}.")
@@ -589,12 +612,21 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
             current.copy(
                 patternStatus = status,
                 tracks = current.tracks.mapIndexed { index, track ->
-                    if (index == trackIndex) track.copy(steps = steps.map { it.copy() }) else track
+                    if (index != trackIndex) track else track.copy(
+                        patternBanks = track.patternBanks.mapIndexed { bank, bankSteps ->
+                            if (bank == current.selectedPatternBank) steps.map { it.copy() } else bankSteps
+                        },
+                    )
                 },
             )
         }
         persist()
     }
+
+    private fun selectedBankSteps(state: VibeCoreUiState, trackIndex: Int): List<StepState> =
+        state.tracks[trackIndex].patternBanks[state.selectedPatternBank]
+
+    private fun historyKey(trackIndex: Int, bank: Int): Int = trackIndex * PATTERN_BANK_COUNT + bank
 
     private fun restorePersistedSamples() {
         val assets = initialState.tracks.mapIndexedNotNull { index, track ->
@@ -651,17 +683,23 @@ class VibeCoreViewModel(application: Application) : AndroidViewModel(application
     private fun refreshRuntimeState() {
         val current = _state.value
         val selectedTrackId = current.tracks.getOrNull(current.selectedTrack)?.id ?: 0
+        val playing = runtime.isPlaying()
+        val nativeScene = runtime.activeScene().coerceIn(0, PATTERN_BANK_COUNT - 1)
         _state.update {
+            val sceneApplied = playing && nativeScene != it.activeScene
             it.copy(
                 nativeAvailable = runtime.isAvailable(),
                 engineRunning = runtime.isEngineRunning(),
-                playing = runtime.isPlaying(),
+                playing = playing,
                 currentStep = runtime.currentStep(selectedTrackId).coerceAtLeast(0),
                 latencyMs = runtime.latencyMs(),
                 diagnostic = runtime.diagnostic(),
                 bassActiveVoices = runtime.bassActiveVoices(),
                 bassOutputLevel = runtime.bassOutputLevel(),
-                activeScene = runtime.activeScene(),
+                activeScene = if (playing) nativeScene else it.activeScene,
+                selectedPatternBank = if (sceneApplied) nativeScene else it.selectedPatternBank,
+                pendingScene = if (sceneApplied && it.pendingScene == nativeScene) null else it.pendingScene,
+                sceneStatus = if (sceneApplied) "Scene ${nativeScene + 1} active at Native Groove bar boundary." else it.sceneStatus,
                 voiceActiveUnits = runtime.voiceActiveUnits(),
                 voiceOutputLevel = runtime.voiceOutputLevel(),
                 voiceInputLevel = runtime.voiceInputLevel(),

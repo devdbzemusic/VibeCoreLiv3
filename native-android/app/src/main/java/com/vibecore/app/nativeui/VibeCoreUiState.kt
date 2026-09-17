@@ -2,6 +2,7 @@ package com.vibecore.app.nativeui
 
 enum class NativeScreen { PATTERN, SCENE, MIXER, SAMPLE, BASS, SYNTH, ROLL, VOICE, SETTINGS }
 enum class TrackKind(val nativeMode: Int) { DRUM(0), BASS(1), SYNTH(2), SAMPLE(3), VOICE(4) }
+const val PATTERN_BANK_COUNT = 8
 
 data class StepState(
     val active: Boolean = false,
@@ -16,7 +17,7 @@ data class TrackState(
     val id: Int,
     val name: String,
     val kind: TrackKind,
-    val steps: List<StepState> = List(16) { StepState() },
+    val patternBanks: List<List<StepState>> = List(PATTERN_BANK_COUNT) { List(16) { StepState() } },
     val muted: Boolean = false,
     val soloed: Boolean = false,
     val volume: Int = 100,
@@ -32,6 +33,7 @@ data class VibeCoreUiState(
     val bpm: Double = 120.0,
     val selectedTrack: Int = 0,
     val selectedStep: Int = 0,
+    val selectedPatternBank: Int = 0,
     val currentStep: Int = 0,
     val patternStatus: String = "Pattern editor ready. Native Groove owns playback and timing.",
     val latencyMs: Double = -1.0,

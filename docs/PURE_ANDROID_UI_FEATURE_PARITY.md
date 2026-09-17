@@ -139,6 +139,16 @@ Sprint 15 (`Pattern Deep Edit`) ist `DEVICE VERIFIED`:
 - Force-Stop/Relaunch stellte Step, Velocity, Probability, Accent und Roll aus Schema 7 wieder her.
 - Landscape-Sichtpruefung bestaetigte alle Editorwerkzeuge ohne Ueberlappung im ersten Viewport.
 
+Sprint 16 (`Pattern / Scene Banks`) ist `DEVICE VERIFIED`:
+
+- Acht getrennte Pattern-Banks pro Track sind im Kotlin-Projektmodell und Persistenzschema 8 vorhanden.
+- Schema-7-Einzelpattern werden verlustfrei nach Bank 1 migriert.
+- Jede der acht Scenes ist im Native Groove auf den gleichnamigen Bankindex aller 16 Tracks gemappt.
+- Scene-Wechsel im gestoppten Zustand aktivieren die Bank sofort; laufende Wechsel bleiben bis zur naechsten Native-Bar-Grenze `PENDING`.
+- Die Groove-Command-Queue fasst den vollstaendigen, vorallokierten Projekt-Replay ohne Locks oder Heap-Arbeit im Audio Thread.
+- Device-Test auf `RZCY91QYC9N`: Bank 2 mit eigenem Step 2 erstellt und ueber Relaunch erhalten; Bank 1 behielt unabhaengig ihre Sprint-15-Stepwerte.
+- Laufender Wechsel Scene 1 -> 2 zeigte zuerst `PENDING 2` und danach `ACTIVE 2` mit Status `Native Groove bar boundary`; keine `FATAL EXCEPTION`.
+
 ## Ziel
 
 Die Pure-Android-Migration ist **kein Redesign**.
@@ -188,7 +198,7 @@ Statuswerte:
 | Track Selector | Groovebox part strip | Compose TrackStrip | SHELL | WIRED | WIRED | n/a | OPEN | OPEN | WIRED |
 | 16-Step Pattern | Pattern/Performance views | Compose PatternPanel | SHELL | WIRED DEEP EDIT | WIRED | WIRED | WIRED SCHEMA 7 | DEVICE VERIFIED | DEVICE VERIFIED SLICE |
 | Mute / Solo | Channel/Pattern controls | Compose PatternPanel | SHELL | WIRED | WIRED | WIRED | OPEN | OPEN | WIRED |
-| Scene / Pattern Banks | Web Scene/Pattern workflow | Native Scene/Pattern screen | SHELL | WIRED SCENE QUEUE | PARTIAL | PARTIAL CORE | OPEN | PARTIAL | DEVICE VERIFIED SLICE |
+| Scene / Pattern Banks | Web Scene/Pattern workflow | Native Scene/Pattern screen | SHELL | WIRED 8 BANKS | WIRED | WIRED BAR SYNC | WIRED SCHEMA 8 | DEVICE VERIFIED | DEVICE VERIFIED |
 | Mixer | `MixTab` / `ChannelStrip` | `MixerScreen.kt` | REFERENCE | OPEN | OPEN | NATIVE CORE PARTIAL | OPEN | OPEN | REFERENCE |
 | Sample Forge | `SmplTab.tsx` / `ForgeTab.tsx` | `SampleForgeScreen.kt` | SHELL | WIRED | WIRED | NATIVE ASSET CORE PARTIAL | PARTIAL | PARTIAL | WIRED |
 | Synth 3D | `Synth3DPage.tsx` / subtabs | `Synth3DScreen.kt` | SHELL | WIRED KEYBOARD UI | PARTIAL | NATIVE SYNTH GAP | OPEN | PARTIAL | GAP VISIBLE |

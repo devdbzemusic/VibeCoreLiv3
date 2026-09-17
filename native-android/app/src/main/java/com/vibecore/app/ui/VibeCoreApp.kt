@@ -88,6 +88,8 @@ fun VibeCoreApp(viewModel: VibeCoreViewModel) {
                         TrackStrip(state.tracks, state.selectedTrack, compactLandscape, viewModel::selectTrack)
                         PatternPanel(
                             track = state.tracks[state.selectedTrack],
+                            steps = state.tracks[state.selectedTrack].patternBanks[state.selectedPatternBank],
+                            patternBank = state.selectedPatternBank,
                             selectedStep = state.selectedStep,
                             currentStep = state.currentStep,
                             status = state.patternStatus,
@@ -350,6 +352,8 @@ private fun TrackStrip(tracks: List<TrackState>, selected: Int, compact: Boolean
 @Composable
 private fun PatternPanel(
     track: TrackState,
+    steps: List<com.vibecore.app.nativeui.StepState>,
+    patternBank: Int,
     selectedStep: Int,
     currentStep: Int,
     status: String,
@@ -378,14 +382,14 @@ private fun PatternPanel(
                 Column(modifier = Modifier.width(420.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(track.name, color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 15.sp, modifier = Modifier.weight(1f))
-                        Text("PAT 01 | STEP ${selectedStep + 1}", color = VibeCoreColors.Muted, fontSize = 8.sp)
+                        Text("BANK ${patternBank + 1} | STEP ${selectedStep + 1}", color = VibeCoreColors.Muted, fontSize = 8.sp)
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                         PatternToggleButton("M", track.muted, VibeCoreColors.Crimson, onMute)
                         PatternToggleButton("S", track.soloed, VibeCoreColors.Amber, onSolo)
-                        PatternToggleButton("A", track.steps[selectedStep].accent, VibeCoreColors.Amber, onAccent)
-                        PatternToggleButton("R${track.steps[selectedStep].rollCount}", track.steps[selectedStep].rollCount > 0, VibeCoreColors.Magenta, onRoll)
-                        PatternValueControls(track.steps[selectedStep], true, onVelocity, onProbability)
+                        PatternToggleButton("A", steps[selectedStep].accent, VibeCoreColors.Amber, onAccent)
+                        PatternToggleButton("R${steps[selectedStep].rollCount}", steps[selectedStep].rollCount > 0, VibeCoreColors.Magenta, onRoll)
+                        PatternValueControls(steps[selectedStep], true, onVelocity, onProbability)
                     }
                     PatternOperationRow(true, onUndo, onRedo, onCopy, onPaste, onClear)
                     Text(status, color = VibeCoreColors.Lime, fontFamily = FontFamily.Monospace, fontSize = 8.sp, maxLines = 1)
@@ -397,7 +401,7 @@ private fun PatternPanel(
                                 val step = row * 8 + col
                                 StepCell(
                                     number = step + 1,
-                                    active = track.steps[step].active,
+                                    active = steps[step].active,
                                     playing = currentStep == step,
                                     onClick = { onToggleStep(step) },
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -413,17 +417,17 @@ private fun PatternPanel(
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(track.name, color = VibeCoreColors.Primary, fontWeight = FontWeight.Black, fontSize = 19.sp)
-                        Text("PATTERN 01 | STEP ${selectedStep + 1}", color = VibeCoreColors.Muted, fontSize = 10.sp)
+                        Text("PATTERN BANK ${patternBank + 1} | STEP ${selectedStep + 1}", color = VibeCoreColors.Muted, fontSize = 10.sp)
                     }
                     ToggleChip("M", track.muted, VibeCoreColors.Crimson, onMute)
                     Spacer(Modifier.width(6.dp))
                     ToggleChip("S", track.soloed, VibeCoreColors.Amber, onSolo)
                     Spacer(Modifier.width(6.dp))
-                    ToggleChip("A", track.steps[selectedStep].accent, VibeCoreColors.Amber, onAccent)
+                    ToggleChip("A", steps[selectedStep].accent, VibeCoreColors.Amber, onAccent)
                     Spacer(Modifier.width(6.dp))
-                    ToggleChip("R${track.steps[selectedStep].rollCount}", track.steps[selectedStep].rollCount > 0, VibeCoreColors.Magenta, onRoll)
+                    ToggleChip("R${steps[selectedStep].rollCount}", steps[selectedStep].rollCount > 0, VibeCoreColors.Magenta, onRoll)
                 }
-                PatternValueControls(track.steps[selectedStep], false, onVelocity, onProbability)
+                PatternValueControls(steps[selectedStep], false, onVelocity, onProbability)
                 PatternOperationRow(false, onUndo, onRedo, onCopy, onPaste, onClear)
                 Text(status, color = VibeCoreColors.Lime, fontFamily = FontFamily.Monospace, fontSize = 9.sp, maxLines = 1)
                 Column(modifier = Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)) {
@@ -433,7 +437,7 @@ private fun PatternPanel(
                                 val step = row * 4 + col
                                 StepCell(
                                     number = step + 1,
-                                    active = track.steps[step].active,
+                                    active = steps[step].active,
                                     playing = currentStep == step,
                                     onClick = { onToggleStep(step) },
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
