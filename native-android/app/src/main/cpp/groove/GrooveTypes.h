@@ -130,10 +130,11 @@ struct Track {
     int32_t   activeBank   = 0;
     int32_t   sampleId     = -1;   // sample assigned to this track (-1 = none)
     uint8_t   volume       = 100;  // 0–127
+    int8_t    pan          = 0;    // -100 left, 0 center, +100 right
     uint8_t   chokeGroup   = 0;    // 0 = no choke, 1–8 = choke group
     bool      muted        = false;
     bool      soloed       = false;
-    uint8_t   unused_[2]   = {};
+    uint8_t   unused_[1]   = {};
 
     Pattern& activePattern()             { return patterns[activeBank]; }
     const Pattern& activePattern() const { return patterns[activeBank]; }

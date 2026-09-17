@@ -124,6 +124,12 @@ void GrooveEngine::setStepMicroTiming(int t, int s, int16_t ticks) {
 
 // ─── Pattern ops ──────────────────────────────────────────────────────────────
 
+void GrooveEngine::setPatternBank(int t, int bank) {
+    if (!validTrack(t) || bank < 0 || bank >= kMaxPatternsPerBank) return;
+    mUITracks[t].activeBank = bank;
+    mNode.setPatternBank(t, bank);
+}
+
 void GrooveEngine::setPatternLength(int t, int steps) {
     if (!validTrack(t) || steps < 1 || steps > kMaxSteps) return;
     snapshotBefore(t);
@@ -204,6 +210,12 @@ void GrooveEngine::setTrackVolume(int t, uint8_t vol) {
     if (!validTrack(t)) return;
     mUITracks[t].volume = vol;
     mNode.setTrackVolume(t, vol);
+}
+
+void GrooveEngine::setTrackPan(int t, int8_t pan) {
+    if (!validTrack(t)) return;
+    mUITracks[t].pan = pan;
+    mNode.setTrackPan(t, pan);
 }
 
 void GrooveEngine::setTrackSample(int t, int id) {

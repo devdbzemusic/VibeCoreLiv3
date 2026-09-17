@@ -317,6 +317,27 @@ Java_com_vibecore_audio_NativeAudioBridge_nativeGrooveSetTrackMode(
 // ── Scene ─────────────────────────────────────────────────────────────────────
 
 JNIEXPORT void JNICALL
+Java_com_vibecore_audio_NativeAudioBridge_nativeGrooveSetPatternBank(
+        JNIEnv*, jobject, jint track, jint bank) {
+    markUIThread(); groove().setPatternBank(track, bank);
+}
+JNIEXPORT void JNICALL
+Java_com_vibecore_audio_NativeAudioBridge_nativeGrooveSetTrackPan(
+        JNIEnv*, jobject, jint t, jint pan) {
+    markUIThread(); groove().setTrackPan(t, static_cast<int8_t>(pan));
+}
+JNIEXPORT void JNICALL
+Java_com_vibecore_audio_NativeAudioBridge_nativeGrooveConfigureSceneBank(
+        JNIEnv*, jobject, jint scene, jint track, jint bank) {
+    markUIThread(); groove().configureSceneBank(scene, track, bank);
+}
+JNIEXPORT void JNICALL
+Java_com_vibecore_audio_NativeAudioBridge_nativeGrooveSetActiveScene(
+        JNIEnv*, jobject, jint scene) {
+    markUIThread(); groove().setActiveScene(scene);
+}
+
+JNIEXPORT void JNICALL
 Java_com_vibecore_audio_NativeAudioBridge_nativeGrooveQueueSceneChange(
         JNIEnv*, jobject, jint scene) {
     markUIThread(); groove().queueSceneChange(scene);

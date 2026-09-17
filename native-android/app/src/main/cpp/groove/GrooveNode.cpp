@@ -63,6 +63,7 @@ void GrooveNode::onTransportStop(int32_t /*sampleOffset*/) noexcept {
     for (auto& seq : mSequencers) seq.onTransportStop();
     mSceneEngine.onTransportStop();
     mTriggerQueue.clear();
+    VLOG_D("GrooveNode: transport stop");
 }
 
 void GrooveNode::onTick(int64_t absoluteTick,
@@ -248,6 +249,11 @@ void GrooveNode::handleCommand(const GrooveCommand& c) noexcept {
         break;
     case GrooveCommand::Type::SetTrackVolume:
         mTracks[t].volume = static_cast<uint8_t>(c.int32Val);
+        mVoicePool.setTrackVolume(t, mTracks[t].volume);
+        break;
+    case GrooveCommand::Type::SetTrackPan:
+        mTracks[t].pan = static_cast<int8_t>(c.int32Val);
+        mVoicePool.setTrackPan(t, mTracks[t].pan);
         break;
     case GrooveCommand::Type::SetTrackSample:
         mTracks[t].sampleId = c.int32Val;
@@ -265,8 +271,11 @@ void GrooveNode::handleCommand(const GrooveCommand& c) noexcept {
         mSceneEngine.applySceneNow(c.int32Val);
         break;
     case GrooveCommand::Type::SetSceneBank:
-        mTracks[t].activeBank = c.int32Val;
+        mTracks[t].activeBank = c.int32Val % kMaxPatternsPerBank;
         syncSequencerToTrack(t);
+        break;
+    case GrooveCommand::Type::ConfigureSceneBank:
+        mSceneEngine.setSceneBank(c.stepIdx, t, c.int32Val);
         break;
 
     // ── Piano Roll ──────────────────────────────────────────────────────────
@@ -376,6 +385,20 @@ void GrooveNode::setTrackMode(int t, TrackMode mode) noexcept {
 }
 void GrooveNode::queueSceneChange(int32_t sceneIdx) noexcept {
     GrooveCommand c; c.type=GrooveCommand::Type::QueueSceneChange; c.int32Val=sceneIdx; sendCommand(c);
+}
+void GrooveNode::setTrackPan(int t, int8_t pan) noexcept {
+    GrooveCommand c; c.type=GrooveCommand::Type::SetTrackPan; c.trackIdx=t; c.int32Val=pan; sendCommand(c);
+}
+void GrooveNode::setActiveScene(int32_t sceneIdx) noexcept {
+    GrooveCommand c; c.type=GrooveCommand::Type::SetActiveScene; c.int32Val=sceneIdx; sendCommand(c);
+}
+void GrooveNode::setPatternBank(int t, int bank) noexcept {
+    GrooveCommand c; c.type=GrooveCommand::Type::SetSceneBank;
+    c.trackIdx=t; c.int32Val=bank; sendCommand(c);
+}
+void GrooveNode::configureSceneBank(int32_t sceneIdx, int t, int bank) noexcept {
+    GrooveCommand c; c.type=GrooveCommand::Type::ConfigureSceneBank;
+    c.stepIdx=static_cast<uint8_t>(sceneIdx); c.trackIdx=t; c.int32Val=bank; sendCommand(c);
 }
 void GrooveNode::addPianoRollNote(int t, int64_t start, int64_t end,
                                    uint8_t note, uint8_t vel) noexcept {

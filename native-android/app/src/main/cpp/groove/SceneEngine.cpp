@@ -9,6 +9,13 @@ void SceneEngine::setScene(int32_t sceneIdx, const Scene& scene) noexcept {
     if (sceneIdx >= mSceneCount) mSceneCount = sceneIdx + 1;
 }
 
+void SceneEngine::setSceneBank(int32_t sceneIdx, int32_t track, int32_t bank) noexcept {
+    if (sceneIdx < 0 || sceneIdx >= kMaxScenes || track < 0 || track >= kMaxTracks) return;
+    mScenes[sceneIdx].bankIndex[track] = bank >= 0 ? bank % kMaxPatternsPerBank : 0;
+    mScenes[sceneIdx].valid = true;
+    if (sceneIdx >= mSceneCount) mSceneCount = sceneIdx + 1;
+}
+
 void SceneEngine::setChain(const SceneChain& chain) noexcept {
     mChain     = chain;
     mChainStep = 0;

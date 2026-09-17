@@ -84,6 +84,7 @@ struct UITrack {
     TrackMode mode         = TrackMode::Drum;
     int32_t   sampleId     = -1;
     uint8_t   volume       = 100;
+    int8_t    pan          = 0;
     uint8_t   chokeGroup   = 0;
     bool      muted        = false;
     bool      soloed       = false;
@@ -133,9 +134,15 @@ public:
     void setTrackMute  (int t, bool muted);
     void setTrackSolo  (int t, bool soloed);
     void setTrackVolume(int t, uint8_t vol);
+    void setTrackPan   (int t, int8_t pan);
     void setTrackSample(int t, int sampleId);
     void setTrackMode  (int t, TrackMode mode);
 
+    void setPatternBank(int t, int bank);
+    void configureSceneBank(int32_t sceneIdx, int t, int bank) {
+        mNode.configureSceneBank(sceneIdx, t, bank);
+    }
+    void setActiveScene(int32_t sceneIdx) { mNode.setActiveScene(sceneIdx); }
     void queueSceneChange(int32_t sceneIdx) { mNode.queueSceneChange(sceneIdx); }
 
     void addPianoRollNote   (int t, int64_t start, int64_t end, uint8_t note, uint8_t vel);

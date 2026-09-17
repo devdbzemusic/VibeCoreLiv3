@@ -58,6 +58,8 @@ public:
      * Handles choke group silencing and voice stealing.
      */
     void trigger(const Trigger& t) noexcept;
+    void setTrackVolume(int32_t track, uint8_t volume) noexcept;
+    void setTrackPan(int32_t track, int8_t pan) noexcept;
 
     // ── Render (Audio Thread — called from GrooveNode::process) ──────────
     /**
@@ -74,6 +76,8 @@ public:
 private:
     std::array<Voice, kMaxVoices>       mVoices       = {};
     std::array<SampleBuffer, kMaxSamples> mSamples    = {};
+    std::array<uint8_t, kMaxTracks>       mTrackVolume = {};
+    std::array<int8_t, kMaxTracks>        mTrackPan    = {};
     int32_t mSampleRate    = 48000;
     int32_t mStolenCount   = 0;
 
