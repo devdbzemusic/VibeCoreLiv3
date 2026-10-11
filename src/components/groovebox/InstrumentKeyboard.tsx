@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Minus, Plus } from "lucide-react";
-import { ensureAudio, getCtx, triggerPart } from "@/lib/audio/engine";
+import {
+  inferPerformanceInstrument,
+  performanceAllNotesOff,
+  performanceNoteOff,
+  performanceNoteOn,
+  type PerformanceInstrument,
+} from "@/lib/runtime/performanceInput";
 import { cn } from "@/lib/utils";
 
 const KEYS = [
@@ -21,6 +27,8 @@ const KEYS = [
 
 interface InstrumentKeyboardProps {
   partId: number;
+  /** Explicit runtime route. If omitted it is derived from the canonical Part. */
+  instrument?: PerformanceInstrument;
   title: string;
   baseOctave?: number;
   gateSec?: number;
@@ -28,8 +36,16 @@ interface InstrumentKeyboardProps {
   className?: string;
 }
 
+interface PointerNote {
+  midi: number;
+  instrument: PerformanceInstrument;
+  accepted: boolean;
+  released: boolean;
+}
+
 export function InstrumentKeyboard({
   partId,
+  instrument,
   title,
   baseOctave = 4,
   gateSec = 0.8,
@@ -37,20 +53,124 @@ export function InstrumentKeyboard({
   className,
 }: InstrumentKeyboardProps) {
   const [octave, setOctave] = useState(baseOctave);
-  const [active, setActive] = useState<number | null>(null);
+  const [active, setActive] = useState<Set<number>>(() => new Set());
+  const [runtimeMessage, setRuntimeMessage] = useState<string | null>(null);
+  const pointerNotes = useRef(new Map<number, PointerNote>());
+  const disposed = useRef(false);
 
-  const play = async (semitone: number) => {
-    setActive(semitone);
-    await ensureAudio();
-    const ctx = getCtx();
-    if (!ctx) return;
-    const midi = (octave + 1) * 12 + semitone;
-    triggerPart(partId, ctx.currentTime, {
+  const resolvedInstrument = () => instrument ?? inferPerformanceInstrument(partId);
+  const noteFor = (semitone: number) => (octave + 1) * 12 + semitone;
+
+  const addActive = (midi: number) => {
+    if (disposed.current) return;
+    setActive((prev) => {
+      const next = new Set(prev);
+      next.add(midi);
+      return next;
+    });
+  };
+
+  const removeActive = (midi: number) => {
+    if (disposed.current) return;
+    setActive((prev) => {
+      if (!prev.has(midi)) return prev;
+      const next = new Set(prev);
+      next.delete(midi);
+      return next;
+    });
+  };
+
+  const issueNoteOff = (note: PointerNote) => {
+    performanceNoteOff({
+      instrument: note.instrument,
+      partId,
+      midiNote: note.midi,
       velocity,
-      semitone: midi - 60,
       gateSec,
     });
   };
+
+  const play = async (pointerId: number, semitone: number) => {
+    const midi = noteFor(semitone);
+    const route = resolvedInstrument();
+
+    // Reserve pointer ownership before any async runtime startup. Pointer-up
+    // may arrive while ensureAudio()/activateNativeAudio() is still pending.
+    const pending: PointerNote = { midi, instrument: route, accepted: false, released: false };
+    pointerNotes.current.set(pointerId, pending);
+
+    const result = await performanceNoteOn({
+      instrument: route,
+      partId,
+      midiNote: midi,
+      velocity,
+      gateSec,
+    });
+
+    const current = pointerNotes.current.get(pointerId);
+    // Pointer ids can be reused. Ignore an obsolete completion rather than
+    // attaching it to a newer gesture.
+    if (current !== pending) {
+      if (result.accepted) issueNoteOff(pending);
+      return;
+    }
+
+    if (!result.accepted) {
+      pointerNotes.current.delete(pointerId);
+      if (!disposed.current) {
+        setRuntimeMessage(result.reason ?? "Performance input unavailable");
+        removeActive(midi);
+      }
+      return;
+    }
+
+    pending.accepted = true;
+
+    // A very short tap, cancellation or unmount may already have released the
+    // pointer while runtime activation was awaiting. Never let the late note-on
+    // become a hanging note.
+    if (pending.released || disposed.current) {
+      issueNoteOff(pending);
+      pointerNotes.current.delete(pointerId);
+      return;
+    }
+
+    if (!disposed.current) setRuntimeMessage(null);
+    addActive(midi);
+  };
+
+  const releasePointer = (pointerId: number) => {
+    const note = pointerNotes.current.get(pointerId);
+    if (!note) return;
+    note.released = true;
+    removeActive(note.midi);
+
+    if (!note.accepted) {
+      // Async note-on completion will immediately issue note-off if accepted.
+      return;
+    }
+
+    issueNoteOff(note);
+    pointerNotes.current.delete(pointerId);
+  };
+
+  useEffect(() => {
+    disposed.current = false;
+    return () => {
+      disposed.current = true;
+      const instruments = new Set<PerformanceInstrument>();
+      for (const note of pointerNotes.current.values()) {
+        note.released = true;
+        instruments.add(note.instrument);
+      }
+      if (instruments.size === 0) instruments.add(resolvedInstrument());
+
+      // Accepted notes are stopped immediately. Pending async notes keep their
+      // map entry so their completion can observe released/disposed and issue
+      // the matching note-off without touching React state.
+      for (const route of instruments) performanceAllNotesOff(route, partId);
+    };
+  }, [instrument, partId]);
 
   return (
     <div className={cn("panel p-3", className)}>
@@ -58,6 +178,11 @@ export function InstrumentKeyboard({
         <div>
           <div className="font-display text-xs text-primary">{title}</div>
           <div className="font-mono text-[8px] text-muted-foreground tracking-widest">TOUCH KEYBOARD · OCT {octave}</div>
+          {runtimeMessage && (
+            <div className="font-mono text-[8px] text-neon-amber mt-1" role="status">
+              {runtimeMessage}
+            </div>
+          )}
         </div>
         <div className="flex gap-1">
           <button
@@ -80,17 +205,18 @@ export function InstrumentKeyboard({
       <div className="no-scrollbar overflow-x-auto touch-scroll-x -mx-1 px-1">
         <div className="flex gap-1 min-w-max select-none">
           {KEYS.map((key, index) => {
-            const isActive = active === key.semitone;
+            const midi = noteFor(key.semitone);
+            const isActive = active.has(midi);
             return (
               <button
                 key={`${key.label}-${index}`}
                 onPointerDown={(e) => {
                   e.currentTarget.setPointerCapture(e.pointerId);
-                  void play(key.semitone);
+                  void play(e.pointerId, key.semitone);
                 }}
-                onPointerUp={() => setActive(null)}
-                onPointerCancel={() => setActive(null)}
-                onPointerLeave={() => setActive(null)}
+                onPointerUp={(e) => releasePointer(e.pointerId)}
+                onPointerCancel={(e) => releasePointer(e.pointerId)}
+                onLostPointerCapture={(e) => releasePointer(e.pointerId)}
                 className={cn(
                   "shrink-0 w-11 rounded-md border font-display transition-transform active:scale-95",
                   key.black

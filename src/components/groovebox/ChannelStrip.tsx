@@ -6,6 +6,7 @@
 
 import { useGroove } from "@/lib/store";
 import { SAMPLE_LIBRARY, type PartCategory } from "@/lib/model";
+import { setParameter } from "@/lib/parameters/hub";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Volume2, Volume1, Headphones, VolumeX } from "lucide-react";
 
@@ -63,7 +64,7 @@ function SampleSelect({ partId, category, current }: { partId: number; category:
 export function ChannelStrip() {
   const {
     parts, selectedPart, fx,
-    setPartVolume, setPartPan, setPartPitch, toggleMute, toggleSolo,
+    setPartPitch, toggleMute, toggleSolo,
     setChannel, setSynthParam, setSend,
   } = useGroove();
   const part = parts[selectedPart];
@@ -103,8 +104,8 @@ export function ChannelStrip() {
 
       {/* Common: Volume / Pan */}
       <div className="grid grid-cols-4 gap-1.5">
-        <Knob label="Volume" value={part.volume} min={0} max={100} onChange={(v) => setPartVolume(part.id, v)} suffix="%" />
-        <Knob label="Pan" value={part.pan} min={-50} max={50} onChange={(v) => setPartPan(part.id, v)} />
+        <Knob label="Volume" value={part.volume} min={0} max={100} onChange={(v) => setParameter(`part.${part.id}.volume`, v)} suffix="%" />
+        <Knob label="Pan" value={part.pan} min={-50} max={50} onChange={(v) => setParameter(`part.${part.id}.pan`, v)} />
         <Knob label="Tune" value={part.pitch} min={-24} max={24} onChange={(v) => setPartPitch(part.id, v)} suffix="st" />
         <Knob label="Drive" value={part.channel.drive} min={0} max={100} onChange={(v) => setChannel(part.id, { drive: v })} />
       </div>

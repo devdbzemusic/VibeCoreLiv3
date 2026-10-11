@@ -1,77 +1,109 @@
-# Base44 Project
+# VibeCoreLiv3
 
-Use this repository to run and edit the app locally, then publish changes back through Base44.
+VibeCoreLiv3 is a performance-oriented music workstation for Groove/Sequencing, Piano Roll editing, FX/Mixing, 3D Synth, 3D Bass, Voice, Remix, VibeCore AI and bRAINWAVEz.
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+The project combines a React/Vite UI with Android WebView integration and a native Kotlin/JNI/C++/Oboe audio path.
 
-## Prerequisites
+## Canonical engineering specification
 
-1. Clone the repository using the project's Git URL.
-2. Navigate to the project directory.
-3. Install dependencies: `npm install`.
-4. Install the Base44 CLI: `npm install -g base44@latest`.
+`docs/VibeCore_Univers_SUPREME_MasterPrompt_UNIFIED_v4.0.md`
 
-See the [Base44 CLI docs](https://docs.base44.com/developers/references/cli/get-started/overview) if you want to run Base44 commands directly.
+This is the normative engineering contract for architecture, real-time audio, sync, state, parameter ownership, AI, Android, UX and verification.
 
-## Run Locally
+## Current development phase
 
-Run the full local development environment from the project root:
+**RUNTIME CONSOLIDATION & UX PERFORMANCE REVISION**
+
+Current work focuses on:
+
+- one authoritative musical sync/timebase
+- one persistent state truth
+- central Parameter Hub
+- central Capability Registry
+- one frontend Runtime API over WebAudio and Native Android backends
+- strict Sample/Synth instrument boundaries
+- caching and memory budgets
+- React/UI performance
+- Android touch/latency/thermal behavior
+- AI Intent/Validation/Command boundaries
+- Motion Recorder integration
+- Remix live-input capabilities
+- executed E2E and performance verification
+
+See:
+
+- `docs/PROJECT_STATUS.md`
+- `docs/ARCHITECTURE.md`
+- `docs/CAPABILITY_MATRIX.md`
+- `docs/TEST_STATUS.md`
+- `docs/KNOWN_GAPS.md`
+
+## Development
+
+Install dependencies:
 
 ```bash
-base44 dev
+npm install
 ```
 
-`base44 dev` starts the local Base44 development backend and, when this app is configured for it, also starts the frontend dev server for you. Use the frontend URL printed by the command.
-
-For example, when the Base44 project config includes a `serveCommand`, `base44 dev` can launch the frontend too:
-
-```json5
-{
-  "site": {
-    "serveCommand": "npm run dev"
-  }
-}
-```
-
-In a Base44 project this lives in `base44/config.jsonc`.
-
-## Run Only The Frontend
-
-If you only want to work on the frontend against the hosted Base44 backend, run:
+Frontend development:
 
 ```bash
 npm run dev
 ```
 
-Open the local URL printed by Vite.
-
-## Use The Hosted Backend
-
-For frontend-only development, create or update `.env.local` in the project root:
+Static checks/tests:
 
 ```bash
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=https://your-app.base44.app
+npm run typecheck
+npm run lint
+npm run test
 ```
 
-`VITE_BASE44_APP_ID` identifies the Base44 app.
-
-`VITE_BASE44_APP_BASE_URL` tells the Base44 Vite plugin where to send local `/api` requests. Point it at your deployed Base44 app URL when you want the local frontend to use the hosted backend.
-
-When you use `base44 dev`, the command injects the local Base44 values for you, so `.env.local` is mainly needed for frontend-only workflows.
-
-## Publish Your Changes
-
-After pushing your changes to git, open the Base44 dashboard and publish the app:
+Web build:
 
 ```bash
-base44 dashboard open
+npm run build
 ```
 
-## Docs & Support
+Android-targeted web build:
 
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
+```bash
+npm run build:android
+```
 
-Base44 CLI command reference: [https://docs.base44.com/developers/references/cli/commands/introduction](https://docs.base44.com/developers/references/cli/commands/introduction)
+Native Android project:
 
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+`native-android/`
+
+Build/install/runtime results must only be called `VERIFIED` after they have actually been executed and evidence has been recorded.
+
+## Architecture summary
+
+```text
+React UI
+  ↓
+Domain Commands / Parameter Hub
+  ↓
+VibeCore Runtime API
+  ├── WebAudioBackend
+  └── NativeAndroidBackend
+        ↓
+      Kotlin Bridge
+        ↓
+      JNI
+        ↓
+      C++ / Oboe
+```
+
+VibeCore Sync is the sole authoritative musical timebase.
+
+## Product principle
+
+VibeCore should feel like an instrument rather than a conventional application:
+
+```text
+Start → choose/create a musical idea → play → shape → record → continue
+```
+
+Advanced technical detail should remain available without dominating the live performance workflow.

@@ -1,0 +1,91 @@
+package com.vibecore.app.nativeui
+
+enum class NativeScreen { PATTERN, SCENE, MIXER, SAMPLE, BASS, SYNTH, ROLL, VOICE, SETTINGS }
+enum class TrackKind(val nativeMode: Int) { DRUM(0), BASS(1), SYNTH(2), SAMPLE(3), VOICE(4) }
+const val PATTERN_BANK_COUNT = 8
+
+data class StepState(
+    val active: Boolean = false,
+    val velocity: Int = 100,
+    val note: Int = 60,
+    val probability: Int = 100,
+    val accent: Boolean = false,
+    val rollCount: Int = 0,
+)
+
+data class TrackState(
+    val id: Int,
+    val name: String,
+    val kind: TrackKind,
+    val patternBanks: List<List<StepState>> = List(PATTERN_BANK_COUNT) { List(16) { StepState() } },
+    val muted: Boolean = false,
+    val soloed: Boolean = false,
+    val volume: Int = 100,
+    val pan: Int = 0,
+    val sampleName: String? = null,
+    val sampleUri: String? = null,
+)
+
+data class VibeCoreUiState(
+    val nativeAvailable: Boolean = false,
+    val engineRunning: Boolean = false,
+    val playing: Boolean = false,
+    val transportStatus: String = "Transport ready. Native Oboe owns playback.",
+    val bpm: Double = 120.0,
+    val selectedTrack: Int = 0,
+    val selectedStep: Int = 0,
+    val selectedPatternBank: Int = 0,
+    val currentStep: Int = 0,
+    val patternStatus: String = "Pattern editor ready. Native Groove owns playback and timing.",
+    val latencyMs: Double = -1.0,
+    val diagnostic: String = "native:unknown",
+    val masterGain: Float = 1.0f,
+    val settingsStatus: String = "Native diagnostics ready. Master gain writes directly to the Oboe engine.",
+    val screen: NativeScreen = NativeScreen.PATTERN,
+    val sampleBusy: Boolean = false,
+    val sampleStatus: String = "Select a Sample-domain track and choose an audio file.",
+    val performanceStatus: String = "Bass keyboard ready. Synth keyboard awaits native Synth3D renderer.",
+    val activePerformanceNote: Int? = null,
+    val bassVolume: Float = 0.85f,
+    val bassCutoffHz: Float = 2600f,
+    val bassResonance: Float = 0.18f,
+    val bassGlideMs: Float = 35f,
+    val bassWaveform: Int = 2,
+    val bassActiveVoices: Int = 0,
+    val bassOutputLevel: Float = 0f,
+    val activeScene: Int = 0,
+    val pendingScene: Int? = null,
+    val sceneStatus: String = "Scene pads ready. Scene changes are queued through Native Groove.",
+    val pianoRollNotesAdded: Int = 0,
+    val pianoRollStatus: String = "Select Bass or Synth, then add notes to the Native Groove piano roll.",
+    val voiceStatus: String = "Voice keyboard ready. Sample slots and live input are follow-up parity work.",
+    val voiceVolume: Float = 0.9f,
+    val voiceDryWet: Float = 1.0f,
+    val voicePitchSemitones: Float = 0f,
+    val voiceFormantSemitones: Float = 0f,
+    val voiceGlideMs: Float = 0f,
+    val voiceActiveUnits: Int = 0,
+    val voiceOutputLevel: Float = 0f,
+    val voiceInputLevel: Float = 0f,
+    val voiceLiveInput: Boolean = false,
+    val tracks: List<TrackState> = defaultTracks(),
+)
+
+fun defaultTracks(): List<TrackState> = listOf(
+    TrackState(0, "KICK", TrackKind.DRUM),
+    TrackState(1, "SNARE", TrackKind.DRUM),
+    TrackState(2, "PERC", TrackKind.DRUM),
+    TrackState(3, "HAT", TrackKind.DRUM),
+    TrackState(4, "BASS", TrackKind.BASS),
+    TrackState(5, "SYNTH", TrackKind.SYNTH),
+    TrackState(6, "SAMPLE 1", TrackKind.SAMPLE),
+    TrackState(7, "SAMPLE 2", TrackKind.SAMPLE),
+    TrackState(8, "SAMPLE 3", TrackKind.SAMPLE),
+    TrackState(9, "SAMPLE 4", TrackKind.SAMPLE),
+    TrackState(10, "SAMPLE 5", TrackKind.SAMPLE),
+    TrackState(11, "SAMPLE 6", TrackKind.SAMPLE),
+    TrackState(12, "SAMPLE 7", TrackKind.SAMPLE),
+    TrackState(13, "SAMPLE 8", TrackKind.SAMPLE),
+    TrackState(14, "SAMPLE 9", TrackKind.SAMPLE),
+    TrackState(15, "SAMPLE 10", TrackKind.SAMPLE),
+)

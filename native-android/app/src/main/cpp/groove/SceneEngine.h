@@ -32,6 +32,7 @@ public:
 
     // ── Setup (UI Thread — before stream) ─────────────────────────────────
     void setScene(int32_t sceneIdx, const Scene& scene) noexcept;
+    void setSceneBank(int32_t sceneIdx, int32_t track, int32_t bank) noexcept;
     void setChain(const SceneChain& chain) noexcept;
 
     // ── Immediate state (UI Thread command application on Audio Thread) ───

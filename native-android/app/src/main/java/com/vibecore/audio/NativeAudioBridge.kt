@@ -146,11 +146,15 @@ class NativeAudioBridge(private val context: Context) {
     @JavascriptInterface fun grooveSetTrackMute   (t: Int, m: Boolean) { if (isLoaded) try { nativeGrooveSetTrackMute(t, m) }                        catch (e: Exception) { Log.e(tag, e.message ?: "") } }
     @JavascriptInterface fun grooveSetTrackSolo   (t: Int, s: Boolean) { if (isLoaded) try { nativeGrooveSetTrackSolo(t, s) }                        catch (e: Exception) { Log.e(tag, e.message ?: "") } }
     @JavascriptInterface fun grooveSetTrackVolume (t: Int, v: Int)     { if (isLoaded) try { nativeGrooveSetTrackVolume(t, v.coerceIn(0,127)) }       catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun grooveSetTrackPan    (t: Int, pan: Int)   { if (isLoaded) try { nativeGrooveSetTrackPan(t, pan.coerceIn(-100,100)) }      catch (e: Exception) { Log.e(tag, e.message ?: "") } }
     @JavascriptInterface fun grooveSetTrackSample (t: Int, id: Int)    { if (isLoaded) try { nativeGrooveSetTrackSample(t, id) }                      catch (e: Exception) { Log.e(tag, e.message ?: "") } }
     @JavascriptInterface fun grooveSetTrackMode   (t: Int, mode: Int)  { if (isLoaded) try { nativeGrooveSetTrackMode(t, mode) }                      catch (e: Exception) { Log.e(tag, e.message ?: "") } }
 
     // ── Phase 3: Groove — Scene ───────────────────────────────────────────────
 
+    @JavascriptInterface fun grooveSetPatternBank(track: Int, bank: Int) { if (isLoaded) try { nativeGrooveSetPatternBank(track, bank.coerceIn(0,7)) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun grooveConfigureSceneBank(scene: Int, track: Int, bank: Int) { if (isLoaded) try { nativeGrooveConfigureSceneBank(scene.coerceIn(0,7), track, bank.coerceIn(0,7)) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
+    @JavascriptInterface fun grooveSetActiveScene(scene: Int) { if (isLoaded) try { nativeGrooveSetActiveScene(scene.coerceIn(0,7)) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
     @JavascriptInterface fun grooveQueueSceneChange(scene: Int) { if (isLoaded) try { nativeGrooveQueueSceneChange(scene) } catch (e: Exception) { Log.e(tag, e.message ?: "") } }
 
     // ── Phase 3: Groove — Piano Roll ──────────────────────────────────────────
@@ -310,9 +314,13 @@ class NativeAudioBridge(private val context: Context) {
     private external fun nativeGrooveSetTrackMute(t: Int, m: Boolean)
     private external fun nativeGrooveSetTrackSolo(t: Int, s: Boolean)
     private external fun nativeGrooveSetTrackVolume(t: Int, v: Int)
+    private external fun nativeGrooveSetTrackPan(t: Int, pan: Int)
     private external fun nativeGrooveSetTrackSample(t: Int, id: Int)
     private external fun nativeGrooveSetTrackMode(t: Int, mode: Int)
     private external fun nativeGrooveQueueSceneChange(scene: Int)
+    private external fun nativeGrooveSetPatternBank(track: Int, bank: Int)
+    private external fun nativeGrooveConfigureSceneBank(scene: Int, track: Int, bank: Int)
+    private external fun nativeGrooveSetActiveScene(scene: Int)
     private external fun nativeGrooveAddPianoRollNote(t: Int, start: Long, end: Long, note: Int, vel: Int)
     private external fun nativeGrooveRemovePianoRollNote(t: Int, idx: Int)
     private external fun nativeGrooveClearPianoRoll(t: Int)
